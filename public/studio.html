@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DGX Avatar Studio</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>◉</text></svg>">
+  <style>
+    :root{--ink:#17231d;--muted:#69756e;--line:#dce3de;--paper:#f5f7f4;--card:#fff;--dark:#13261e;--green:#70d38f;--green-deep:#1b7140;--soft:#e8f6ec;--warn:#e69a39;--bad:#c64b4b;--shadow:0 18px 50px rgba(19,38,30,.08);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper)}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh}button,input,textarea,select{font:inherit}button{cursor:pointer}.app{min-height:100vh;display:grid;grid-template-columns:292px 1fr}.sidebar{position:sticky;top:0;height:100vh;background:var(--dark);color:#fff;padding:26px 18px;display:flex;flex-direction:column;overflow:hidden}.brand{display:flex;gap:12px;align-items:center;padding:0 8px 22px}.brandMark{width:40px;height:40px;border-radius:13px;background:var(--green);display:grid;place-items:center;color:var(--dark);font-weight:900;font-size:21px}.brand strong{display:block;font-size:15px;letter-spacing:.01em}.brand small{color:#91a69c}.sideLabel{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#789087;margin:14px 8px 9px}.avatarList{overflow:auto;display:grid;gap:7px;padding:0 2px}.avatarItem{border:1px solid transparent;background:transparent;color:#d7e3dc;border-radius:13px;padding:8px;display:flex;gap:10px;align-items:center;text-align:left;width:100%;margin:0}.avatarItem:hover{background:#1b3329}.avatarItem.active{background:#244334;border-color:#3c604e}.avatarThumb{width:43px;height:43px;border-radius:11px;background:#294438;object-fit:cover;flex:none}.avatarPh{display:grid;place-items:center;font-weight:800;color:#89ad98}.avatarInfo{min-width:0;flex:1}.avatarInfo strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}.avatarInfo small{display:block;color:#8fa59a;margin-top:3px}.readyDot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}.newAvatar{margin-top:auto;border-top:1px solid #294137;padding:18px 4px 0}.newAvatar input{background:#0d1e17;border:1px solid #345044;color:#fff}.sideFoot{font-size:10px;color:#657f72;padding:14px 6px 0;word-break:break-all}.main{min-width:0}.topbar{height:78px;padding:0 34px;display:flex;align-items:center;justify-content:space-between;background:rgba(245,247,244,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}.nav{display:flex;gap:6px;background:#e9eeea;padding:4px;border-radius:12px}.nav button{border:0;background:transparent;color:var(--muted);padding:9px 17px;border-radius:9px;font-weight:750}.nav button.active{background:#fff;color:var(--ink);box-shadow:0 2px 9px rgba(20,40,31,.08)}.health{display:flex;gap:15px;align-items:center;color:var(--muted);font-size:12px}.healthItem{display:flex;gap:6px;align-items:center}.dot{width:7px;height:7px;background:#aab4af;border-radius:50%}.dot.ok{background:#35b764}.dot.bad{background:var(--bad)}.content{max-width:1420px;margin:0 auto;padding:30px 34px 60px}.context{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;margin-bottom:24px}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--green-deep);font-weight:850}.context h1{font-size:30px;line-height:1.15;margin:7px 0 4px;letter-spacing:-.03em}.context p{margin:0;color:var(--muted);font-size:14px}.contextActions{display:flex;gap:8px;align-items:end}.stepper{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);background:#fff;border-radius:16px;padding:7px;margin-bottom:22px;box-shadow:0 4px 18px rgba(19,38,30,.04)}.step{border:0;background:transparent;text-align:left;padding:11px 13px;border-radius:11px;display:flex;align-items:center;gap:10px;color:var(--muted)}.step.active{background:var(--dark);color:#fff}.step:disabled{opacity:.42;cursor:not-allowed}.stepNum{width:27px;height:27px;border-radius:9px;border:1px solid #ccd7d0;display:grid;place-items:center;font-weight:850;font-size:12px}.step.active .stepNum{background:var(--green);border-color:var(--green);color:var(--dark)}.stepText strong{display:block;font-size:13px}.stepText small{font-size:11px;opacity:.74}.grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(290px,.75fr);gap:20px}.stack{display:grid;gap:20px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 4px 22px rgba(19,38,30,.045)}.cardHead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}.card h2,.card h3{margin:0;letter-spacing:-.02em}.card h2{font-size:19px}.card h3{font-size:15px}.cardHead p,.intro{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.5}.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#eef2ef;color:#647169;padding:6px 9px;font-size:11px;font-weight:800;white-space:nowrap}.badge.ready{background:var(--soft);color:var(--green-deep)}.badge.running{background:#fff2dc;color:#92611e}.badge.error{background:#fdeaea;color:#9f3535}.field{margin:14px 0}.field label{display:flex;justify-content:space-between;margin-bottom:7px;font-size:12px;font-weight:800;color:#536159}.hint{font-weight:500;color:#8a958f}.input,textarea,select{display:block;width:100%;border:1px solid #cfd9d2;background:#fbfcfb;color:var(--ink);border-radius:11px;padding:11px 12px;outline:none;transition:.15s}textarea{resize:vertical;min-height:116px;line-height:1.5}.input:focus,textarea:focus,select:focus{border-color:#55af74;box-shadow:0 0 0 3px rgba(85,175,116,.12)}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:15px}.btn{border:0;border-radius:11px;padding:11px 15px;background:var(--dark);color:#fff;font-weight:800;font-size:13px;margin:0}.btn:hover{filter:brightness(1.08)}.btn.primary{background:var(--green);color:var(--dark)}.btn.secondary{background:#edf1ee;color:var(--ink)}.btn.danger{background:#fde8e8;color:#a53c3c}.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}.btn:disabled{opacity:.42;cursor:not-allowed;filter:none}.smallBtn{padding:8px 10px;font-size:11px}.media{border-radius:15px;background:#e9eeea;overflow:hidden;min-height:220px;display:grid;place-items:center;color:#87928c}.media img,.media video{width:100%;max-height:520px;object-fit:contain;display:block}.media audio{width:calc(100% - 24px)}.upload{border:1.5px dashed #bfcac3;border-radius:14px;padding:18px;text-align:center;background:#fafcfa}.upload input{width:100%;font-size:12px}.status{font-size:12px;color:var(--muted);line-height:1.45;margin-top:10px}.status.bad{color:var(--bad)}.callout{background:var(--soft);border:1px solid #cce9d5;border-radius:14px;padding:14px 15px;color:#356246;font-size:12px;line-height:1.5}.job{background:#13261e;color:#fff;border-radius:16px;padding:16px;margin-bottom:20px;display:none}.jobTop{display:flex;justify-content:space-between;gap:14px;font-size:12px}.jobTop strong{font-size:13px}.progress{height:7px;background:#2b463a;border-radius:999px;overflow:hidden;margin:11px 0 8px}.progress span{height:100%;display:block;background:var(--green);width:0;transition:width .3s}.jobMeta{color:#a9bdb3;font-size:11px}.empty{padding:42px 20px;text-align:center;color:var(--muted)}.emptyMark{font-size:30px;margin-bottom:10px}.history{display:grid;gap:10px;max-height:670px;overflow:auto}.historyItem{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fff}.historyItem.selected{border-color:#66b982;box-shadow:0 0 0 3px rgba(102,185,130,.1)}.historyTop{display:flex;justify-content:space-between;gap:10px}.historyItem h4{margin:0 0 4px;font-size:13px}.historyItem p{margin:7px 0;color:var(--muted);font-size:11px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.historyItem audio{width:100%;height:32px;margin-top:5px}.historyItem video{width:100%;border-radius:9px;margin-top:8px;background:#111}.advanced{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.advanced summary{cursor:pointer;font-size:12px;font-weight:800;color:#58675f}.divider{height:1px;background:var(--line);margin:18px 0}.batchLayout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);gap:20px}.batchRows{display:grid;gap:10px}.batchRow{display:grid;grid-template-columns:190px 190px 1fr 38px;gap:8px;align-items:start;padding:10px;background:#f6f8f6;border:1px solid var(--line);border-radius:14px}.batchRow textarea{min-height:74px}.iconBtn{border:0;background:#fff;border:1px solid var(--line);border-radius:10px;width:38px;height:38px;color:#8a5656;font-weight:900}.batchSummary{display:grid;gap:9px}.batchItem{padding:11px;border:1px solid var(--line);border-radius:12px}.batchItemTop{display:flex;justify-content:space-between;gap:10px;font-size:12px}.miniProgress{height:5px;background:#e5eae7;border-radius:9px;margin-top:8px;overflow:hidden}.miniProgress span{height:100%;display:block;background:var(--green)}.batchHistory button{width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px;margin:0 0 7px}.batchHistory button.active{border-color:#64b480;background:var(--soft)}.toast{position:fixed;right:24px;bottom:24px;max-width:390px;background:var(--dark);color:#fff;border-radius:13px;padding:13px 16px;font-size:12px;box-shadow:var(--shadow);transform:translateY(20px);opacity:0;pointer-events:none;transition:.2s;z-index:99}.toast.show{opacity:1;transform:none}.hidden{display:none!important}
+    @media(max-width:1050px){.app{grid-template-columns:235px 1fr}.grid,.batchLayout{grid-template-columns:1fr}.batchRow{grid-template-columns:1fr 1fr}.batchRow textarea{grid-column:1/-1}.iconBtn{position:absolute;right:48px}.healthItem span:last-child{display:none}}
+    @media(max-width:720px){.app{display:block}.sidebar{position:relative;height:auto;padding:15px}.avatarList{display:flex;overflow:auto}.avatarItem{min-width:180px}.newAvatar{margin-top:12px}.sideFoot{display:none}.topbar{padding:0 16px;height:66px}.content{padding:22px 16px 50px}.context{display:block}.contextActions{margin-top:15px}.stepText small{display:none}.step{padding:9px 7px}.row{grid-template-columns:1fr}.batchRow{grid-template-columns:1fr}.batchRow textarea{grid-column:auto}.iconBtn{position:static}.nav button{padding:8px 12px}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="brandMark">A</div><div><strong>DGX Avatar Studio</strong><small>Production locale</small></div></div>
+    <div class="sideLabel">Bibliothèque d’avatars</div>
+    <div id="avatarList" class="avatarList"></div>
+    <div class="newAvatar">
+      <input id="newAvatarName" class="input" placeholder="Nom du nouvel avatar">
+      <button id="createAvatar" class="btn primary" style="width:100%;margin-top:8px">+ Créer un avatar</button>
+    </div>
+    <div id="storage" class="sideFoot"></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <nav class="nav"><button id="studioNav" class="active">Studio</button><button id="batchNav">Batch</button></nav>
+      <div id="health" class="health"><div class="healthItem"><i class="dot"></i><span>Services</span></div></div>
+    </header>
+
+    <div class="content">
+      <section id="studioView">
+        <div class="context">
+          <div><div class="eyebrow">Avatar sélectionné</div><h1 id="avatarTitle">Choisissez un avatar</h1><p id="avatarSubtitle">Créez ou sélectionnez un avatar dans la bibliothèque pour commencer.</p></div>
+          <div id="renameActions" class="contextActions hidden"><input id="avatarName" class="input" style="width:220px"><button id="renameAvatar" class="btn secondary">Renommer</button><button id="deleteAvatar" class="btn danger">Supprimer</button></div>
+        </div>
+
+        <div id="job" class="job"><div class="jobTop"><strong id="jobTitle"></strong><span id="jobPct"></span></div><div class="progress"><span id="jobBar"></span></div><div id="jobMeta" class="jobMeta"></div><div class="actions"><button id="stopJob" class="btn danger smallBtn">Arrêter</button></div></div>
+
+        <div class="stepper">
+          <button class="step active" data-step="1"><span class="stepNum">1</span><span class="stepText"><strong>Avatar</strong><small>Image & identité</small></span></button>
+          <button class="step" data-step="2" disabled><span class="stepNum">2</span><span class="stepText"><strong>Empreinte vocale</strong><small>Une voix permanente</small></span></button>
+          <button class="step" data-step="3" disabled><span class="stepNum">3</span><span class="stepText"><strong>Générations</strong><small>Texte → voix → vidéo</small></span></button>
+        </div>
+
+        <div id="noAvatar" class="card empty"><div class="emptyMark">◎</div><h2>Aucun avatar sélectionné</h2><p>Nommez un nouvel avatar dans la barre latérale ou choisissez-en un existant.</p></div>
+
+        <div id="step1" class="grid hidden">
+          <div class="card">
+            <div class="cardHead"><div><h2>Créer l’image de l’avatar</h2><p>Décrivez le personnage. Cette image deviendra sa référence visuelle.</p></div><span id="imageBadge" class="badge">Image requise</span></div>
+            <div class="field"><label>Prompt de l’image <span class="hint">envoyé sans modification</span></label><textarea id="avatarPrompt" placeholder="Ex. Portrait cinématique d’une exploratrice lunaire, regard caméra, lumière douce…"></textarea></div>
+            <div class="row"><div class="field"><label>Qualité</label><select id="imageQuality"><option value="fast">Rapide · 12 steps</option><option value="normal" selected>Normale · 20 steps</option><option value="final">Finale · 32 steps</option></select></div><div class="field"><label>Isolation</label><select id="strictReset"><option value="false">Session partagée</option><option value="true">Reset strict</option></select></div></div>
+            <div class="actions"><button id="generateAvatar" class="btn primary">Générer l’image</button></div>
+            <div class="divider"></div>
+            <div class="upload"><strong>Ou importer une image</strong><p class="status">PNG, JPG ou WebP · 30 Mo maximum</p><input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp"></div>
+            <div id="avatarStatus" class="status"></div>
+          </div>
+          <div class="card"><div class="cardHead"><div><h3>Aperçu de référence</h3><p>L’image originale reste l’ancre d’identité de Wan.</p></div></div><div id="avatarMedia" class="media">Aucune image</div><div class="actions"><button id="toVoice" class="btn primary" disabled>Continuer vers la voix →</button></div></div>
+        </div>
+
+        <div id="step2" class="grid hidden">
+          <div class="card">
+            <div class="cardHead"><div><h2>Créer l’empreinte vocale</h2><p>Elle est générée une seule fois puis clonée pour toutes les narrations de cet avatar.</p></div><span id="voiceBadge" class="badge">À créer</span></div>
+            <div class="callout">L’empreinte est un WAV de référence associé durablement à cet avatar. Changer le texte d’une génération ne changera plus son identité vocale.</div>
+            <div class="field"><label>Style de voix</label><select id="voicePreset"></select></div>
+            <div class="field"><label>Direction vocale</label><textarea id="voicePrompt" placeholder="Décrivez le timbre, l’âge, le rythme et l’intention…"></textarea></div>
+            <details class="advanced"><summary>Texte de référence</summary><div class="field"><textarea id="fingerprintText" style="min-height:90px">Bonjour. Cette voix est la signature de mon avatar. Elle restera naturelle, claire et cohérente dans toutes mes prochaines narrations.</textarea></div></details>
+            <div class="actions"><button id="generateFingerprint" class="btn primary">Créer l’empreinte</button><button id="toGenerations" class="btn secondary" disabled>Continuer →</button></div>
+            <div id="voiceStatus" class="status"></div>
+          </div>
+          <div class="card"><div class="cardHead"><div><h3>Empreinte enregistrée</h3><p id="fingerprintMeta">Aucune empreinte pour le moment.</p></div></div><div id="fingerprintMedia" class="media">Aucune voix</div><p class="status">La régénération remplace uniquement l’empreinte de référence. Les générations déjà produites restent dans l’historique.</p></div>
+        </div>
+
+        <div id="step3" class="grid hidden">
+          <div class="stack">
+            <div class="card">
+              <div class="cardHead"><div><h2>Nouvelle génération</h2><p>Nommez le rendu, écrivez le texte, générez la voix clonée puis la vidéo.</p></div><span class="badge ready">Empreinte active</span></div>
+              <div class="field"><label>Nom de la génération</label><input id="generationName" class="input" placeholder="Ex. Présentation produit · version française"></div>
+              <div class="field"><label>Texte à prononcer</label><textarea id="speechText" placeholder="Saisissez le texte exact que l’avatar doit prononcer…"></textarea></div>
+              <div class="actions"><button id="generateVoice" class="btn primary">1 · Générer la voix</button><span class="status">La voix utilisera automatiquement l’empreinte de cet avatar.</span></div>
+              <div id="generationStatus" class="status"></div>
+              <div id="selectedGeneration" class="hidden"><div class="divider"></div><div class="cardHead"><div><h3 id="selectedGenerationTitle"></h3><p id="selectedGenerationMeta"></p></div><span id="selectedGenerationBadge" class="badge"></span></div><div id="selectedVoiceMedia"></div></div>
+            </div>
+            <div class="card">
+              <div class="cardHead"><div><h2>Générer la vidéo</h2><p>Cette étape s’active dès que la voix de la génération est prête.</p></div></div>
+              <div class="row"><div class="field"><label>Qualité</label><select id="videoQuality"><option value="fast">Rapide · 512×288</option><option value="normal" selected>Normale · 768×432</option><option value="final">Finale · 832×480</option></select></div><div class="field"><label>Mode longue durée</label><select id="videoContinuity"><option value="stable" selected>Stabilisé</option><option value="continuous">Continu</option></select></div></div>
+              <div id="stabilizationField" class="field"><label>Intervalle entre les reprises <span class="hint">secondes</span></label><input id="videoStabilizationSeconds" class="input" type="number" min="1" max="120" step="0.0625" value="20"></div>
+              <details class="advanced"><summary>Réglages vidéo avancés</summary><div class="row"><div class="field"><label>Fidélité</label><select id="sourceMode"><option value="strict">Image stricte</option><option value="creative">Mouvement créatif</option></select></div><div class="field"><label>Cadrage</label><select id="videoFraming"><option value="original">Original</option><option value="fit">Fit</option><option value="crop">Crop</option></select></div></div><div class="field"><label>Prompt de mouvement</label><textarea id="motionPrompt" style="min-height:75px" placeholder="Mouvements naturels et caméra stable…"></textarea></div><div class="row"><div class="field"><label>Résolution</label><select id="videoResolution"><option>512x288</option><option>640x360</option><option selected>768x432</option><option>832x480</option></select></div><div class="field"><label>Steps / CFG</label><div class="row"><input id="videoSteps" class="input" type="number" value="20" min="4" max="60"><input id="videoCfg" class="input" type="number" value="6" min="1" max="12" step=".1"></div></div></div></details>
+              <div class="actions"><button id="previewVideo" class="btn secondary" disabled>Vidéo test</button><button id="generateVideo" class="btn primary" disabled>2 · Générer la vidéo</button></div>
+              <div id="videoStatus" class="status"></div>
+            </div>
+          </div>
+          <aside class="card"><div class="cardHead"><div><h2>Historique</h2><p>Toutes les générations de cet avatar.</p></div><span id="historyCount" class="badge">0</span></div><div id="historyList" class="history"></div></aside>
+        </div>
+      </section>
+
+      <section id="batchView" class="hidden">
+        <div class="context"><div><div class="eyebrow">Production automatisée</div><h1>Génération par batch</h1><p>Préparez une séquence avatar + texte. La machine génère chaque voix puis chaque vidéo, dans l’ordre.</p></div></div>
+        <div class="batchLayout">
+          <div class="stack">
+            <div class="card"><div class="cardHead"><div><h2>Nouveau batch</h2><p>Chaque ligne créera une génération nommée dans l’historique de l’avatar choisi.</p></div></div><div class="field"><label>Nom du batch</label><input id="batchName" class="input" placeholder="Ex. Campagne octobre · 8 avatars"></div><div id="batchRows" class="batchRows"></div><div class="actions"><button id="addBatchRow" class="btn secondary">+ Ajouter une ligne</button></div><div class="divider"></div><div class="row"><div class="field"><label>Qualité vidéo</label><select id="batchQuality"><option value="fast">Rapide</option><option value="normal" selected>Normale</option><option value="final">Finale</option></select></div><div class="field"><label>Mode</label><select id="batchContinuity"><option value="stable">Stabilisé</option><option value="continuous">Continu</option></select></div></div><div id="batchStabilization" class="field"><label>Reprise toutes les <span class="hint">secondes</span></label><input id="batchStabilizationSeconds" class="input" type="number" min="1" max="120" value="20"></div><div class="actions"><button id="startBatch" class="btn primary">Lancer le batch</button></div><div id="batchFormStatus" class="status"></div></div>
+            <div id="batchRunCard" class="card hidden"><div class="cardHead"><div><h2 id="batchRunTitle"></h2><p id="batchRunMessage"></p></div><span id="batchRunBadge" class="badge"></span></div><div class="progress" style="background:#e4eae6"><span id="batchRunBar"></span></div><div id="batchRunItems" class="batchSummary"></div><div class="actions"><button id="stopBatch" class="btn danger">Arrêter</button><button id="resumeBatch" class="btn primary">Reprendre</button><button id="restartBatch" class="btn ghost">Recommencer depuis le début</button></div></div>
+          </div>
+          <aside class="card"><div class="cardHead"><div><h2>Batchs récents</h2><p>Les files sont sauvegardées, même après un redémarrage.</p></div></div><div id="batchHistory" class="batchHistory"></div></aside>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<div id="toast" class="toast"></div>
+
+<script type="module">
+const state={projects:[],project:null,presets:[],step:1,view:'studio',selectedGenerationId:null,batches:[],selectedBatchId:null,batchRows:[{avatarId:'',name:'',text:''}]};
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const active=job=>job&&(job.status==='queued'||job.status==='running');
+const fmtDate=value=>value?new Date(value).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}):'';
+const fmtDuration=value=>Number.isFinite(Number(value))?`${Number(value).toFixed(1)} s`:'';
+async function api(url,opt={}){const response=await fetch(url,opt);let data={};try{data=await response.json()}catch{}if(!response.ok)throw Error(data.error||`HTTP ${response.status}`);return data}
+function toast(message,bad=false){const node=$('#toast');node.textContent=message;node.style.background=bad?'#7d2c2c':'';node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),3200)}
+function post(url,body){return api(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})}
+
+function renderSidebar(){
+  $('#avatarList').innerHTML=state.projects.length?state.projects.map(project=>`<button class="avatarItem ${state.project?.id===project.id?'active':''}" data-avatar="${esc(project.id)}"><img class="avatarThumb" src="${project.avatar?`/api/avatar/file/${encodeURIComponent(project.id)}?v=${project.updatedAt}`:''}" ${project.avatar?'':`style="display:none"`}><span class="avatarThumb avatarPh" ${project.avatar?'style="display:none"':''}>${esc(project.name.slice(0,1).toUpperCase())}</span><span class="avatarInfo"><strong>${esc(project.name)}</strong><small>${(project.generations||[]).length} génération(s)</small></span>${project.voiceFingerprint?'<i class="readyDot" title="Empreinte prête"></i>':''}</button>`).join(''):'<div class="status" style="padding:8px">Aucun avatar.</div>';
+  $$('[data-avatar]').forEach(button=>button.onclick=()=>loadProject(button.dataset.avatar));
+}
+function allowedStep(step){return step===1||step===2&&Boolean(state.project?.avatar)||step===3&&Boolean(state.project?.avatar&&state.project?.voiceFingerprint)}
+function setStep(step){if(!allowedStep(step))return;state.step=step;renderStudio()}
+function renderStepper(){
+  $$('.step').forEach(button=>{const step=Number(button.dataset.step);button.disabled=!allowedStep(step);button.classList.toggle('active',state.step===step);button.onclick=()=>setStep(step)});
+}
+function statusBadge(status){const map={draft:'Brouillon','voice-running':'Voix en cours','voice-ready':'Voix prête','video-running':'Vidéo en cours',done:'Terminée',error:'Erreur',stopped:'Arrêtée'};const cls=status==='done'||status==='voice-ready'?'ready':status?.includes('running')?'running':status==='error'?'error':'';return `<span class="badge ${cls}">${esc(map[status]||status)}</span>`}
+function currentGeneration(){return (state.project?.generations||[]).find(item=>item.id===state.selectedGenerationId)}
+function renderSelectedGeneration(){
+  const generation=currentGeneration();
+  $('#selectedGeneration').classList.toggle('hidden',!generation);
+  if(!generation){$('#previewVideo').disabled=true;$('#generateVideo').disabled=true;return}
+  $('#selectedGenerationTitle').textContent=generation.name;
+  $('#selectedGenerationMeta').textContent=`Créée le ${fmtDate(generation.createdAt)} · ${generation.text.length} caractères`;
+  $('#selectedGenerationBadge').outerHTML=statusBadge(generation.status).replace('<span ','<span id="selectedGenerationBadge" ');
+  $('#selectedVoiceMedia').innerHTML=generation.voice?`<audio controls src="${esc(generation.voice.url)}?v=${generation.updatedAt}" style="width:100%"></audio>`:'<p class="status">La voix n’est pas encore prête.</p>';
+  const usable=Boolean(generation.voice)&&!active(state.project?.currentJob);
+  $('#previewVideo').disabled=!usable;
+  $('#generateVideo').disabled=!usable;
+}
+function renderHistory(){
+  const generations=state.project?.generations||[];
+  $('#historyCount').textContent=String(generations.length);
+  $('#historyList').innerHTML=generations.length?generations.map(generation=>`<article class="historyItem ${generation.id===state.selectedGenerationId?'selected':''}" data-generation="${esc(generation.id)}"><div class="historyTop"><div><h4>${esc(generation.name)}</h4><span class="status">${esc(fmtDate(generation.createdAt))}</span></div>${statusBadge(generation.status)}</div><p>${esc(generation.text)}</p>${generation.voice?`<audio controls src="${esc(generation.voice.url)}?v=${generation.updatedAt}"></audio>`:''}${generation.video?`<video controls preload="metadata" src="${esc(generation.video.url)}?v=${generation.updatedAt}"></video>`:''}<div class="actions"><button class="btn secondary smallBtn" data-open-generation="${esc(generation.id)}">Ouvrir</button><button class="btn danger smallBtn" data-delete-generation="${esc(generation.id)}" ${active(state.project?.currentJob)?'disabled':''}>Supprimer</button></div></article>`).join(''):'<div class="empty"><div class="emptyMark">≋</div><p>Aucune génération. Créez la première à gauche.</p></div>';
+  $$('[data-open-generation]').forEach(button=>button.onclick=()=>{
+    state.selectedGenerationId=button.dataset.openGeneration;
+    const generation=currentGeneration();
+    if(generation){
+      $('#generationName').value=generation.name;
+      $('#speechText').value=generation.text;
+    }
+    renderSelectedGeneration();renderHistory();
+  });
+  $$('[data-delete-generation]').forEach(button=>button.onclick=()=>deleteGeneration(button.dataset.deleteGeneration));
+}
+function renderJob(){
+  const job=state.project?.currentJob;const running=active(job);$('#job').style.display=job?'block':'none';
+  const labels={image:'Image avatar','voice-fingerprint':'Empreinte vocale',voice:'Voix clonée','video-preview':'Vidéo test','video-wan':'Vidéo Wan2.2'};
+  if(job){$('#jobTitle').textContent=`${labels[job.type]||job.type} · ${job.message||''}`;$('#jobPct').textContent=`${Math.round(job.progress||0)} %`;$('#jobBar').style.width=`${Math.max(0,Math.min(100,job.progress||0))}%`;$('#jobMeta').textContent=job.error||[job.current&&job.total?`${job.current}/${job.total}`:'',job.doneSeconds!==undefined?`${fmtDuration(job.doneSeconds)} / ${fmtDuration(job.totalSeconds)}`:''].filter(Boolean).join(' · ');$('#stopJob').classList.toggle('hidden',!running)}
+  const generation=currentGeneration();
+  // Toujours recalculer l'etat, y compris apres la fin d'un job. Se contenter
+  // de desactiver au lancement laissait notamment « Generer la voix » grise.
+  $('#generateAvatar').disabled=running||!state.project;
+  $('#generateFingerprint').disabled=running||!state.project?.avatar;
+  $('#generateVoice').disabled=running||!state.project?.voiceFingerprint;
+  $('#previewVideo').disabled=running||!generation?.voice;
+  $('#generateVideo').disabled=running||!generation?.voice;
+  $('#deleteAvatar').disabled=running||!state.project;
+}
+function renderStudio(){
+  const project=state.project;
+  $('#noAvatar').classList.toggle('hidden',Boolean(project));
+  $('#renameActions').classList.toggle('hidden',!project);
+  $('#avatarTitle').textContent=project?.name||'Choisissez un avatar';
+  $('#avatarSubtitle').textContent=project?`${(project.generations||[]).length} génération(s) · ${project.voiceFingerprint?'empreinte vocale prête':'empreinte vocale à créer'}`:'Créez ou sélectionnez un avatar dans la bibliothèque pour commencer.';
+  if(project)$('#avatarName').value=project.name;
+  if(!project){['#step1','#step2','#step3'].forEach(id=>$(id).classList.add('hidden'));renderStepper();renderJob();return}
+  if(!allowedStep(state.step))state.step=project.avatar?2:1;
+  $('#step1').classList.toggle('hidden',state.step!==1);$('#step2').classList.toggle('hidden',state.step!==2);$('#step3').classList.toggle('hidden',state.step!==3);
+  renderStepper();
+  $('#imageBadge').className=`badge ${project.avatar?'ready':''}`;$('#imageBadge').textContent=project.avatar?'Image prête':'Image requise';
+  $('#avatarMedia').innerHTML=project.avatar?`<img src="/api/avatar/file/${encodeURIComponent(project.id)}?v=${project.updatedAt}" alt="${esc(project.name)}">`:'Aucune image';
+  $('#toVoice').disabled=!project.avatar||active(project.currentJob);
+  $('#voiceBadge').className=`badge ${project.voiceFingerprint?'ready':''}`;$('#voiceBadge').textContent=project.voiceFingerprint?'Empreinte prête':'À créer';
+  $('#fingerprintMeta').textContent=project.voiceFingerprint?`${fmtDuration(project.voiceFingerprint.duration)} · créée le ${fmtDate(project.voiceFingerprint.createdAt)}`:'Aucune empreinte pour le moment.';
+  $('#fingerprintMedia').innerHTML=project.voiceFingerprint?`<audio controls src="${esc(project.voiceFingerprint.url)}?v=${project.updatedAt}"></audio>`:'Aucune voix';
+  $('#toGenerations').disabled=!project.voiceFingerprint||active(project.currentJob);
+  renderSelectedGeneration();renderHistory();renderJob();
+}
+
+async function loadProject(id){if(!id)return;const data=await api(`/api/project/${encodeURIComponent(id)}`);const changed=state.project?.id!==id;state.project=data.project;if(changed){state.step=state.project.avatar?state.project.voiceFingerprint?3:2:1;state.selectedGenerationId=state.project.generations?.[0]?.id||null;if(state.project.avatar?.prompt)$('#avatarPrompt').value=state.project.avatar.prompt}renderSidebar();renderStudio()}
+async function refreshProjects(selectId){const data=await api('/api/projects');state.projects=data.projects||[];renderSidebar();const id=selectId||state.project?.id;if(id&&state.projects.some(project=>project.id===id))await loadProject(id);else if(!state.project&&state.projects.length)await loadProject(state.projects[0].id)}
+
+$('#createAvatar').onclick=async()=>{const name=$('#newAvatarName').value.trim();if(!name)return toast('Donnez un nom au nouvel avatar.',true);try{const data=await post('/api/project',{name});$('#newAvatarName').value='';state.project=data.project;state.step=1;state.selectedGenerationId=null;await refreshProjects(data.project.id);toast('Avatar créé. Ajoutez maintenant son image.')}catch(error){toast(error.message,true)}};
+$('#newAvatarName').onkeydown=event=>{if(event.key==='Enter')$('#createAvatar').click()};
+$('#renameAvatar').onclick=async()=>{if(!state.project)return;try{const data=await api(`/api/project/${encodeURIComponent(state.project.id)}/name`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({name:$('#avatarName').value})});state.project=data.project;await refreshProjects(state.project.id);toast('Avatar renommé.')}catch(error){toast(error.message,true)}};
+$('#deleteAvatar').onclick=async()=>{
+  if(!state.project)return;
+  const project=state.project;
+  if(!confirm(`Supprimer « ${project.name} » de la bibliothèque avec toutes ses générations ?\n\nLe dossier sera placé dans la corbeille locale.`))return;
+  try{
+    await api(`/api/project/${encodeURIComponent(project.id)}`,{method:'DELETE'});
+    state.project=null;state.selectedGenerationId=null;state.step=1;
+    await refreshProjects();
+    renderSidebar();renderStudio();
+    toast(`Avatar « ${project.name} » supprimé de la bibliothèque.`);
+  }catch(error){toast(error.message,true)}
+};
+$('#generateAvatar').onclick=async()=>{if(!state.project)return;$('#avatarStatus').textContent='Lancement de la génération…';try{const data=await post('/api/avatar/generate',{projectId:state.project.id,prompt:$('#avatarPrompt').value,quality:$('#imageQuality').value,strictReset:$('#strictReset').value==='true'});state.project=data.project;renderStudio()}catch(error){$('#avatarStatus').textContent=error.message;$('#avatarStatus').className='status bad'}};
+$('#avatarFile').onchange=async event=>{const file=event.target.files?.[0];if(!file||!state.project)return;const form=new FormData();form.append('projectId',state.project.id);form.append('avatar',file,file.name);$('#avatarStatus').textContent='Import de l’image…';try{const data=await api('/api/avatar/upload',{method:'POST',body:form});state.project=data.project;renderStudio();await refreshProjects(state.project.id);toast('Image enregistrée.')}catch(error){toast(error.message,true)}};
+$('#toVoice').onclick=()=>setStep(2);$('#toGenerations').onclick=()=>setStep(3);
+
+$('#voicePreset').onchange=()=>{const preset=state.presets.find(item=>item.id===$('#voicePreset').value);if(preset)$('#voicePrompt').value=preset.prompt};
+$('#generateFingerprint').onclick=async()=>{if(!state.project)return;$('#voiceStatus').textContent='Création de l’empreinte…';try{const data=await post('/api/voice/fingerprint',{projectId:state.project.id,voicePreset:$('#voicePreset').value,voicePrompt:$('#voicePrompt').value,refText:$('#fingerprintText').value,language:'French',voiceSeed:123456});state.project=data.project;renderStudio()}catch(error){$('#voiceStatus').textContent=error.message;$('#voiceStatus').className='status bad'}};
+$('#generateVoice').onclick=async()=>{if(!state.project)return;const name=$('#generationName').value.trim(),text=$('#speechText').value.trim();if(!name||!text)return toast('Le nom et le texte de la génération sont obligatoires.',true);$('#generationStatus').textContent='Génération de la voix clonée…';try{const data=await post('/api/voice/generate',{projectId:state.project.id,generationName:name,text,language:'French',speed:1,voiceSeed:123456});state.project=data.project;state.selectedGenerationId=data.generation.id;renderStudio();toast('La voix est dans la file de génération.')}catch(error){$('#generationStatus').textContent=error.message;$('#generationStatus').className='status bad'}};
+async function deleteGeneration(generationId){
+  if(!state.project)return;
+  const generation=(state.project.generations||[]).find(item=>item.id===generationId);
+  if(!generation)return;
+  if(!confirm(`Supprimer définitivement la génération « ${generation.name} » et ses médias ?`))return;
+  try{
+    const data=await api(`/api/project/${encodeURIComponent(state.project.id)}/generations/${encodeURIComponent(generation.id)}`,{method:'DELETE'});
+    state.project=data.project;
+    if(state.selectedGenerationId===generation.id)state.selectedGenerationId=state.project.generations?.[0]?.id||null;
+    renderStudio();renderSidebar();
+    toast(`Génération « ${generation.name} » supprimée.`);
+  }catch(error){toast(error.message,true)}
+}
+function videoPayload(){const [width,height]=$('#videoResolution').value.split('x').map(Number);return{projectId:state.project.id,generationId:state.selectedGenerationId,quality:$('#videoQuality').value,continuity:$('#videoContinuity').value,stabilizationSeconds:Number($('#videoStabilizationSeconds').value),sourceMode:$('#sourceMode').value,framing:$('#videoFraming').value,motionPrompt:$('#motionPrompt').value,width,height,steps:Number($('#videoSteps').value),cfg:Number($('#videoCfg').value),seed:123456}}
+$('#previewVideo').onclick=async()=>{if(!currentGeneration())return;try{const data=await post('/api/video/preview',{projectId:state.project.id,generationId:state.selectedGenerationId});state.project=data.project;renderStudio()}catch(error){toast(error.message,true)}};
+$('#generateVideo').onclick=async()=>{if(!currentGeneration())return;$('#videoStatus').textContent='Lancement du rendu Wan2.2…';try{const data=await post('/api/video/generate',videoPayload());state.project=data.project;renderStudio();toast('La vidéo est en cours de génération.')}catch(error){$('#videoStatus').textContent=error.message;$('#videoStatus').className='status bad'}};
+$('#videoContinuity').onchange=()=>$('#stabilizationField').classList.toggle('hidden',$('#videoContinuity').value==='continuous');
+$('#videoQuality').onchange=()=>{const map={fast:['512x288',12,5.5],normal:['768x432',20,6],final:['832x480',28,6]},values=map[$('#videoQuality').value];$('#videoResolution').value=values[0];$('#videoSteps').value=values[1];$('#videoCfg').value=values[2]};
+$('#stopJob').onclick=async()=>{if(!state.project)return;try{await post(`/api/project/${encodeURIComponent(state.project.id)}/stop`,{});toast('Arrêt demandé.')}catch(error){toast(error.message,true)}};
+
+function readyProjects(){return state.projects.filter(project=>project.avatar&&project.voiceFingerprint)}
+function renderBatchRows(){const choices=readyProjects();$('#batchRows').innerHTML=state.batchRows.map((row,index)=>`<div class="batchRow" data-row="${index}"><select data-field="avatarId"><option value="">Choisir un avatar</option>${choices.map(project=>`<option value="${esc(project.id)}" ${row.avatarId===project.id?'selected':''}>${esc(project.name)}</option>`).join('')}</select><input class="input" data-field="name" value="${esc(row.name)}" placeholder="Nom de la génération"><textarea data-field="text" placeholder="Texte à prononcer">${esc(row.text)}</textarea><button class="iconBtn" data-remove-row="${index}" title="Retirer">×</button></div>`).join('');$$('.batchRow [data-field]').forEach(input=>input.oninput=()=>{const index=Number(input.closest('.batchRow').dataset.row);state.batchRows[index][input.dataset.field]=input.value});$$('[data-remove-row]').forEach(button=>button.onclick=()=>{state.batchRows.splice(Number(button.dataset.removeRow),1);if(!state.batchRows.length)state.batchRows.push({avatarId:'',name:'',text:''});renderBatchRows()})}
+$('#addBatchRow').onclick=()=>{state.batchRows.push({avatarId:'',name:'',text:''});renderBatchRows()};
+function batchStatusLabel(status){return{queued:'En attente',running:'En cours',stopping:'Arrêt…',stopped:'Arrêté',done:'Terminé',error:'Avec erreurs'}[status]||status}
+function selectedBatch(){return state.batches.find(batch=>batch.id===state.selectedBatchId)}
+function renderBatch(){
+  renderBatchRows();const batch=selectedBatch();
+  $('#batchHistory').innerHTML=state.batches.length?state.batches.map(item=>`<button class="${item.id===state.selectedBatchId?'active':''}" data-batch="${esc(item.id)}"><strong>${esc(item.name)}</strong><div class="status">${batchStatusLabel(item.status)} · ${item.progress}% · ${fmtDate(item.createdAt)}</div></button>`).join(''):'<div class="empty"><p>Aucun batch enregistré.</p></div>';
+  $$('[data-batch]').forEach(button=>button.onclick=()=>{state.selectedBatchId=button.dataset.batch;renderBatch()});
+  $('#batchRunCard').classList.toggle('hidden',!batch);if(!batch)return;
+  $('#batchRunTitle').textContent=batch.name;$('#batchRunMessage').textContent=batch.message;$('#batchRunBadge').textContent=batchStatusLabel(batch.status);$('#batchRunBadge').className=`badge ${batch.status==='running'?'running':batch.status==='done'?'ready':batch.status==='error'?'error':''}`;$('#batchRunBar').style.width=`${batch.progress}%`;
+  $('#batchRunItems').innerHTML=batch.items.map((item,index)=>`<div class="batchItem"><div class="batchItemTop"><strong>${index+1}. ${esc(item.avatarName)} · ${esc(item.name)}</strong><span>${esc(batchStatusLabel(item.status))} · ${Math.round(item.progress)}%</span></div><div class="status ${item.error?'bad':''}">${esc(item.error||item.message)}</div><div class="miniProgress"><span style="width:${item.progress}%"></span></div></div>`).join('');
+  const running=batch.status==='running'||batch.status==='queued'||batch.status==='stopping';$('#stopBatch').disabled=!running;$('#resumeBatch').disabled=running||batch.status==='done';$('#restartBatch').disabled=running;
+}
+async function refreshBatches(){const data=await api('/api/batches');state.batches=data.batches||[];if(!state.selectedBatchId&&state.batches.length)state.selectedBatchId=state.batches[0].id;renderBatch()}
+$('#startBatch').onclick=async()=>{const rows=state.batchRows.filter(row=>row.avatarId||row.name||row.text);if(!$('#batchName').value.trim()||!rows.length)return toast('Nommez le batch et ajoutez au moins une ligne.',true);try{const data=await post('/api/batches',{name:$('#batchName').value,items:rows,videoSettings:{quality:$('#batchQuality').value,continuity:$('#batchContinuity').value,stabilizationSeconds:Number($('#batchStabilizationSeconds').value)}});state.selectedBatchId=data.batch.id;await refreshBatches();toast('Batch lancé. La machine traite les lignes dans l’ordre.')}catch(error){$('#batchFormStatus').textContent=error.message;$('#batchFormStatus').className='status bad'}};
+$('#batchContinuity').onchange=()=>$('#batchStabilization').classList.toggle('hidden',$('#batchContinuity').value==='continuous');
+$('#stopBatch').onclick=async()=>{const batch=selectedBatch();if(!batch)return;try{await post(`/api/batches/${encodeURIComponent(batch.id)}/stop`,{});await refreshBatches();toast('Arrêt du batch demandé.')}catch(error){toast(error.message,true)}};
+$('#resumeBatch').onclick=async()=>{const batch=selectedBatch();if(!batch)return;try{await post(`/api/batches/${encodeURIComponent(batch.id)}/resume`,{});await refreshBatches();toast('Batch repris.')}catch(error){toast(error.message,true)}};
+$('#restartBatch').onclick=async()=>{const batch=selectedBatch();if(!batch||!confirm('Recommencer tout le batch créera de nouvelles générations. Continuer ?'))return;try{await post(`/api/batches/${encodeURIComponent(batch.id)}/restart`,{});await refreshBatches();toast('Batch recommencé depuis la première ligne.')}catch(error){toast(error.message,true)}};
+
+function setView(view){state.view=view;$('#studioView').classList.toggle('hidden',view!=='studio');$('#batchView').classList.toggle('hidden',view!=='batch');$('#studioNav').classList.toggle('active',view==='studio');$('#batchNav').classList.toggle('active',view==='batch');if(view==='batch')refreshBatches();else refreshProjects(state.project?.id)}
+$('#studioNav').onclick=()=>setView('studio');$('#batchNav').onclick=()=>setView('batch');
+async function loadHealth(){try{const data=await api('/api/status');$('#storage').textContent=`Stockage · ${data.dataRoot}`;const services=[['Comfy',data.comfy?.ok],['TTS',data.tts?.ok],['Wan',data.wanS2V?.nodes?.ok&&data.wanS2V?.models?.ok],['FFmpeg',data.ffmpeg?.ok]];$('#health').innerHTML=services.map(([name,ok])=>`<div class="healthItem"><i class="dot ${ok?'ok':'bad'}"></i><span>${name}</span></div>`).join('')}catch(error){$('#health').innerHTML='<div class="healthItem"><i class="dot bad"></i><span>Services indisponibles</span></div>'}}
+async function poll(){try{
+  // Ne jamais reconstruire les balises <audio>/<video> pendant le polling :
+  // cela remettrait currentTime a zero toutes les deux secondes. Pendant un
+  // calcul, seule la barre de job change. Les medias sont rerendus une seule
+  // fois lorsque le job se termine.
+  if(state.project&&active(state.project.currentJob)){
+    const data=await api(`/api/project/${encodeURIComponent(state.project.id)}`);
+    state.project=data.project;
+    if(active(state.project.currentJob))renderJob();
+    else{
+      const job=state.project.currentJob;
+      await refreshProjects(state.project.id);
+      toast(job?.status==='done'?job.message:(job?.error||job?.message),job?.status==='error');
+    }
+  }
+  if(state.batches.some(batch=>['queued','running','stopping'].includes(batch.status)))await refreshBatches();
+}catch(error){console.warn(error)}}
+
+state.presets=await api('/api/voice-presets');$('#voicePreset').innerHTML=state.presets.map(preset=>`<option value="${esc(preset.id)}">${esc(preset.label)}</option>`).join('');if(state.presets[0])$('#voicePrompt').value=state.presets[0].prompt;
+await Promise.all([loadHealth(),refreshProjects(),refreshBatches()]);renderBatchRows();setInterval(poll,2000);
+</script>
+</body>
+</html>

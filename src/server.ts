@@ -12,7 +12,8 @@ import { TtsClient } from "./tts.js";
 import { GeneratorService } from "./generation.js";
 import { assembleWanVideo, checkWanTransitions, createSegmentVideo, mediaHealth, probeDuration } from "./media.js";
 import { voicePresets, getVoicePreset } from "./voicePresets.js";
-import { AvatarStore, type AvatarProject, type ProjectJob } from "./avatarStore.js";
+import { AvatarStore, type AvatarGeneration, type AvatarProject, type ProjectJob, type VoiceAsset, type VideoAsset } from "./avatarStore.js";
+import { BatchStore, type BatchRun, type BatchVideoSettings } from "./batchStore.js";
 import { buildWanS2VExtendedWorkflow, buildWanS2VStabilizedWorkflow, planWanS2VWindows, parseWanStabilizationSeconds, WAN_S2V_MODELS, WAN_S2V_NODES, WAN_S2V_STABLE_NODES, WAN_S2V_CHUNK_FRAMES, WAN_S2V_FPS } from "./wanS2V.js";
 import { availableBenchmarkWorkers, executeBenchmark, parseBenchmarkWorkers, type BenchmarkRun } from "./benchmark.js";
 
@@ -39,15 +40,22 @@ await fs.mkdir(benchmarkOutputsDir, { recursive: true });
 const benchmarkRuns = new Map<string, BenchmarkRun>();
 
 const app = express();
+const port = Number(process.env.PORT || 3010);
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 * 1024 * 1024 } });
 const comfy = new ComfyClient();
 const tts = new TtsClient();
 const generator = new GeneratorService(transientRoot, comfy, tts);
 const store = new AvatarStore(projectRoot);
 await store.init();
+const batchStore = new BatchStore(dataRoot);
+await batchStore.init();
+const activeControllers = new Map<string, AbortController>();
+const batchControllers = new Map<string, AbortController>();
+
+const VOICE_FINGERPRINT_TEXT = "Bonjour. Cette voix est la signature de mon avatar. Elle restera naturelle, claire et coherente dans toutes mes prochaines narrations.";
 
 app.use(express.json({ limit: "4mb" }));
-app.use(express.static(publicDir));
+app.use(express.static(publicDir, { index: "studio.html" }));
 app.use("/projects", express.static(projectRoot));
 
 function pub(projectId: string, folder: string, filename: string): string {
@@ -61,6 +69,30 @@ function projectOrThrow(id: unknown) {
   const project = store.get(String(id || ""));
   if (!project) throw new Error("Projet inconnu. Crée ou recharge un projet.");
   return project;
+}
+
+function generationOrThrow(project: AvatarProject, id: unknown): AvatarGeneration {
+  const generation = (project.generations || []).find(item => item.id === String(id || ""));
+  if (!generation) throw new Error("Generation inconnue pour cet avatar.");
+  return generation;
+}
+
+function createAvatarGeneration(project: AvatarProject, nameValue: unknown, textValue: unknown, batchId?: string): AvatarGeneration {
+  const name = s(nameValue);
+  const text = s(textValue);
+  if (!name) throw new Error("Le nom de la generation est obligatoire.");
+  if (!text) throw new Error("Le texte a lire est vide.");
+  const now = Date.now();
+  const generation: AvatarGeneration = {
+    id: randomUUID(), name: name.slice(0, 120), text, createdAt: now, updatedAt: now,
+    status: "draft", batchId
+  };
+  project.generations = [generation, ...(project.generations || [])];
+  return generation;
+}
+
+function abortMessage(error: unknown): boolean {
+  return error instanceof Error && (error.name === "AbortError" || /arret|arrêt|abort|interromp/i.test(error.message));
 }
 async function copyAsset(source: string, target: string): Promise<void> {
   if (path.resolve(source) !== path.resolve(target)) await fs.copyFile(source, target);
@@ -176,7 +208,12 @@ function activeJob(project: AvatarProject): ProjectJob | undefined {
   return job && (job.status === "queued" || job.status === "running") ? job : undefined;
 }
 
-async function createProjectJob(project: AvatarProject, type: ProjectJob["type"], message: string): Promise<ProjectJob> {
+async function createProjectJob(
+  project: AvatarProject,
+  type: ProjectJob["type"],
+  message: string,
+  meta: Pick<ProjectJob, "generationId" | "batchId"> = {}
+): Promise<ProjectJob> {
   const existing = activeJob(project);
   if (existing) throw new Error(`Une génération est déjà en cours : ${existing.message}`);
   const job: ProjectJob = {
@@ -185,7 +222,8 @@ async function createProjectJob(project: AvatarProject, type: ProjectJob["type"]
     status: "queued",
     createdAt: Date.now(),
     progress: 0,
-    message
+    message,
+    ...meta
   };
   project.currentJob = job;
   await store.save(project);
@@ -209,7 +247,14 @@ async function finishProjectJob(project: AvatarProject, patch: Partial<ProjectJo
   };
   project.currentJob = finished;
   project.jobHistory = [finished, ...(project.jobHistory || []).filter(j => j.id !== finished.id)].slice(0, 20);
+  activeControllers.delete(finished.id);
   await store.save(project);
+}
+
+function controllerFor(job: ProjectJob): AbortController {
+  const controller = new AbortController();
+  activeControllers.set(job.id, controller);
+  return controller;
 }
 
 function runDetached(task: () => Promise<void>): void {
@@ -289,6 +334,58 @@ app.get("/api/project/:id", (req, res) => {
   catch (e) { res.status(404).json({ error: e instanceof Error ? e.message : String(e) }); }
 });
 
+app.delete("/api/project/:id/generations/:generationId", async (req, res) => {
+  try {
+    const project = projectOrThrow(req.params.id);
+    const job = activeJob(project);
+    if (job) {
+      return res.status(409).json({ error: "Attends la fin de la generation en cours ou arrete-la avant de supprimer un historique." });
+    }
+    const usedByActiveBatch = batchStore.list().some(batch =>
+      (batch.status === "queued" || batch.status === "running" || batch.status === "stopping") &&
+      batch.items.some(item => item.generationId === req.params.generationId)
+    );
+    if (usedByActiveBatch) {
+      return res.status(409).json({ error: "Cette generation est utilisee par un batch en cours. Arrete d'abord le batch." });
+    }
+    const removed = await store.removeGeneration(project, req.params.generationId);
+    res.json({ project, deletedGeneration: { id: removed.id, name: removed.name } });
+  } catch (error) {
+    res.status(404).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+app.delete("/api/project/:id", async (req, res) => {
+  try {
+    const project = projectOrThrow(req.params.id);
+    if (activeJob(project)) {
+      return res.status(409).json({ error: "Arrete la generation en cours avant de supprimer cet avatar." });
+    }
+    const usedByActiveBatch = batchStore.list().some(batch =>
+      (batch.status === "queued" || batch.status === "running" || batch.status === "stopping") &&
+      batch.items.some(item => item.avatarId === project.id && item.status !== "done" && item.status !== "error")
+    );
+    if (usedByActiveBatch) {
+      return res.status(409).json({ error: "Cet avatar est encore utilise par un batch en cours. Arrete d'abord le batch." });
+    }
+    await store.archive(project);
+    res.json({ deleted: true, avatar: { id: project.id, name: project.name }, recoverable: true });
+  } catch (error) {
+    res.status(404).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+app.post("/api/project/:id/generations", async (req, res) => {
+  try {
+    const project = projectOrThrow(req.params.id);
+    const generation = createAvatarGeneration(project, req.body?.name, req.body?.text);
+    await store.save(project);
+    res.status(201).json({ project, generation });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : String(e) });
+  }
+});
+
 app.get("/project-files/:id/:folder/:filename", async (req, res) => {
   try {
     const project = projectOrThrow(req.params.id);
@@ -333,11 +430,12 @@ app.post("/api/avatar/generate", async (req, res) => {
     const steps = Math.max(4, Math.min(60, customSteps));
     const strictReset = boolValue(req.body.strictReset, quality.defaultStrictReset);
     const job = await createProjectJob(project, "image", "Génération de l'image en attente…");
+    const controller = controllerFor(job);
 
     runDetached(async () => {
       try {
         await updateProjectJob(project, { status: "running", startedAt: Date.now(), progress: 5, message: "Génération de l'image avec Qwen-Image…" });
-        if (strictReset) await comfy.resetImageSession();
+        if (strictReset) await comfy.resetImageSession(controller.signal);
         let generated;
         try {
           generated = await generator.generateImage({
@@ -355,7 +453,7 @@ app.post("/api/avatar/generate", async (req, res) => {
             refineQuality: false,
             imageModel: "bf16",
             visualPreset: "none"
-          });
+          }, { signal: controller.signal });
         } finally {
           if (strictReset) await comfy.resetImageSession().catch(() => undefined);
         }
@@ -377,7 +475,7 @@ app.post("/api/avatar/generate", async (req, res) => {
         project.video = undefined;
         await finishProjectJob(project, { message: "Image terminée.", progress: 100 });
       } catch (error) {
-        await finishProjectJob(project, { status: "error", progress: project.currentJob?.progress || 0, message: "Erreur pendant la génération de l'image.", error: error instanceof Error ? error.message : String(error) });
+        await finishProjectJob(project, { status: abortMessage(error) ? "interrupted" : "error", progress: project.currentJob?.progress || 0, message: abortMessage(error) ? "Generation de l'image arretee." : "Erreur pendant la génération de l'image.", error: error instanceof Error ? error.message : String(error) });
       }
     });
 
@@ -406,16 +504,91 @@ app.post("/api/avatar/upload", upload.single("avatar"), async (req, res) => {
   }
 });
 
+app.post("/api/voice/fingerprint", async (req, res) => {
+  try {
+    const project = projectOrThrow(req.body.projectId);
+    if (!project.avatar) throw new Error("Genere ou charge d'abord un avatar.");
+    const refText = s(req.body.refText) || VOICE_FINGERPRINT_TEXT;
+    const presetId = String(req.body.voicePreset || "narrator");
+    const preset = getVoicePreset(presetId);
+    const voicePrompt = s(req.body.voicePrompt) || preset.prompt;
+    const voiceSeed = Math.floor(n(req.body.voiceSeed, 123456));
+    const job = await createProjectJob(project, "voice-fingerprint", "Creation de l'empreinte vocale en attente…");
+    const controller = controllerFor(job);
+
+    runDetached(async () => {
+      try {
+        await updateProjectJob(project, { status: "running", startedAt: Date.now(), progress: 5, message: "Creation de la voix de reference Qwen3-TTS…" });
+        const audio = await generator.generateVoice({
+          voiceText: refText,
+          voicePrompt,
+          voicePresetId: presetId,
+          voiceLanguage: String(req.body.language || "French"),
+          voiceSpeed: n(req.body.speed, 1),
+          voiceSeed
+        }, { signal: controller.signal });
+        await updateProjectJob(project, { progress: 92, message: "Enregistrement de l'empreinte vocale…" });
+        const base = await store.ensure(project);
+        const filename = "voice-fingerprint.wav";
+        const target = path.join(base, "voice", filename);
+        await copyAsset(audio.path, target);
+        project.voiceFingerprint = {
+          name: filename,
+          path: target,
+          url: pub(project.id, "voice", filename),
+          duration: audio.duration,
+          refText,
+          presetId,
+          voicePrompt,
+          seed: voiceSeed,
+          createdAt: Date.now()
+        };
+        await finishProjectJob(project, { message: `Empreinte vocale prete (${audio.duration.toFixed(1)} s).`, progress: 100 });
+      } catch (error) {
+        await finishProjectJob(project, {
+          status: abortMessage(error) ? "interrupted" : "error",
+          progress: project.currentJob?.progress || 0,
+          message: abortMessage(error) ? "Creation de l'empreinte arretee." : "Erreur pendant la creation de l'empreinte vocale.",
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    });
+
+    res.status(202).json({ project, job });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : String(e) });
+  }
+});
+
 app.post("/api/voice/generate", async (req, res) => {
   try {
     const project = projectOrThrow(req.body.projectId);
     const text = String(req.body.text || "").trim();
     if (!text) throw new Error("Le texte à lire est vide.");
-    const presetId = String(req.body.voicePreset || "narrator");
+    const wantsGeneration = Boolean(req.body.generationId || s(req.body.generationName));
+    if (activeJob(project)) throw new Error(`Une generation est deja en cours : ${project.currentJob?.message}`);
+    if (wantsGeneration && !project.voiceFingerprint) {
+      throw new Error("Cree d'abord l'empreinte vocale de cet avatar.");
+    }
+    let generation: AvatarGeneration | undefined;
+    if (req.body.generationId) {
+      generation = generationOrThrow(project, req.body.generationId);
+      generation.text = text;
+      generation.updatedAt = Date.now();
+    } else if (s(req.body.generationName)) {
+      generation = createAvatarGeneration(project, req.body.generationName, text, s(req.body.batchId) || undefined);
+    }
+    const presetId = generation ? project.voiceFingerprint!.presetId : String(req.body.voicePreset || "narrator");
     const preset = getVoicePreset(presetId);
-    const voicePrompt = String(req.body.voicePrompt || "").trim() || preset.prompt;
+    const voicePrompt = generation ? project.voiceFingerprint!.voicePrompt : (String(req.body.voicePrompt || "").trim() || preset.prompt);
     const voiceSeedRaw = n(req.body.voiceSeed, 123456);
-    const job = await createProjectJob(project, "voice", "Génération de la voix en attente…");
+    const job = await createProjectJob(project, "voice", "Generation de la voix en attente…", {
+      generationId: generation?.id,
+      batchId: s(req.body.batchId) || undefined
+    });
+    const controller = controllerFor(job);
+    if (generation) generation.status = "voice-running";
+    await store.save(project);
 
     runDetached(async () => {
       try {
@@ -426,8 +599,15 @@ app.post("/api/voice/generate", async (req, res) => {
           voicePresetId: presetId,
           voiceLanguage: String(req.body.language || "French"),
           voiceSpeed: n(req.body.speed, 1),
-          voiceSeed: Math.floor(voiceSeedRaw)
+          voiceSeed: Math.floor(voiceSeedRaw),
+          voiceReference: generation ? {
+            id: `avatar-${project.id}`,
+            audioPath: project.voiceFingerprint!.path,
+            refText: project.voiceFingerprint!.refText,
+            presetId: project.voiceFingerprint!.presetId
+          } : undefined
         }, {
+          signal: controller.signal,
           onVoiceProgress: event => {
             const ratio = event.total > 0 ? event.completed / event.total : 0;
             void updateProjectJob(project, {
@@ -440,10 +620,10 @@ app.post("/api/voice/generate", async (req, res) => {
         });
         await updateProjectJob(project, { progress: 92, message: "Enregistrement de la voix…" });
         const base = await store.ensure(project);
-        const filename = "speech.wav";
+        const filename = generation ? `speech-${generation.id}.wav` : "speech.wav";
         const target = path.join(base, "voice", filename);
         await copyAsset(audio.path, target);
-        project.voice = {
+        const voice: VoiceAsset = {
           name: filename,
           path: target,
           url: pub(project.id, "voice", filename),
@@ -453,16 +633,29 @@ app.post("/api/voice/generate", async (req, res) => {
           voicePrompt,
           seed: Math.floor(voiceSeedRaw)
         };
+        project.voice = voice;
         project.video = undefined;
+        if (generation) {
+          generation.voice = voice;
+          generation.video = undefined;
+          generation.status = "voice-ready";
+          generation.error = undefined;
+          generation.updatedAt = Date.now();
+        }
         await finishProjectJob(project, { message: `Voix terminée (${audio.duration.toFixed(1)} s).`, progress: 100 });
       } catch (error) {
-        await finishProjectJob(project, { status: "error", progress: project.currentJob?.progress || 0, message: "Erreur pendant la génération de la voix.", error: error instanceof Error ? error.message : String(error) });
+        if (generation) {
+          generation.status = abortMessage(error) ? "stopped" : "error";
+          generation.error = error instanceof Error ? error.message : String(error);
+          generation.updatedAt = Date.now();
+        }
+        await finishProjectJob(project, { status: abortMessage(error) ? "interrupted" : "error", progress: project.currentJob?.progress || 0, message: abortMessage(error) ? "Generation vocale arretee." : "Erreur pendant la generation de la voix.", error: error instanceof Error ? error.message : String(error) });
       }
     });
 
-    res.status(202).json({ project, job });
+    res.status(202).json({ project, job, generation });
   } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
+    res.status(400).json({ error: e instanceof Error ? e.message : String(e) });
   }
 });
 
@@ -573,20 +766,37 @@ app.post("/api/benchmark/run", upload.fields([{ name: "image", maxCount: 1 }, { 
 app.post("/api/video/preview", async (req, res) => {
   try {
     const project = projectOrThrow(req.body.projectId);
+    const generation = req.body.generationId ? generationOrThrow(project, req.body.generationId) : undefined;
+    const voice = generation?.voice || project.voice;
     if (!project.avatar) throw new Error("Génère ou charge d'abord un avatar.");
-    if (!project.voice) throw new Error("Génère d'abord la voix.");
-    const job = await createProjectJob(project, "video-preview", "Création de la vidéo test en attente…");
+    if (!voice) throw new Error("Génère d'abord la voix.");
+    const job = await createProjectJob(project, "video-preview", "Création de la vidéo test en attente…", { generationId: generation?.id });
+    const controller = controllerFor(job);
+    if (generation) generation.status = "video-running";
+    await store.save(project);
     runDetached(async () => {
       try {
         await updateProjectJob(project, { status: "running", startedAt: Date.now(), progress: 10, message: "Création de la vidéo test avec FFmpeg…" });
         const base = await store.ensure(project);
-        const filename = "avatar-preview.mp4";
+        const filename = generation ? `preview-${generation.id}.mp4` : "avatar-preview.mp4";
         const target = path.join(base, "video", filename);
-        const duration = await createSegmentVideo(project.avatar!.path, project.voice!.path, target);
-        project.video = { name: filename, path: target, url: pub(project.id, "video", filename), duration, engine: "preview" };
+        const duration = await createSegmentVideo(project.avatar!.path, voice.path, target, controller.signal);
+        const video: VideoAsset = { name: filename, path: target, url: pub(project.id, "video", filename), duration, engine: "preview" };
+        project.video = video;
+        if (generation) {
+          generation.video = video;
+          generation.status = "done";
+          generation.error = undefined;
+          generation.updatedAt = Date.now();
+        }
         await finishProjectJob(project, { message: "Vidéo test terminée.", progress: 100 });
       } catch (error) {
-        await finishProjectJob(project, { status: "error", message: "Erreur pendant la vidéo test.", error: error instanceof Error ? error.message : String(error) });
+        if (generation) {
+          generation.status = abortMessage(error) ? "stopped" : "error";
+          generation.error = error instanceof Error ? error.message : String(error);
+          generation.updatedAt = Date.now();
+        }
+        await finishProjectJob(project, { status: abortMessage(error) ? "interrupted" : "error", message: abortMessage(error) ? "Video test arretee." : "Erreur pendant la vidéo test.", error: error instanceof Error ? error.message : String(error) });
       }
     });
     res.status(202).json({ project, job });
@@ -598,8 +808,10 @@ app.post("/api/video/preview", async (req, res) => {
 app.post("/api/video/generate", async (req, res) => {
   try {
     const project = projectOrThrow(req.body.projectId);
+    const generation = req.body.generationId ? generationOrThrow(project, req.body.generationId) : undefined;
+    const voice = generation?.voice || project.voice;
     if (!project.avatar) throw new Error("Génère ou charge d'abord un avatar.");
-    if (!project.voice) throw new Error("Génère d'abord la voix.");
+    if (!voice) throw new Error("Génère d'abord la voix.");
 
     const stabilized = req.body.continuity !== "continuous";
     // Valider avant de créer un job ou de contacter ComfyUI. Le mode continu
@@ -607,8 +819,28 @@ app.post("/api/video/generate", async (req, res) => {
     const stabilizationSeconds = parseWanStabilizationSeconds(stabilized
       ? (req.body.stabilizationSeconds === undefined ? project.videoSettings?.stabilizationSeconds : req.body.stabilizationSeconds)
       : project.videoSettings?.stabilizationSeconds);
-    const job = await createProjectJob(project, "video-wan", "Génération Wan2.2-S2V native Extend en attente…");
+    const job = await createProjectJob(project, "video-wan", "Génération Wan2.2-S2V native Extend en attente…", {
+      generationId: generation?.id,
+      batchId: s(req.body.batchId) || undefined
+    });
+    const controller = controllerFor(job);
     project.videoSettings = { continuity: stabilized ? "stable" : "continuous", stabilizationSeconds };
+    if (generation) {
+      generation.status = "video-running";
+      generation.videoSettings = {
+        quality: req.body.quality === "fast" || req.body.quality === "final" ? req.body.quality : "normal",
+        continuity: stabilized ? "stable" : "continuous",
+        stabilizationSeconds,
+        sourceMode: req.body.sourceMode === "creative" ? "creative" : "strict",
+        framing: req.body.framing === "fit" || req.body.framing === "crop" ? req.body.framing : "original",
+        motionPrompt: s(req.body.motionPrompt),
+        width: Math.floor(n(req.body.width, videoQualitySettings(req.body.quality).width)),
+        height: Math.floor(n(req.body.height, videoQualitySettings(req.body.quality).height)),
+        steps: Math.max(4, Math.min(60, Math.floor(n(req.body.steps, videoQualitySettings(req.body.quality).steps)))),
+        cfg: n(req.body.cfg, videoQualitySettings(req.body.quality).cfg),
+        seed: Math.floor(n(req.body.seed, 123456))
+      };
+    }
     await store.save(project);
 
     runDetached(async () => {
@@ -644,7 +876,7 @@ app.post("/api/video/generate", async (req, res) => {
         await fs.mkdir(comfyInputDir, { recursive: true });
 
         const videoQuality = videoQualitySettings(req.body.quality);
-        const total = project.voice!.duration || await probeDuration(project.voice!.path);
+        const total = voice.duration || await probeDuration(voice.path, controller.signal);
         const requestedWidth = Math.floor(n(req.body.width, videoQuality.width));
         const requestedHeight = Math.floor(n(req.body.height, videoQuality.height));
         const steps = Math.max(4, Math.min(60, Math.floor(n(req.body.steps, videoQuality.steps))));
@@ -700,7 +932,7 @@ app.post("/api/video/generate", async (req, res) => {
         // Un seul fichier WAV : le mode stabilisé en extrait les fenêtres dans
         // ComfyUI. Le WAV complet reste la piste audio finale dans les deux modes.
         const audioName = `wan-audio-full-${project.id}-${randomUUID()}.wav`;
-        await fs.copyFile(project.voice!.path, path.join(comfyInputDir, audioName));
+        await fs.copyFile(voice.path, path.join(comfyInputDir, audioName));
 
         const userMotionPrompt = String(req.body.motionPrompt || "").trim();
         const prompt = sourceMode === "strict"
@@ -726,7 +958,7 @@ app.post("/api/video/generate", async (req, res) => {
 
         // Évite de vider les poids et le cache à chaque nouvelle vidéo.
         // ComfyUI libère lui-même de la mémoire lorsque le workflow en a besoin.
-        if (config.video.freeMemoryBeforeWan) await comfy.freeMemory().catch(() => undefined);
+        if (config.video.freeMemoryBeforeWan) await comfy.freeMemory(controller.signal).catch(() => undefined);
         await updateProjectJob(project, {
           progress: 10,
           current: 1,
@@ -826,11 +1058,11 @@ app.post("/api/video/generate", async (req, res) => {
               message: "Wan2.2 : encodage et sauvegarde MP4…"
             }, true);
           }
-        });
+        }, controller.signal);
 
         let ref;
         try {
-          ref = await comfy.waitForFile(tracked.promptId, [".mp4", ".mkv", ".webm"], 0);
+          ref = await comfy.waitForFile(tracked.promptId, [".mp4", ".mkv", ".webm"], 0, controller.signal);
           await updateChain;
         } finally {
           tracked.close();
@@ -848,18 +1080,18 @@ app.post("/api/video/generate", async (req, res) => {
             : `Wan2.2 terminé (${generatedFrames} frames calculées). Ajustement à la durée exacte du WAV…`
         });
 
-        const bytes = await comfy.downloadFile(ref);
+        const bytes = await comfy.downloadFile(ref, controller.signal);
         const raw = path.join(workDir, "wan-extended-raw.mp4");
         await fs.writeFile(raw, bytes);
 
-        const filename = "avatar-speaking-wan2.2-extend.mp4";
+        const filename = generation ? `video-${generation.id}.mp4` : "avatar-speaking-wan2.2-extend.mp4";
         const target = path.join(base, "video", filename);
         // Fusionne les mêmes instants des fenêtres voisines, puis remet le WAV
         // original. Le mode continu garde sa simple coupe de fin habituelle.
-        await assembleWanVideo(raw, project.voice!.path, target, total, windows);
+        await assembleWanVideo(raw, voice.path, target, total, windows, controller.signal);
 
-        const duration = await probeDuration(target).catch(() => total);
-        project.video = {
+        const duration = await probeDuration(target, controller.signal).catch(() => total);
+        const video: VideoAsset = {
           name: filename,
           path: target,
           url: pub(project.id, "video", filename),
@@ -868,6 +1100,13 @@ app.post("/api/video/generate", async (req, res) => {
           continuity: stabilized ? "stable" : "continuous",
           stabilizationSeconds: stabilized ? stabilizationSeconds : undefined
         };
+        project.video = video;
+        if (generation) {
+          generation.video = video;
+          generation.status = "done";
+          generation.error = undefined;
+          generation.updatedAt = Date.now();
+        }
 
         await finishProjectJob(project, {
           message: `Vidéo Wan2.2 Extend terminée (${duration.toFixed(1)} s, ${chunks} passe(s) natives).`,
@@ -879,9 +1118,14 @@ app.post("/api/video/generate", async (req, res) => {
           etaSeconds: 0
         });
       } catch (error) {
+        if (generation) {
+          generation.status = abortMessage(error) ? "stopped" : "error";
+          generation.error = error instanceof Error ? error.message : String(error);
+          generation.updatedAt = Date.now();
+        }
         await finishProjectJob(project, {
-          status: "error",
-          message: "Erreur pendant la génération Wan2.2 Extend.",
+          status: abortMessage(error) ? "interrupted" : "error",
+          message: abortMessage(error) ? "Generation Wan2.2 arretee." : "Erreur pendant la génération Wan2.2 Extend.",
           error: error instanceof Error ? error.message : String(error)
         });
       } finally {
@@ -895,7 +1139,322 @@ app.post("/api/video/generate", async (req, res) => {
   }
 });
 
-const port = Number(process.env.PORT || 3010);
+function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      const error = new Error("Operation arretee par l'utilisateur");
+      error.name = "AbortError";
+      reject(error);
+      return;
+    }
+    const timer = setTimeout(() => { cleanup(); resolve(); }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      cleanup();
+      const error = new Error("Operation arretee par l'utilisateur");
+      error.name = "AbortError";
+      reject(error);
+    };
+    const cleanup = () => signal.removeEventListener("abort", onAbort);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function parseBatchVideoSettings(value: any): BatchVideoSettings {
+  const quality = videoQualitySettings(value?.quality);
+  const continuity = value?.continuity === "continuous" ? "continuous" : "stable";
+  const stabilizationSeconds = parseWanStabilizationSeconds(
+    continuity === "stable" ? (value?.stabilizationSeconds ?? 20) : 20
+  );
+  return {
+    quality: quality.profile,
+    continuity,
+    stabilizationSeconds,
+    sourceMode: value?.sourceMode === "creative" ? "creative" : "strict",
+    framing: value?.framing === "fit" || value?.framing === "crop" ? value.framing : "original",
+    motionPrompt: s(value?.motionPrompt),
+    width: Math.floor(n(value?.width, quality.width)),
+    height: Math.floor(n(value?.height, quality.height)),
+    steps: Math.max(4, Math.min(60, Math.floor(n(value?.steps, quality.steps)))),
+    cfg: n(value?.cfg, quality.cfg),
+    seed: Math.floor(n(value?.seed, 123456))
+  };
+}
+
+async function callLocalApi(route: string, body: unknown, signal: AbortSignal): Promise<any> {
+  const response = await fetch(`http://127.0.0.1:${port}${route}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+    signal
+  });
+  const payload: any = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+  return payload;
+}
+
+async function waitForBatchProjectJob(
+  batch: BatchRun,
+  item: BatchRun["items"][number],
+  project: AvatarProject,
+  jobId: string,
+  stageStart: number,
+  stageSpan: number,
+  signal: AbortSignal
+): Promise<void> {
+  while (true) {
+    if (signal.aborted) throw Object.assign(new Error("Batch arrete"), { name: "AbortError" });
+    const job = project.currentJob;
+    if (!job || job.id !== jobId) throw new Error("Le job de generation a disparu.");
+    item.progress = Math.min(99, stageStart + (Number(job.progress) || 0) * stageSpan / 100);
+    item.message = job.message;
+    const completed = batch.items.filter(candidate => candidate.status === "done" || candidate.status === "error").length;
+    batch.progress = Math.min(99, Math.round((completed + item.progress / 100) / batch.items.length * 100));
+    batch.message = `${item.avatarName} — ${item.message}`;
+    await batchStore.save(batch);
+    if (job.status === "done") return;
+    if (job.status === "error" || job.status === "interrupted") {
+      throw new Error(job.error || job.message || "Generation interrompue.");
+    }
+    await abortableDelay(750, signal);
+  }
+}
+
+async function runBatch(batch: BatchRun, controller: AbortController): Promise<void> {
+  batch.status = "running";
+  batch.startedAt = batch.startedAt || Date.now();
+  batch.finishedAt = undefined;
+  batch.message = "Demarrage du batch…";
+  await batchStore.save(batch);
+
+  for (let index = 0; index < batch.items.length; index++) {
+    const item = batch.items[index];
+    if (item.status === "done") continue;
+    batch.currentIndex = index;
+    let project: AvatarProject | undefined;
+    try {
+      if (controller.signal.aborted) throw Object.assign(new Error("Batch arrete"), { name: "AbortError" });
+      project = projectOrThrow(item.avatarId);
+      if (!project.avatar) throw new Error("Avatar sans image.");
+      if (!project.voiceFingerprint) throw new Error("Avatar sans empreinte vocale.");
+
+      let generation = item.generationId
+        ? (project.generations || []).find(candidate => candidate.id === item.generationId)
+        : undefined;
+
+      if (!generation?.voice) {
+        item.status = "voice";
+        item.progress = 1;
+        item.error = undefined;
+        item.message = "Generation de la voix…";
+        await batchStore.save(batch);
+        const payload = await callLocalApi("/api/voice/generate", {
+          projectId: project.id,
+          generationId: generation?.id,
+          generationName: generation ? undefined : item.name,
+          text: item.text,
+          language: "French",
+          speed: 1,
+          voiceSeed: 123456,
+          batchId: batch.id
+        }, controller.signal);
+        item.generationId = String(payload.generation.id);
+        generation = payload.generation as AvatarGeneration;
+        await batchStore.save(batch);
+        await waitForBatchProjectJob(batch, item, project, payload.job.id, 0, 35, controller.signal);
+        generation = generationOrThrow(project, item.generationId);
+      }
+
+      item.status = "video";
+      item.progress = Math.max(item.progress, 35);
+      item.message = "Generation de la video…";
+      await batchStore.save(batch);
+      const payload = await callLocalApi("/api/video/generate", {
+        projectId: project.id,
+        generationId: generation!.id,
+        batchId: batch.id,
+        ...batch.videoSettings
+      }, controller.signal);
+      await waitForBatchProjectJob(batch, item, project, payload.job.id, 35, 65, controller.signal);
+
+      item.status = "done";
+      item.progress = 100;
+      item.message = "Voix et video terminees";
+      item.error = undefined;
+    } catch (error) {
+      if (controller.signal.aborted || abortMessage(error)) {
+        item.status = "stopped";
+        item.message = "Arrete — ce point sera repris";
+        batch.status = "stopped";
+        batch.finishedAt = Date.now();
+        batch.message = `Batch arrete sur ${item.avatarName}.`;
+        await batchStore.save(batch);
+        batchControllers.delete(batch.id);
+        return;
+      }
+      item.status = "error";
+      item.error = error instanceof Error ? error.message : String(error);
+      item.message = "Erreur — reprise possible";
+      if (item.generationId && project) {
+        const generation = (project.generations || []).find(candidate => candidate.id === item.generationId);
+        if (generation) {
+          generation.status = "error";
+          generation.error = item.error;
+          generation.updatedAt = Date.now();
+          await store.save(project);
+        }
+      }
+    }
+    const completed = batch.items.filter(candidate => candidate.status === "done" || candidate.status === "error").length;
+    batch.progress = Math.round(completed / batch.items.length * 100);
+    await batchStore.save(batch);
+  }
+
+  const failed = batch.items.filter(item => item.status === "error").length;
+  batch.status = failed ? "error" : "done";
+  batch.progress = 100;
+  batch.finishedAt = Date.now();
+  batch.message = failed
+    ? `Batch termine avec ${failed} erreur(s). Relance-le pour retraiter les lignes en erreur.`
+    : `Batch termine : ${batch.items.length} generation(s).`;
+  await batchStore.save(batch);
+  batchControllers.delete(batch.id);
+}
+
+function assertNoOtherBatch(activeId?: string): void {
+  const active = batchStore.list().find(batch => batch.id !== activeId && (batch.status === "running" || batch.status === "queued" || batch.status === "stopping"));
+  if (active) throw new Error(`Le batch « ${active.name} » utilise deja la machine.`);
+}
+
+app.get("/api/batches", (_req, res) => res.json({ batches: batchStore.list() }));
+
+app.get("/api/batches/:id", (req, res) => {
+  const batch = batchStore.get(req.params.id);
+  if (!batch) return res.status(404).json({ error: "Batch inconnu." });
+  res.json({ batch });
+});
+
+app.post("/api/batches", async (req, res) => {
+  try {
+    assertNoOtherBatch();
+    const name = s(req.body?.name);
+    if (!name) throw new Error("Le nom du batch est obligatoire.");
+    const rows = Array.isArray(req.body?.items) ? req.body.items : [];
+    if (!rows.length) throw new Error("Ajoute au moins une ligne au batch.");
+    if (rows.length > 100) throw new Error("Un batch est limite a 100 generations.");
+    const items = rows.map((row: any, index: number) => {
+      const project = projectOrThrow(row.avatarId);
+      if (!project.avatar) throw new Error(`Ligne ${index + 1} : l'avatar n'a pas d'image.`);
+      if (!project.voiceFingerprint) throw new Error(`Ligne ${index + 1} : l'avatar n'a pas d'empreinte vocale.`);
+      const itemName = s(row.name);
+      const text = s(row.text);
+      if (!itemName) throw new Error(`Ligne ${index + 1} : nom de generation manquant.`);
+      if (!text) throw new Error(`Ligne ${index + 1} : texte manquant.`);
+      return batchStore.newItem({ avatarId: project.id, avatarName: project.name, name: itemName.slice(0, 120), text });
+    });
+    const batch = await batchStore.create({
+      name: name.slice(0, 120),
+      status: "queued",
+      currentIndex: 0,
+      progress: 0,
+      message: "En attente",
+      items,
+      videoSettings: parseBatchVideoSettings(req.body?.videoSettings)
+    });
+    const controller = new AbortController();
+    batchControllers.set(batch.id, controller);
+    runDetached(() => runBatch(batch, controller));
+    res.status(202).json({ batch });
+  } catch (error) {
+    res.status(error instanceof RangeError ? 400 : 400).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+app.post("/api/batches/:id/stop", async (req, res) => {
+  try {
+    const batch = batchStore.get(req.params.id);
+    if (!batch) return res.status(404).json({ error: "Batch inconnu." });
+    if (batch.status !== "running" && batch.status !== "queued") return res.json({ batch });
+    batch.status = "stopping";
+    batch.message = "Arret demande…";
+    await batchStore.save(batch);
+    batchControllers.get(batch.id)?.abort();
+    const current = batch.items[batch.currentIndex];
+    const project = current ? store.get(current.avatarId) : undefined;
+    const job = project?.currentJob;
+    if (job && job.batchId === batch.id && (job.status === "queued" || job.status === "running")) {
+      activeControllers.get(job.id)?.abort();
+      if (job.type === "video-wan") await comfy.cancelPrompt();
+      if (job.type === "voice") await tts.hardStop();
+    }
+    res.json({ batch });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+async function resumeBatch(batch: BatchRun, restart: boolean): Promise<void> {
+  assertNoOtherBatch(batch.id);
+  if (batch.status === "running" || batch.status === "queued" || batch.status === "stopping") {
+    throw new Error("Ce batch est deja en cours.");
+  }
+  for (const item of batch.items) {
+    if (restart || item.status === "error" || item.status === "stopped") {
+      item.status = "pending";
+      item.progress = 0;
+      item.message = "En attente";
+      item.error = undefined;
+      if (restart) item.generationId = undefined;
+    }
+  }
+  batch.status = "queued";
+  batch.currentIndex = 0;
+  batch.progress = restart ? 0 : Math.round(batch.items.filter(item => item.status === "done").length / batch.items.length * 100);
+  batch.message = restart ? "Redemarrage complet…" : "Reprise des elements non termines…";
+  batch.startedAt = restart ? undefined : batch.startedAt;
+  batch.finishedAt = undefined;
+  await batchStore.save(batch);
+  const controller = new AbortController();
+  batchControllers.set(batch.id, controller);
+  runDetached(() => runBatch(batch, controller));
+}
+
+app.post("/api/batches/:id/resume", async (req, res) => {
+  try {
+    const batch = batchStore.get(req.params.id);
+    if (!batch) return res.status(404).json({ error: "Batch inconnu." });
+    await resumeBatch(batch, false);
+    res.status(202).json({ batch });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+app.post("/api/batches/:id/restart", async (req, res) => {
+  try {
+    const batch = batchStore.get(req.params.id);
+    if (!batch) return res.status(404).json({ error: "Batch inconnu." });
+    await resumeBatch(batch, true);
+    res.status(202).json({ batch });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+app.post("/api/project/:id/stop", async (req, res) => {
+  try {
+    const project = projectOrThrow(req.params.id);
+    const job = activeJob(project);
+    if (!job) return res.json({ project });
+    activeControllers.get(job.id)?.abort();
+    if (job.type === "video-wan" || job.type === "image") await comfy.cancelPrompt();
+    if (job.type === "voice" || job.type === "voice-fingerprint") await tts.hardStop();
+    res.json({ project });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
 app.listen(port, "0.0.0.0", () => {
   console.log(`DGX Avatar Studio : http://127.0.0.1:${port}`);
   console.log(`Données persistantes : ${dataRoot}`);

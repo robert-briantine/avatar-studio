@@ -1,6 +1,26 @@
-# DGX Avatar Studio v0.4.0
+# DGX Avatar Studio v0.7.0
 
 Application locale DGX Spark : image Qwen, voix Qwen3-TTS et vidéo Wan2.2-S2V.
+
+## Bibliotheque d'avatars, empreintes vocales et batchs — octobre 2026
+
+L'ecran principal suit maintenant un parcours guide :
+
+1. creer un avatar nomme puis generer ou importer son image ;
+2. creer une empreinte vocale persistante avec Qwen3-TTS ;
+3. nommer chaque generation, saisir son texte, cloner la voix depuis l'empreinte,
+   puis produire la video Wan2.2-S2V.
+
+Chaque avatar conserve son empreinte et l'historique complet de ses generations.
+Les anciens projets sont migres automatiquement : leur derniere voix devient la
+reference initiale et leurs medias restent consultables dans une generation
+importee. Les fichiers existants ne sont ni supprimes ni reecrits.
+
+L'onglet **Batch** traite une liste ordonnee d'avatars et de textes. Chaque ligne
+cree une generation dans l'historique de l'avatar correspondant. Un batch peut
+etre arrete, repris a son point non termine, ou recommence depuis le debut. Son
+etat est enregistre dans `batches.json` sous `DGX_AVATAR_DATA_DIR`, ce qui permet
+de le reprendre apres un redemarrage du serveur.
 
 ## Durée de stabilisation réglable — octobre 2026
 

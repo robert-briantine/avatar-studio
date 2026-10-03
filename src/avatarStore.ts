@@ -6,7 +6,7 @@ export type Asset = { name: string; path: string; url: string; duration?: number
 
 export type ProjectJob = {
   id: string;
-  type: "image" | "voice" | "video-preview" | "video-wan";
+  type: "image" | "voice-fingerprint" | "voice" | "video-preview" | "video-wan";
   status: "queued" | "running" | "done" | "error" | "interrupted";
   createdAt: number;
   startedAt?: number;
@@ -19,6 +19,55 @@ export type ProjectJob = {
   etaSeconds?: number;
   message: string;
   error?: string;
+  generationId?: string;
+  batchId?: string;
+};
+
+export type VoiceAsset = Asset & {
+  text: string;
+  presetId: string;
+  voicePrompt: string;
+  seed?: number;
+};
+
+export type VideoAsset = Asset & {
+  engine: "preview" | "wan-s2v";
+  continuity?: "stable" | "continuous";
+  stabilizationSeconds?: number;
+};
+
+export type VoiceFingerprint = Asset & {
+  refText: string;
+  presetId: string;
+  voicePrompt: string;
+  seed?: number;
+  createdAt: number;
+};
+
+export type AvatarGeneration = {
+  id: string;
+  name: string;
+  text: string;
+  createdAt: number;
+  updatedAt: number;
+  status: "draft" | "voice-running" | "voice-ready" | "video-running" | "done" | "error" | "stopped";
+  voice?: VoiceAsset;
+  video?: VideoAsset;
+  error?: string;
+  batchId?: string;
+  videoSettings?: {
+    quality?: "fast" | "normal" | "final";
+    continuity: "stable" | "continuous";
+    stabilizationSeconds: number;
+    sourceMode?: "strict" | "creative";
+    framing?: "original" | "fit" | "crop";
+    motionPrompt?: string;
+    width?: number;
+    height?: number;
+    steps?: number;
+    cfg?: number;
+    seed?: number;
+  };
 };
 
 export type AvatarProject = {
@@ -35,8 +84,12 @@ export type AvatarProject = {
     builder?: Record<string, unknown>;
     generation?: { quality?: string; steps?: number; width?: number; height?: number; strictReset?: boolean };
   };
-  voice?: Asset & { text: string; presetId: string; voicePrompt: string; seed?: number };
-  video?: Asset & { engine: "preview" | "wan-s2v"; continuity?: "stable" | "continuous"; stabilizationSeconds?: number };
+  voiceFingerprint?: VoiceFingerprint;
+  generations?: AvatarGeneration[];
+  // Alias de compatibilite vers la derniere generation. Les nouveaux ecrans
+  // utilisent generations[] et ne remplacent plus l'historique.
+  voice?: VoiceAsset;
+  video?: VideoAsset;
   videoSettings?: { continuity: "stable" | "continuous"; stabilizationSeconds: number };
   currentJob?: ProjectJob;
   jobHistory?: ProjectJob[];
@@ -46,6 +99,11 @@ type StoredProject = Omit<AvatarProject, "avatar" | "voice" | "video"> & {
   avatar?: Omit<NonNullable<AvatarProject["avatar"]>, "path"> & { path: string };
   voice?: Omit<NonNullable<AvatarProject["voice"]>, "path"> & { path: string };
   video?: Omit<NonNullable<AvatarProject["video"]>, "path"> & { path: string };
+  voiceFingerprint?: Omit<VoiceFingerprint, "path"> & { path: string };
+  generations?: Array<Omit<AvatarGeneration, "voice" | "video"> & {
+    voice?: Omit<VoiceAsset, "path"> & { path: string };
+    video?: Omit<VideoAsset, "path"> & { path: string };
+  }>;
 };
 
 function safeFolderPart(value: string): string {
@@ -111,8 +169,37 @@ export class AvatarStore {
           folderName: path.basename(base),
           avatar: abs(raw.avatar, "avatar"),
           voice: abs(raw.voice, "voice"),
-          video: abs(raw.video, "video")
+          video: abs(raw.video, "video"),
+          voiceFingerprint: abs(raw.voiceFingerprint, "voice"),
+          generations: (raw.generations || []).map(generation => ({
+            ...generation,
+            voice: abs(generation.voice, "voice"),
+            video: abs(generation.video, "video")
+          }))
         };
+
+        // Les versions anterieures ne conservaient qu'une voix et une video.
+        // La voix existante est une excellente reference de clonage : elle
+        // devient donc l'empreinte initiale et le rendu reste dans l'historique.
+        if (!project.voiceFingerprint && project.voice) {
+          project.voiceFingerprint = {
+            ...project.voice,
+            refText: project.voice.text || "",
+            createdAt: project.createdAt
+          };
+        }
+        if (!(project.generations || []).length && (project.voice || project.video)) {
+          project.generations = [{
+            id: randomUUID(),
+            name: "Generation importee",
+            text: project.voice?.text || "",
+            createdAt: project.createdAt,
+            updatedAt: project.updatedAt,
+            status: project.video ? "done" : project.voice ? "voice-ready" : "draft",
+            voice: project.voice,
+            video: project.video
+          }];
+        }
 
         if (project.currentJob && (project.currentJob.status === "queued" || project.currentJob.status === "running")) {
           project.currentJob = {
@@ -159,6 +246,50 @@ export class AvatarStore {
     return [...this.map.values()].sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
+  async removeGeneration(p: AvatarProject, generationId: string): Promise<AvatarGeneration> {
+    const generations = p.generations || [];
+    const index = generations.findIndex(generation => generation.id === generationId);
+    if (index < 0) throw new Error("Generation inconnue pour cet avatar.");
+    const [removed] = generations.splice(index, 1);
+    p.generations = generations;
+
+    // Les alias historiques pointent vers le dernier rendu disponible. Ils ne
+    // doivent jamais conserver une reference vers une generation supprimee.
+    p.voice = generations.find(generation => generation.voice)?.voice;
+    p.video = generations.find(generation => generation.video)?.video;
+
+    const referenced = new Set<string>();
+    const keep = (asset?: Asset) => { if (asset) referenced.add(path.resolve(asset.path)); };
+    keep(p.avatar);
+    keep(p.voiceFingerprint);
+    keep(p.voice);
+    keep(p.video);
+    for (const generation of generations) {
+      keep(generation.voice);
+      keep(generation.video);
+    }
+
+    for (const asset of [removed.voice, removed.video]) {
+      if (asset && !referenced.has(path.resolve(asset.path))) {
+        await fs.rm(asset.path, { force: true }).catch(() => undefined);
+      }
+    }
+    await this.save(p);
+    return removed;
+  }
+
+  async archive(p: AvatarProject): Promise<string> {
+    const base = this.base(p);
+    const trashRoot = path.join(path.dirname(this.root), "trash", "avatars");
+    await fs.mkdir(trashRoot, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const target = path.join(trashRoot, `${path.basename(base)}--deleted-${stamp}-${randomUUID().slice(0, 8)}`);
+    await fs.rename(base, target);
+    this.map.delete(p.id);
+    this.baseById.delete(p.id);
+    return target;
+  }
+
   async rename(p: AvatarProject, newName: string): Promise<void> {
     const cleanName = newName.trim();
     if (!cleanName) throw new Error("Le nom du projet est obligatoire.");
@@ -176,6 +307,11 @@ export class AvatarStore {
       remap(p.avatar);
       remap(p.voice);
       remap(p.video);
+      remap(p.voiceFingerprint);
+      for (const generation of p.generations || []) {
+        remap(generation.voice);
+        remap(generation.video);
+      }
       this.baseById.set(p.id, newBase);
     }
 
@@ -203,7 +339,13 @@ export class AvatarStore {
       ...p,
       avatar: normalize(p.avatar, "avatar"),
       voice: normalize(p.voice, "voice"),
-      video: normalize(p.video, "video")
+      video: normalize(p.video, "video"),
+      voiceFingerprint: normalize(p.voiceFingerprint, "voice"),
+      generations: (p.generations || []).map(generation => ({
+        ...generation,
+        voice: normalize(generation.voice, "voice"),
+        video: normalize(generation.video, "video")
+      }))
     };
     const tmp = path.join(base, "project.json.tmp");
     await fs.writeFile(tmp, JSON.stringify(serial, null, 2), "utf8");
