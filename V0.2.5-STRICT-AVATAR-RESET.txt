@@ -1,0 +1,6 @@
+DGX Avatar Studio v0.2.5
+
+- Reset ComfyUI strict avant chaque génération d’avatar.
+- Reset ComfyUI strict après récupération de l’image.
+- Purge modèles, mémoire GPU, cache exécuteur et historique entre deux avatars.
+- Empêche une génération précédente de polluer visuellement la suivante.

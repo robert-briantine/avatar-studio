@@ -1,0 +1,9 @@
+DGX Avatar Studio v0.7.0-benchmark
+
+- page dédiée /benchmark.html
+- batch = une image + un WAV, répétés N fois avec seeds distincts
+- mode séquentiel ou parallèle
+- concurrence réelle via 1 à 4 instances ComfyUI (8188-8191)
+- temps global, temps par job, jobs/minute, succès/échecs
+- logs JSON persistants
+- workflow Wan2.2-S2V Extend inchangé

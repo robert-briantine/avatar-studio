@@ -1,0 +1,6 @@
+DGX Avatar Studio v0.2.1
+
+- Corrige le faux message « workflow absent ».
+- Le workflow Wan2.2-S2V est construit directement dans src/wanS2V.ts : aucun JSON de workflow n’est requis.
+- Le diagnostic utilise maintenant wanS2V.models.ok au lieu de la propriété inexistante models.ready.
+- Affiche séparément les nodes natifs manquants et les modèles manquants.

@@ -1,0 +1,49 @@
+{
+  "durationSeconds": 24,
+  "width": 256,
+  "height": 144,
+  "fps": 16,
+  "steps": 12,
+  "cfg": 5.5,
+  "seed": 123456,
+  "workflowTests": 16,
+  "assemblyTests": 4,
+  "build": "passed",
+  "observations": "La reprise de pose réduit le saut au premier raccord. Quelques artefacts restent visibles à cette petite résolution. Cette validation ne garantit pas la qualité sur plusieurs minutes. Les mesures de Laplacien et de différence de pixels sont des diagnostics, pas des scores perceptuels.",
+  "metrics": {
+    "pose-context": {
+      "frames": 384,
+      "audioCorrelation": 0.9998662726808177,
+      "medianFaceLaplacianPerWindow": [
+        1491.8514488572887,
+        1828.9969035079318,
+        1325.5707568217547
+      ],
+      "meanFrameDifferenceAtJoins": [
+        3.4777772426605225,
+        4.342172622680664
+      ],
+      "maxFrameDifferenceAtJoins": [
+        4.946515083312988,
+        7.996383190155029
+      ]
+    },
+    "baseline": {
+      "frames": 384,
+      "audioCorrelation": 0.9998662726808177,
+      "medianFaceLaplacianPerWindow": [
+        1490.790474400715,
+        1155.5431767965583,
+        1341.406200794392
+      ],
+      "meanFrameDifferenceAtJoins": [
+        6.357159614562988,
+        4.65530252456665
+      ],
+      "maxFrameDifferenceAtJoins": [
+        8.7490234375,
+        6.415228843688965
+      ]
+    }
+  }
+}

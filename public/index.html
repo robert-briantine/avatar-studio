@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DGX Avatar Studio</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎭</text></svg>">
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color:#eee;background:#111}
+    body{margin:0}.wrap{max-width:1280px;margin:auto;padding:24px}
+    .top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+    .topRight{min-width:360px}
+    .grid{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:18px;margin-top:18px}
+    .card{background:#1b1b1b;border:1px solid #333;border-radius:14px;padding:18px}
+    h1,h2,h3{margin-top:0}
+    label{display:block;margin:12px 0 6px;color:#bbb;font-size:14px}
+    textarea,input,select{width:100%;box-sizing:border-box;background:#0e0e0e;color:#eee;border:1px solid #444;border-radius:8px;padding:10px}
+    textarea{min-height:90px;resize:vertical}
+    .smallArea{min-height:70px}
+    .bigArea{min-height:120px}
+    button{background:#eee;color:#111;border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer;margin-top:12px}
+    button.secondary{background:#333;color:#eee}button:disabled{opacity:.45;cursor:not-allowed}
+    input:disabled,select:disabled{opacity:.6;cursor:not-allowed}
+    .preview{background:#090909;border-radius:10px;min-height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-top:12px}
+    .preview img,.preview video{width:100%;max-height:460px;object-fit:contain}
+    .status{font-size:13px;color:#aaa;margin-top:9px;white-space:pre-wrap}.ok{color:#8ddd9c}.bad{color:#ff9090}.warn{color:#f4c979}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}.small{font-size:12px;color:#999}.storage{margin-top:8px;font-size:12px;color:#9ba7b4;word-break:break-all}
+    .subgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+    .details label{display:flex;align-items:center;gap:8px;margin:0;padding:8px 10px;border:1px solid #333;border-radius:8px;background:#151515;color:#ddd}
+    .details input{width:auto;padding:0;margin:0}
+    .modebar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 2px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #444;border-radius:999px;background:#141414;color:#ddd;font-size:13px}
+    .pill input{width:auto;margin:0}
+    .helper{font-size:12px;color:#9fb0c4;margin-top:6px;line-height:1.4}
+    .builtPrompt{font-size:12px;color:#b9c8d8;background:#111;border:1px solid #2a3340;border-radius:8px;padding:10px;margin-top:8px;white-space:pre-wrap;max-height:180px;overflow:auto}
+    .jobBox{margin-top:14px;padding:14px;border:1px solid #3d4b5a;border-radius:10px;background:#121820;display:none}
+    .jobTitle{font-weight:700}.jobMeta{font-size:12px;color:#aebed0;margin-top:5px}.progress{height:10px;background:#090c10;border:1px solid #354251;border-radius:999px;overflow:hidden;margin-top:9px}.progress>div{height:100%;background:#d7e5f5;width:0;transition:width .25s ease}
+    @media(max-width:1100px){.grid{grid-template-columns:1fr}.top{display:block}.topRight{min-width:0}.subgrid{grid-template-columns:1fr}.details{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>DGX Avatar Studio <span class="small">v0.6.0</span></h1>
+      <div class="small">Avatar guidé → voix Qwen3-TTS → Wan2.2-S2V natif Extend</div>
+      <div id="storage" class="storage"></div>
+    </div>
+    <div class="topRight">
+      <label>Projet persistant</label>
+      <select id="projectSelect"></select>
+      <label>Nom du projet</label>
+      <input id="projectName" placeholder="Ex. Démon fatigué - vidéo 1">
+      <div class="toolbar"><button id="saveProjectName" class="secondary">Enregistrer le nom</button><button id="newProject">Nouveau projet</button><button id="reloadProjects" class="secondary">Recharger</button></div>
+      <div id="projectId" class="small"></div><div id="projectFolder" class="small"></div>
+    </div>
+  </div>
+
+  <div id="health" class="status">Vérification des services…</div>
+  <div id="jobBox" class="jobBox">
+    <div id="jobTitle" class="jobTitle"></div>
+    <div class="progress"><div id="jobProgressBar"></div></div>
+    <div id="jobMeta" class="jobMeta"></div>
+    <div id="jobError" class="status bad"></div>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>1. Image de l’avatar</h2>
+      <div class="helper"><b>Prompt brut :</b> le texte ci-dessous est envoyé au générateur d’image sans ajout de consignes “avatar”, sans cadrage forcé, sans règle humain/non-humain.</div>
+      <label>Prompt image</label>
+      <textarea id="avatarPrompt" class="bigArea" placeholder="Ex. An imposing old heroic fantasy demon with large horns, a goatee beard, glowing red eyes, dark armor, standing in an ancient ruined temple…"></textarea>
+
+      <div class="subgrid">
+        <div>
+          <label>Qualité de génération</label>
+          <select id="imageQuality">
+            <option value="fast">Rapide — 12 steps</option>
+            <option value="normal" selected>Normal — 20 steps</option>
+            <option value="final">Final — 32 steps</option>
+          </select>
+        </div>
+        <div>
+          <label>Isolation entre générations</label>
+          <label class="pill" style="margin-top:6px"><input type="checkbox" id="strictReset"> Reset strict ComfyUI</label>
+        </div>
+      </div>
+      <div class="helper">Rapide et Normal gardent le modèle en mémoire. Final active le reset strict par défaut. Tu peux changer le reset manuellement.</div>
+
+      <div class="toolbar">
+        <button id="generateAvatar">Générer</button>
+      </div>
+      <label>Ou charger une image JPG / PNG depuis le disque</label>
+      <input id="avatarFile" type="file" accept="image/jpeg,image/png,image/webp">
+      <div id="selectedFileName" class="small"></div>
+      <div id="avatarStatus" class="status"></div>
+      <div id="builtPrompt" class="builtPrompt" style="display:none"></div>
+      <div id="avatarPreview" class="preview"><span id="avatarEmpty">Aucun avatar</span><img id="avatarImg" alt="Aperçu avatar" style="display:none"></div>
+    </section>
+
+    <section class="card">
+      <h2>2. Voix</h2>
+      <label>Texte</label>
+      <textarea id="speechText" placeholder="Bonjour, je suis votre avatar…"></textarea>
+      <label>Preset</label><select id="voicePreset"></select>
+      <label>Prompt voix</label><textarea id="voicePrompt"></textarea>
+      <div class="toolbar"><button id="generateVoice">Générer la voix</button></div>
+      <div id="voiceStatus" class="status"></div>
+      <div id="voicePreview" class="preview">Aucune voix</div>
+    </section>
+
+    <section class="card">
+      <h2>3. Vidéo</h2>
+      <p class="small">« Vidéo test » valide image + WAV + FFmpeg. La vidéo parlante anime le visage avec <b>Wan2.2-S2V</b> sur toute la durée de l'audio.</p>
+      <div class="helper">Le mode stabilisé laisse le mouvement se prolonger pendant la durée choisie, puis reprend la pose observée avec les pixels nets de l'avatar original.</div>
+
+      <label>Fidélité à l'image source</label>
+      <select id="sourceMode">
+        <option value="strict" selected>Image stricte — aucun prompt positif</option>
+        <option value="creative">Créatif — prompt vidéo autorisé</option>
+      </select>
+      <div class="helper" id="sourceModeHint">Image stricte : l'image chargée est la référence prioritaire. Aucun prompt positif n'est envoyé à Wan2.2.</div>
+
+      <label>Prompt mouvement vidéo (uniquement en mode créatif)</label>
+      <textarea id="motionPrompt" class="smallArea" placeholder="Ex. subtle natural speaking motion, stable camera…" disabled></textarea>
+
+      <label>Cadrage de l'image source</label>
+      <select id="videoFraming">
+        <option value="original" selected>Original — ne pas modifier l'image</option>
+        <option value="fit">Fit — image entière + marges si nécessaire</option>
+        <option value="crop">Crop — remplir le cadre en recadrant</option>
+      </select>
+      <div class="helper">Pour tester la fidélité maximale, garde <b>Original</b>. Fit/Crop préparent une nouvelle image à la résolution vidéo.</div>
+
+      <div class="subgrid">
+        <div>
+          <label>Qualité vidéo Wan2.2</label>
+          <select id="videoQuality">
+            <option value="fast">Rapide — 512×288, 12 steps</option>
+            <option value="normal" selected>Normal — 768×432, 20 steps</option>
+            <option value="final">Final — 832×480, 28 steps</option>
+          </select>
+        </div>
+        <div>
+          <label>Mode longue durée</label>
+          <select id="videoContinuity">
+            <option value="stable" selected>Stabilisé — limiter le flou progressif</option>
+            <option value="continuous">Continu — mouvement sans réinitialisation</option>
+          </select>
+        </div>
+      </div>
+      <div class="helper" id="videoQualityHint">Rapide pour tester, Normal pour un bon compromis, Final pour la meilleure qualité.</div>
+
+      <div class="subgrid">
+        <div>
+          <label>Résolution vidéo</label>
+          <select id="videoResolution">
+            <option value="512x288">512 × 288</option>
+            <option value="640x360">640 × 360</option>
+            <option value="768x432" selected>768 × 432</option>
+            <option value="832x480">832 × 480</option>
+          </select>
+        </div>
+        <div>
+          <label>Steps vidéo</label>
+          <input id="videoSteps" type="number" min="4" max="60" value="20">
+        </div>
+        <div>
+          <label>CFG vidéo</label>
+          <input id="videoCfg" type="number" min="1" max="12" step="0.1" value="6">
+        </div>
+      </div>
+
+      <div id="videoStabilizationSettings">
+        <label for="videoStabilizationSeconds">Intervalle entre les reprises (secondes)</label>
+        <input id="videoStabilizationSeconds" type="number" min="1" max="120" step="any" value="20" required aria-describedby="videoModeHint">
+      </div>
+      <div class="helper" id="videoModeHint">Choisis l'intervalle avant de lancer la génération.</div>
+      <div class="toolbar"><button id="previewVideo" class="secondary">Vidéo test</button><button id="comfyVideo">Générer la vidéo parlante</button></div>
+      <div id="videoStatus" class="status"></div>
+      <div id="videoPreview" class="preview">Aucune vidéo</div>
+    </section>
+  </div>
+</div>
+<script type="module">
+let project=null, projects=[], presets=[];
+const pendingVideoProjects=new Set();
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(url,opt={}){const r=await fetch(url,opt);let d={};try{d=await r.json()}catch{}if(!r.ok)throw Error(d.error||`HTTP ${r.status}`);return d}
+function setBusy(id,busy){const b=$(id);if(b)b.disabled=busy}
+function isJobActive(job){return job&&(job.status==='queued'||job.status==='running')}
+function formatSeconds(sec){
+  if(sec===undefined||sec===null||!Number.isFinite(Number(sec))) return '';
+  const s=Math.max(0,Math.round(Number(sec)));
+  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60;
+  if(h>0) return `${h}h ${String(m).padStart(2,'0')}m ${String(ss).padStart(2,'0')}s`;
+  if(m>0) return `${m}m ${String(ss).padStart(2,'0')}s`;
+  return `${ss}s`;
+}
+function renderJob(){
+  const box=$('#jobBox');
+  const job=project?.currentJob;
+  const busy=Boolean(isJobActive(job)||pendingVideoProjects.has(project?.id));
+  ['#generateAvatar','#generateVoice','#previewVideo','#comfyVideo'].forEach(id=>setBusy(id,busy));
+  updateVideoModeUi();
+  if(!job){box.style.display='none';return}
+  box.style.display='block';
+  const labels={image:'Image Qwen',voice:'Voix Qwen3-TTS','video-preview':'Vidéo test','video-wan':'Vidéo Wan2.2 Extend'};
+  const states={queued:'en attente',running:'en cours',done:'terminé',error:'erreur',interrupted:'interrompu'};
+  $('#jobTitle').textContent=`${labels[job.type]||job.type} — ${states[job.status]||job.status}`;
+  const pct=Math.max(0,Math.min(100,Number(job.progress||0)));
+  $('#jobProgressBar').style.width=`${pct}%`;
+  const parts=[`${pct}%`];
+  if(job.total&&job.current) parts.push(`${job.current}/${job.total}`);
+  if(job.type==='video-wan'){
+    if(job.doneSeconds!==undefined&&job.totalSeconds!==undefined) parts.push(`vidéo faite ${formatSeconds(job.doneSeconds)} / ${formatSeconds(job.totalSeconds)}`);
+    if(job.etaSeconds!==undefined&&job.status==='running') parts.push(`reste estimé ${formatSeconds(job.etaSeconds)}`);
+  } else if(job.etaSeconds!==undefined&&job.status==='running') {
+    parts.push(`reste estimé ${formatSeconds(job.etaSeconds)}`);
+  }
+  if(job.status==='done'&&(job.type==='video-wan'||job.type==='video-preview')){
+    // Du lancement jusqu'au MP4 final, préparation et attente ComfyUI incluses.
+    const startedAt=job.createdAt??job.startedAt;
+    if(Number.isFinite(startedAt)&&Number.isFinite(job.finishedAt)&&job.finishedAt>=startedAt){
+      parts.push(`temps total de génération : ${formatSeconds((job.finishedAt-startedAt)/1000)}`);
+    }
+  }
+  $('#jobMeta').textContent=`${parts.join(' — ')} — ${job.message||''}`;
+  $('#jobError').textContent=job.error||'';
+}
+function render(){
+  $('#projectId').textContent=project?`ID ${project.id}`:'';
+  $('#projectName').value=project?.name||'';
+  if(project?.avatar){
+    const img=$('#avatarImg');
+    img.src=`/api/avatar/file/${encodeURIComponent(project.id)}?t=${Date.now()}`;
+    img.style.display='block';
+    $('#avatarEmpty').style.display='none';
+  }else{
+    $('#avatarImg').removeAttribute('src');
+    $('#avatarImg').style.display='none';
+    $('#avatarEmpty').style.display='inline';
+  }
+  $('#voicePreview').innerHTML=project?.voice?`<audio controls src="${project.voice.url}?t=${Date.now()}" style="width:100%"></audio>`:'Aucune voix';
+  $('#videoPreview').innerHTML=project?.video?`<video controls src="${project.video.url}?t=${Date.now()}"></video>`:'Aucune vidéo';
+  $('#videoContinuity').value=project?.videoSettings?.continuity||project?.video?.continuity||'stable';
+  $('#videoStabilizationSeconds').value=project?.videoSettings?.stabilizationSeconds??project?.video?.stabilizationSeconds??20;
+  updateVideoModeUi();
+  if(project?.avatar?.prompt) $('#avatarPrompt').value=project.avatar.prompt;
+  if(project?.avatar?.builtPrompt){$('#builtPrompt').style.display='block';$('#builtPrompt').textContent=project.avatar.builtPrompt}else{$('#builtPrompt').style.display='none';$('#builtPrompt').textContent=''}
+  if(project?.voice){$('#speechText').value=project.voice.text||'';if(project.voice.presetId)$('#voicePreset').value=project.voice.presetId;$('#voicePrompt').value=project.voice.voicePrompt||'';}
+  renderJob();
+}
+function renderProjectList(){
+  $('#projectSelect').innerHTML=projects.length?projects.map(p=>`<option value="${esc(p.id)}">${esc(p.name||('Projet '+p.id.slice(0,8)))} — ${new Date(p.updatedAt).toLocaleString()}${p.avatar?' — avatar':''}${p.voice?' — voix':''}${isJobActive(p.currentJob)?' — EN COURS':''}</option>`).join(''):'<option value="">Aucun projet</option>';
+  if(project) $('#projectSelect').value=project.id;
+}
+async function refreshProjects(selectLatest=false){const d=await api('/api/projects');projects=d.projects||[];renderProjectList();if(selectLatest&&projects.length){await loadProject(projects[0].id)}}
+async function loadProject(id){if(!id)return;const d=await api(`/api/project/${encodeURIComponent(id)}`);project=d.project;render();renderProjectList()}
+async function createProject(){
+  const name=window.prompt('Nom du nouveau projet :','')?.trim()||'';
+  if(!name){alert('Le nom du projet est obligatoire.');return null;}
+  const d=await api('/api/project',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name})});
+  project=d.project;await refreshProjects();render();renderProjectList();return project;
+}
+async function health(){
+  try{
+    const d=await api('/api/status');
+    $('#storage').textContent=`Données persistantes : ${d.dataRoot}`;
+    const missingNodes=d.wanS2V?.nodes?.missing||[];
+    const missingModels=d.wanS2V?.models?.missing||[];
+    const nodesOk=Boolean(d.wanS2V?.nodes?.ok);
+    const modelsOk=Boolean(d.wanS2V?.models?.ok);
+    const wanOk=nodesOk&&modelsOk;
+    let wanDetail='';
+    if(missingNodes.length) wanDetail+=` — nodes natifs manquants: ${esc(missingNodes.join(', '))}`;
+    if(missingModels.length) wanDetail+=` — modèles manquants: ${esc(missingModels.join(', '))}`;
+    if(!d.comfy.ok) wanDetail+=' — ComfyUI inaccessible';
+    $('#health').innerHTML=
+      `ComfyUI: <span class="${d.comfy.ok?'ok':'bad'}">${d.comfy.ok?'OK':'ERREUR'}</span>`+
+      `<br>TTS: <span class="${d.tts.ok?'ok':'bad'}">${d.tts.ok?'OK':'ERREUR'}</span>`+
+      `<br>FFmpeg: <span class="${d.ffmpeg.ok?'ok':'bad'}">${d.ffmpeg.ok?'OK':'ERREUR'}</span>`+
+      `<br>Wan2.2-S2V: <span class="${wanOk?'ok':'warn'}">${wanOk?'PRÊT':'NON DISPONIBLE'}</span>`+wanDetail;
+  }catch(e){$('#health').textContent=e.message}
+}
+async function loadPresets(){presets=await api('/api/voice-presets');$('#voicePreset').innerHTML=presets.map(p=>`<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('');const p=presets[0];if(p)$('#voicePrompt').value=p.prompt}
+function updateQualityUi(fromUser=false){
+  const q=$('#imageQuality').value;
+  if(fromUser) $('#strictReset').checked=q==='final';
+}
+function updateVideoQualityUi(fromUser=false){
+  const q=$('#videoQuality').value;
+  const presets={
+    fast:{resolution:'512x288',steps:'12',cfg:'5.5',hint:'Le plus rapide : faible résolution et peu de steps. La durée totale reste pilotée par l’audio.'},
+    normal:{resolution:'768x432',steps:'20',cfg:'6',hint:'Compromis recommandé sur DGX Spark : qualité correcte et temps raisonnable. La durée finale suit le WAV.'},
+    final:{resolution:'832x480',steps:'28',cfg:'6',hint:'Qualité plus élevée : plus de steps et plus de détail. La durée finale suit le WAV.'}
+  };
+  const p=presets[q]||presets.normal;
+  if(fromUser){
+    $('#videoResolution').value=p.resolution;
+    $('#videoSteps').value=p.steps;
+    $('#videoCfg').value=p.cfg;
+  }
+  $('#videoQualityHint').textContent=p.hint;
+}
+function updateVideoModeUi(){
+  const stable=$('#videoContinuity').value==='stable';
+  const busy=Boolean(isJobActive(project?.currentJob)||pendingVideoProjects.has(project?.id));
+  $('#videoContinuity').disabled=busy;
+  $('#videoStabilizationSettings').hidden=!stable;
+  $('#videoStabilizationSeconds').disabled=!stable||busy;
+  $('#videoModeHint').textContent=stable
+    ? (busy
+      ? "Intervalle verrouillé pendant la génération. Tu pourras le choisir à nouveau une fois celle-ci terminée."
+      : "Choisis cet intervalle avant de cliquer sur « Générer la vidéo parlante » (1 à 120 s). Exemple : 5 s pour reprendre à 5, 10, 15 s… La valeur est mémorisée au lancement et reste fixe pendant toute la génération.")
+    : "Le mouvement se prolonge sans réinitialisation. Sur les vidéos longues, le visage peut progressivement perdre en netteté.";
+}
+
+async function saveProjectName(){
+  if(!project)return;
+  const name=$('#projectName').value.trim();
+  if(!name)return;
+  const d=await api(`/api/project/${encodeURIComponent(project.id)}/name`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({name})});
+  project=d.project;
+  await refreshProjects();
+  render();
+}
+$('#voicePreset').onchange=()=>{const p=presets.find(x=>x.id===$('#voicePreset').value);if(p)$('#voicePrompt').value=p.prompt};
+$('#projectSelect').onchange=()=>loadProject($('#projectSelect').value);
+$('#newProject').onclick=createProject;
+$('#saveProjectName').onclick=saveProjectName;
+$('#projectName').addEventListener('keydown',e=>{if(e.key==='Enter')saveProjectName()});
+$('#imageQuality').onchange=()=>updateQualityUi(true);
+$('#videoQuality').onchange=()=>updateVideoQualityUi(true);
+$('#videoContinuity').onchange=updateVideoModeUi;
+$('#sourceMode').onchange=()=>{const strict=$('#sourceMode').value==='strict';$('#motionPrompt').disabled=strict;$('#sourceModeHint').textContent=strict?"Image stricte : aucun prompt positif n'est envoyé à Wan2.2.":"Créatif : le prompt de mouvement guide Wan2.2.";};
+$('#reloadProjects').onclick=()=>refreshProjects(true);
+$('#generateAvatar').onclick=async()=>{if(!project){const created=await createProject();if(!created)return;}const st=$('#avatarStatus');st.textContent='Lancement de la génération…';try{const payload={projectId:project.id,prompt:$('#avatarPrompt').value,quality:$('#imageQuality').value,strictReset:$('#strictReset').checked};const d=await api('/api/avatar/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});project=d.project;st.textContent='Génération lancée côté serveur. Tu peux fermer cet onglet.';renderJob();await refreshProjects()}catch(e){st.textContent=e.message}};
+let localAvatarObjectUrl=null;
+$('#avatarFile').addEventListener('change', async (event)=>{
+  const input=event.currentTarget;
+  const f=input.files && input.files[0];
+  if(!f)return;
+  const st=$('#avatarStatus');
+  $('#selectedFileName').textContent=`Fichier sélectionné : ${f.name} (${Math.round(f.size/1024)} Ko)`;
+
+  // Aperçu 100 % local et synchrone : aucun appel serveur n'est nécessaire.
+  if(localAvatarObjectUrl) URL.revokeObjectURL(localAvatarObjectUrl);
+  localAvatarObjectUrl=URL.createObjectURL(f);
+  const img=$('#avatarImg');
+  img.onload=()=>{ st.textContent=`Aperçu local affiché : ${f.name}`; };
+  img.onerror=()=>{ st.textContent=`Impossible d'afficher localement ${f.name}.`; };
+  img.src=localAvatarObjectUrl;
+  img.style.display='block';
+  $('#avatarEmpty').style.display='none';
+
+  try{
+    if(!project){const created=await createProject();if(!created)return;}
+    const fd=new FormData();
+    fd.append('projectId',project.id);
+    fd.append('avatar',f,f.name);
+    const d=await api('/api/avatar/upload',{method:'POST',body:fd});
+    project=d.project;
+    await refreshProjects();
+    renderProjectList();
+    st.textContent=`${f.name} affiché et enregistré dans le projet.`;
+    // On conserve volontairement l'aperçu local au lieu de le remplacer immédiatement.
+    // Au prochain rechargement du projet, render() utilisera la copie PNG du serveur.
+  }catch(e){
+    st.textContent=`L'image reste visible localement, mais l'enregistrement a échoué : ${e.message}`;
+  }
+});
+$('#generateVoice').onclick=async()=>{if(!project){const created=await createProject();if(!created)return;}const st=$('#voiceStatus');st.textContent='Lancement Qwen3-TTS…';try{const d=await api('/api/voice/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({projectId:project.id,text:$('#speechText').value,voicePreset:$('#voicePreset').value,voicePrompt:$('#voicePrompt').value,language:'French',speed:1,voiceSeed:123456})});project=d.project;st.textContent='Génération vocale lancée côté serveur. Tu peux fermer cet onglet.';renderJob();await refreshProjects()}catch(e){st.textContent=e.message}};
+$('#previewVideo').onclick=async()=>{if(!project)return;const st=$('#videoStatus');st.textContent='Lancement de la vidéo test…';try{const d=await api('/api/video/preview',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({projectId:project.id})});project=d.project;st.textContent='Job vidéo test lancé côté serveur.';renderJob();await refreshProjects()}catch(e){st.textContent=e.message}};
+$('#comfyVideo').onclick=async()=>{
+  if(!project||isJobActive(project.currentJob)||pendingVideoProjects.has(project.id))return;
+  const projectId=project.id;
+  const st=$('#videoStatus');
+  const stable=$('#videoContinuity').value==='stable';
+  const delay=$('#videoStabilizationSeconds');
+  if(stable&&!delay.reportValidity())return;
+  st.textContent='Lancement de Wan2.2 Extend…';
+  try{
+    const [w,h]=$('#videoResolution').value.split('x').map(Number);
+    const payload={projectId:project.id,quality:$('#videoQuality').value,continuity:$('#videoContinuity').value,sourceMode:$('#sourceMode').value,framing:$('#videoFraming').value,motionPrompt:$('#motionPrompt').value,width:w,height:h,steps:Number($('#videoSteps').value),cfg:Number($('#videoCfg').value)};
+    if(stable)payload.stabilizationSeconds=Number(delay.value);
+    pendingVideoProjects.add(projectId);
+    renderJob();
+    const d=await api('/api/video/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+    if(project?.id===projectId){
+      project=d.project;
+      st.textContent=stable
+        ? `Génération lancée avec une reprise toutes les ${d.project.videoSettings?.stabilizationSeconds??payload.stabilizationSeconds} s. Cet intervalle reste fixe jusqu'à la fin.`
+        : 'Génération Wan2.2 Extend lancée côté serveur. Tu peux fermer cet onglet.';
+      renderJob();
+    }
+    await refreshProjects();
+  }catch(e){if(project?.id===projectId)st.textContent=e.message}
+  finally{pendingVideoProjects.delete(projectId);renderJob()}
+};
+let lastJobSignature='';
+async function pollCurrentProject(){
+  if(!project?.id)return;
+  try{
+    const d=await api(`/api/project/${encodeURIComponent(project.id)}`);
+    const next=d.project;
+    const sig=next.currentJob?`${next.currentJob.id}:${next.currentJob.status}:${next.currentJob.progress}:${next.updatedAt}`:'';
+    const previousActive=isJobActive(project?.currentJob);
+    const nextActive=isJobActive(next.currentJob);
+    project=next;
+    renderJob();
+    if(sig!==lastJobSignature){
+      lastJobSignature=sig;
+      renderProjectList();
+    }
+    if(previousActive&&!nextActive){
+      render();
+      await refreshProjects();
+      const j=project.currentJob;
+      const target=j?.type==='image'?$('#avatarStatus'):j?.type==='voice'?$('#voiceStatus'):$('#videoStatus');
+      if(target) target.textContent=j?.status==='done'?j.message:(j?.error||j?.message||'Job terminé.');
+    }
+  }catch(e){console.warn('Polling projet impossible',e)}
+}
+setInterval(pollCurrentProject,2000);
+
+updateQualityUi(false);
+updateVideoQualityUi(true);
+updateVideoModeUi();
+$('#sourceMode').dispatchEvent(new Event('change'));
+await Promise.all([health(),loadPresets()]);
+await refreshProjects();
+if(projects.length) await loadProject(projects[0].id); else {project=null;render();renderProjectList();}
+</script>
+</body>
+</html>

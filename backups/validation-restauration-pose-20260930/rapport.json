@@ -1,0 +1,38 @@
+{
+  "durationSeconds": 60,
+  "width": 512,
+  "height": 288,
+  "fps": 16,
+  "frames": 960,
+  "audioCorrelation": 0.9999350122672284,
+  "steps": 12,
+  "cfg": 5.5,
+  "seed": 123456,
+  "workflowTests": 16,
+  "referenceTests": 6,
+  "assemblyTests": 4,
+  "build": "passed",
+  "restorationDecisions": [
+    "{'mode': 'original', 'confidence': 0.214}",
+    "{'mode': 'aligned_original', 'confidence': 0.699, 'max_displacement': 6.91}",
+    "{'mode': 'aligned_original', 'confidence': 0.844, 'max_displacement': 4.93}",
+    "{'mode': 'aligned_original', 'confidence': 0.879, 'max_displacement': 5.64}",
+    "{'mode': 'aligned_original', 'confidence': 0.816, 'max_displacement': 5.63}",
+    "{'mode': 'aligned_original', 'confidence': 0.887, 'max_displacement': 5.71}",
+    "{'mode': 'aligned_original', 'confidence': 0.905, 'max_displacement': 4.56}"
+  ],
+  "baseline": "Existing project test-apres-modif, first 60 seconds; same source avatar and narration. Not a controlled benchmark of timing or sampling settings.",
+  "audioInput": {
+    "integrated_lufs": -31.74,
+    "true_peak_dbtp": -12.86
+  },
+  "videoFinalAudio": {
+    "integrated_lufs": -18.2,
+    "true_peak_dbtp": -1.98
+  },
+  "audioNormalizationTarget": {
+    "integratedLUFS": -18,
+    "truePeakDBTP": -2,
+    "outputSampleRateHz": 48000
+  }
+}

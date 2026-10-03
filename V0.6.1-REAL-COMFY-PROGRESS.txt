@@ -1,0 +1,8 @@
+DGX Avatar Studio v0.6.1
+
+- Aucun changement du workflow Wan2.2-S2V Extend ni du rendu vidéo.
+- Suppression de la progression figée à 10 %.
+- Connexion WebSocket native à ComfyUI avant la mise en file du prompt.
+- Progression réelle basée sur les nodes exécutés et les étapes KSampler.
+- Affichage : bloc initial, extensions natives, progression sampler, décodage final et sauvegarde MP4.
+- Le polling /history reste utilisé uniquement pour récupérer le fichier final.

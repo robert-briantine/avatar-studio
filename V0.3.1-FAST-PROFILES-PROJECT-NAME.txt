@@ -1,0 +1,8 @@
+DGX Avatar Studio v0.3.1
+
+- Nom de projet éditable et persistant.
+- Profils image Rapide (12 steps), Normal (20), Final (32).
+- Reset strict ComfyUI configurable.
+- Le mode Final active le reset strict par défaut côté interface.
+- Les profils Rapide/Normal gardent le modèle en mémoire pour accélérer les générations successives.
+- Le workflow avatar reste mono-passe, sans refine créatif.

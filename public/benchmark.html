@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DGX Spark — Benchmark Wan2.2 parallélisme</title>
+<style>
+  :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#0b1016;color:#e8eef5;font-family:system-ui,Segoe UI,Roboto,sans-serif}main{max-width:1180px;margin:auto;padding:24px}.card{background:#111923;border:1px solid #2a3949;border-radius:14px;padding:18px;margin-bottom:18px}h1{margin:0 0 6px;font-size:26px}h2{font-size:18px;margin:0 0 14px}.muted{color:#9fb0c2;font-size:13px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px}label{font-size:12px;color:#b7c6d6}input,select,button{background:#0a0f15;color:#edf5ff;border:1px solid #34485c;border-radius:8px;padding:10px}button{cursor:pointer;background:#18293a;font-weight:700}button:hover{background:#20374e}button:disabled{opacity:.5;cursor:not-allowed}.workers{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.pill{border:1px solid #3d4e61;border-radius:999px;padding:5px 9px;font-size:12px}.ok{color:#80dda3}.bad{color:#ff9696}.progress{height:12px;background:#080c10;border:1px solid #354657;border-radius:999px;overflow:hidden;margin:12px 0}.progress>div{height:100%;background:#dbe9f8;width:0;transition:width .25s}.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.metric{background:#0b1219;border:1px solid #283a4c;border-radius:10px;padding:12px}.metric b{display:block;font-size:20px;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px;border-bottom:1px solid #253443;text-align:left}th{color:#aebdd0}.status{margin-top:10px;white-space:pre-wrap}.warn{color:#ffd27a}.nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:18px}.nav a{color:#b9d9ff}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.historyRow{cursor:pointer}.historyRow:hover{background:#16212c}
+</style>
+</head>
+<body><main>
+<div class="nav"><div><h1>Benchmark Wan2.2 — DGX Spark</h1><div class="muted">Mesure du débit réel : même image + même WAV, seeds différents, 1 à 4 workers ComfyUI.</div></div><a href="/">Avatar Studio</a></div>
+
+<section class="card">
+  <h2>Workers ComfyUI</h2>
+  <div class="muted">Le mode parallèle n'est réel que si plusieurs instances ComfyUI sont actives sur 8188–8191.</div>
+  <div id="workers" class="workers">Vérification…</div>
+</section>
+
+<section class="card">
+  <h2>Nouveau benchmark</h2>
+  <form id="form">
+    <div class="grid">
+      <div class="field"><label>Image de référence</label><input id="image" name="image" type="file" accept="image/*" required></div>
+      <div class="field"><label>Audio WAV</label><input id="wav" name="wav" type="file" accept="audio/wav,.wav" required></div>
+      <div class="field"><label>Mode</label><select id="mode" name="mode"><option value="sequential">Séquentiel</option><option value="parallel">Parallèle</option></select></div>
+      <div class="field"><label>Jobs simultanés</label><select id="concurrency" name="concurrency"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div>
+      <div class="field"><label>Nombre total de générations</label><input name="totalJobs" type="number" min="1" max="20" value="4"></div>
+      <div class="field"><label>Résolution</label><select id="resolution"><option value="512x288">512×288 rapide</option><option value="768x432" selected>768×432 normal</option><option value="832x480">832×480 final</option></select></div>
+      <div class="field"><label>Steps</label><input name="steps" type="number" min="4" max="60" value="20"></div>
+      <div class="field"><label>CFG</label><input name="cfg" type="number" min="1" max="12" step="0.1" value="6"></div>
+      <div class="field"><label>Seed de base</label><input name="seed" type="number" min="0" value="123456"></div>
+      <div class="field"><label>Identité stricte</label><select name="strictIdentity"><option value="true" selected>Oui</option><option value="false">Non</option></select></div>
+    </div>
+    <input id="width" name="width" type="hidden" value="768"><input id="height" name="height" type="hidden" value="432">
+    <div style="margin-top:14px"><button id="start" type="submit">Lancer le benchmark</button></div>
+    <div id="formStatus" class="status"></div>
+  </form>
+</section>
+
+<section class="card" id="currentCard" style="display:none">
+  <h2>Benchmark en cours</h2>
+  <div id="currentMessage" class="status"></div>
+  <div class="progress"><div id="bar"></div></div>
+  <div class="metrics">
+    <div class="metric"><span class="muted">Temps global Comfy/Wan</span><b id="computeTime">—</b></div><div class="metric"><span class="muted">Temps global bout-en-bout</span><b id="globalTime">—</b></div>
+    <div class="metric"><span class="muted">Progression</span><b id="progressText">—</b></div>
+    <div class="metric"><span class="muted">Concurrence réelle</span><b id="effective">—</b></div>
+    <div class="metric"><span class="muted">Débit</span><b id="throughput">—</b></div>
+  </div>
+  <h2 style="margin-top:18px">Jobs</h2>
+  <table><thead><tr><th>#</th><th>Worker</th><th>Seed</th><th>Wan/Comfy</th><th>Post</th><th>Total</th><th>État</th></tr></thead><tbody id="jobRows"></tbody></table>
+</section>
+
+<section class="card">
+  <h2>Historique des mesures</h2>
+  <div class="muted">Les résultats sont persistés en JSON dans <span class="mono">dgx-avatar-studio-data/benchmarks/logs</span>.</div>
+  <table style="margin-top:10px"><thead><tr><th>Date</th><th>Mode</th><th>Jobs</th><th>Concurrence</th><th>Wan global</th><th>Total global</th><th>Jobs/min</th><th>Échecs</th></tr></thead><tbody id="history"></tbody></table>
+</section>
+
+<script>
+const $=s=>document.querySelector(s); let currentId=null; let pollTimer=null;
+function fmtMs(ms){if(ms==null)return '—'; const s=ms/1000; return s<60?`${s.toFixed(1)} s`:`${Math.floor(s/60)} min ${(s%60).toFixed(1)} s`}
+async function json(url,opts){const r=await fetch(url,opts); const d=await r.json().catch(()=>({})); if(!r.ok)throw new Error(d.error||`${r.status}`); return d}
+async function refreshWorkers(){try{const d=await json('/api/benchmark/workers'); $('#workers').innerHTML=d.workers.map(w=>`<span class="pill ${w.ok?'ok':'bad'}">${w.url} — ${w.ok?'PRÊT':'INDISPONIBLE'}</span>`).join('')}catch(e){$('#workers').textContent=e.message}}
+function renderRun(r){$('#currentCard').style.display='block'; $('#bar').style.width=`${r.progress||0}%`; $('#progressText').textContent=`${r.completedJobs||0}/${r.totalJobs} — ${r.progress||0}%`; $('#effective').textContent=r.effectiveConcurrency||'—'; const elapsed=r.globalDurationMs ?? (r.startedAt?Date.now()-r.startedAt:0); $('#globalTime').textContent=fmtMs(elapsed); $('#computeTime').textContent=fmtMs(r.globalComputeDurationMs); $('#throughput').textContent=r.computeJobsPerMinute!=null?`${r.computeJobsPerMinute.toFixed(2)} jobs/min Wan`:(r.jobsPerMinute!=null?`${r.jobsPerMinute.toFixed(2)} jobs/min`:'—'); $('#currentMessage').textContent=`${r.status.toUpperCase()} — ${r.message||''}${r.error?'\nERREUR: '+r.error:''}`; $('#jobRows').innerHTML=[...(r.results||[])].sort((a,b)=>a.index-b.index).map(j=>`<tr><td>${j.index}</td><td class="mono">${j.worker.replace('http://127.0.0.1:','')}</td><td>${j.seed}</td><td>${fmtMs(j.comfyDurationMs)}</td><td>${fmtMs(j.postProcessDurationMs)}</td><td>${fmtMs(j.durationMs)}</td><td class="${j.ok?'ok':'bad'}">${j.ok?'OK':'ERREUR'}</td></tr>`).join('');}
+async function poll(){if(!currentId)return; try{const r=await json(`/api/benchmark/runs/${currentId}`); renderRun(r); if(r.status==='running'||r.status==='queued'){pollTimer=setTimeout(poll,1000)}else{await refreshHistory(); $('#start').disabled=false}}catch(e){$('#currentMessage').textContent=e.message; $('#start').disabled=false}}
+async function refreshHistory(){try{const d=await json('/api/benchmark/runs'); const all=[...(d.live||[]),...(d.saved||[])]; const seen=new Set(); const rows=all.filter(r=>!seen.has(r.id)&&seen.add(r.id)).slice(0,30); $('#history').innerHTML=rows.map(r=>`<tr class="historyRow" data-id="${r.id}"><td>${new Date(r.createdAt).toLocaleString()}</td><td>${r.mode==='parallel'?'Parallèle':'Séquentiel'}</td><td>${r.totalJobs}</td><td>${r.effectiveConcurrency||r.requestedConcurrency}</td><td>${fmtMs(r.globalComputeDurationMs)}</td><td>${fmtMs(r.globalDurationMs)}</td><td>${r.computeJobsPerMinute!=null?r.computeJobsPerMinute.toFixed(2):(r.jobsPerMinute!=null?r.jobsPerMinute.toFixed(2):'—')}</td><td>${r.failedJobs||0}</td></tr>`).join(''); document.querySelectorAll('.historyRow').forEach(tr=>tr.onclick=()=>{const r=rows.find(x=>x.id===tr.dataset.id); if(r){currentId=r.id; renderRun(r)}})}catch(e){$('#history').innerHTML=`<tr><td colspan="8">${e.message}</td></tr>`}}
+$('#mode').onchange=()=>{$('#concurrency').disabled=$('#mode').value==='sequential'}; $('#mode').onchange();
+$('#resolution').onchange=()=>{const [w,h]=$('#resolution').value.split('x'); $('#width').value=w; $('#height').value=h};
+$('#form').onsubmit=async e=>{e.preventDefault(); $('#formStatus').textContent='Envoi du benchmark…'; $('#start').disabled=true; const fd=new FormData(e.target); try{const r=await json('/api/benchmark/run',{method:'POST',body:fd}); currentId=r.id; renderRun(r); $('#formStatus').textContent='Benchmark lancé côté serveur. Tu peux laisser cette page ouverte pour le suivi.'; clearTimeout(pollTimer); poll()}catch(err){$('#formStatus').textContent=err.message; $('#start').disabled=false}};
+refreshWorkers(); refreshHistory(); setInterval(()=>{if(currentId){}else refreshHistory()},10000);
+</script>
+</main></body></html>

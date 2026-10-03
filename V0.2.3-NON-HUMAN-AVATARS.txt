@@ -1,0 +1,6 @@
+DGX Avatar Studio v0.2.3
+
+- Suppression du biais forcé vers les visages humains.
+- Le prompt utilisateur garde la priorité sur l'espèce, l'anatomie, le matériau et le style.
+- Génération possible d'humains, robots, animaux, créatures fantasy, monstres ou personnages stylisés.
+- Le prompt Wan2.2-S2V préserve explicitement les caractéristiques non humaines pendant l'animation.

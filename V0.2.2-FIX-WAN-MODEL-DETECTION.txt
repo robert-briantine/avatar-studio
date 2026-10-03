@@ -1,0 +1,5 @@
+V0.2.2 — correction détection modèles Wan2.2-S2V
+
+- Détection robuste dans les métadonnées du node ComfyUI (corrige AudioEncoderLoader).
+- start.sh utilise /home/blockapicoder/comfyui-spark/comfyui-env/bin/python pour ComfyUI.
+- Aucun modèle à retélécharger si object_info les voit déjà.
