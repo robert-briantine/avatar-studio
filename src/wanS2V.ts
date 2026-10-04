@@ -2,13 +2,22 @@ import type { PromptGraph } from "./workflows.js";
 
 export const WAN_S2V_CHUNK_FRAMES = 77;
 export const WAN_S2V_FPS = 16;
-export const WAN_S2V_STABILIZATION_SECONDS = 20;
 export const WAN_S2V_OVERLAP_FRAMES = 8; // 0,5 s : mêmes instants audio dans les deux fenêtres.
+// Une reprise avant chaque bloc natif évite toute extension récursive. Avec les
+// 8 images rejouées pour le raccord, 69 nouvelles images + 8 = 77 exactement.
+export const WAN_S2V_STABILIZATION_SECONDS =
+  (WAN_S2V_CHUNK_FRAMES - WAN_S2V_OVERLAP_FRAMES) / WAN_S2V_FPS;
 export const WAN_S2V_MOTION_FRAMES = 73; // Contexte ref_motion attendu par le nœud natif Wan S2V.
 export const WAN_S2V_STABLE_NODES = [
-  "TrimAudioDuration", "ImageFromBatch", "ImageBatch", "RepeatImageBatch", "DGXRestoreWanReference"
+  "TrimAudioDuration", "ImageFromBatch", "ImageBatch", "RepeatImageBatch", "DGXPrepareWanHandoff"
 ] as const;
-export type WanVideoWindow = { startFrame: number; frames: number };
+export type WanVideoWindow = {
+  startFrame: number;
+  frames: number;
+  resetToOriginal?: boolean;
+  silence?: { start: number; end: number; duration: number };
+};
+export type WanSilenceInterval = { start: number; end: number; duration: number };
 
 export function parseWanStabilizationSeconds(value: unknown = WAN_S2V_STABILIZATION_SECONDS): number {
   const seconds = typeof value === "number" ? value
@@ -25,8 +34,9 @@ export function planWanS2VWindows(
 ): WanVideoWindow[] {
   const requestedFrames = Math.max(1, Math.ceil(durationSeconds * WAN_S2V_FPS));
   const intervalFrames = parseWanStabilizationSeconds(stabilizationSeconds) * WAN_S2V_FPS;
-  // Le chevauchement vient APRÈS le délai choisi : 20 s signifie une reprise
-  // à 20 s (image 320), depuis l'image 319, puis à 40 s, 60 s, etc.
+  // Le chevauchement vient APRÈS le délai choisi : avec le profil fixe, une
+  // reprise commence à l'image 69 depuis l'image 68, et la fenêtre fait les
+  // 77 images exactes d'un bloc Wan natif.
   const windowFrames = intervalFrames + WAN_S2V_OVERLAP_FRAMES;
   const windows: WanVideoWindow[] = [];
   for (let startFrame = 0; startFrame < requestedFrames; startFrame += intervalFrames) {
@@ -35,6 +45,62 @@ export function planWanS2VWindows(
     if (startFrame + frames >= requestedFrames) break;
   }
   return windows;
+}
+
+/**
+ * Keep the normal bounded reset cadence, but move a reset onto a real audio
+ * pause when one occurs before the next native-window deadline. Such windows
+ * restart from the original avatar; deadline-only windows keep the clean
+ * handoff used by the existing stabilized workflow.
+ */
+export function planWanS2VSilenceWindows(
+  durationSeconds: number,
+  silences: WanSilenceInterval[],
+  stabilizationSeconds = WAN_S2V_STABILIZATION_SECONDS
+): WanVideoWindow[] {
+  const requestedFrames = Math.max(1, Math.ceil(durationSeconds * WAN_S2V_FPS));
+  const intervalFrames = parseWanStabilizationSeconds(stabilizationSeconds) * WAN_S2V_FPS;
+  const minGapFrames = WAN_S2V_FPS; // Avoid tiny renders from consecutive short pauses.
+  const minTailFrames = minGapFrames + WAN_S2V_OVERLAP_FRAMES;
+  const candidates = silences
+    .filter(silence => silence.duration >= 0.20 && silence.start > 0.20 && silence.end < durationSeconds - 0.20)
+    .map(silence => ({
+      frame: Math.round(((silence.start + silence.end) / 2) * WAN_S2V_FPS),
+      silence
+    }))
+    .filter(candidate => candidate.frame >= minGapFrames && candidate.frame <= requestedFrames - minTailFrames)
+    .sort((a, b) => a.frame - b.frame);
+
+  const starts: Array<{ frame: number; resetToOriginal: boolean; silence?: WanSilenceInterval }> = [
+    { frame: 0, resetToOriginal: true }
+  ];
+  let startFrame = 0;
+  while (true) {
+    const deadline = startFrame + intervalFrames;
+    const lastUsefulStart = requestedFrames - minTailFrames;
+    const eligible = candidates.filter(candidate =>
+      candidate.frame >= startFrame + minGapFrames && candidate.frame <= Math.min(deadline, lastUsefulStart)
+    );
+    const silence = eligible.at(-1);
+    if (!silence && deadline >= requestedFrames - WAN_S2V_OVERLAP_FRAMES) break;
+    const nextFrame = silence?.frame ?? deadline;
+    if (nextFrame <= startFrame) break;
+    starts.push({ frame: nextFrame, resetToOriginal: Boolean(silence), silence: silence?.silence });
+    startFrame = nextFrame;
+  }
+
+  return starts.map((start, index) => {
+    const next = starts[index + 1];
+    const frames = next
+      ? next.frame - start.frame + WAN_S2V_OVERLAP_FRAMES
+      : requestedFrames - start.frame;
+    return {
+      startFrame: start.frame,
+      frames: Math.min(frames, requestedFrames - start.frame),
+      resetToOriginal: start.resetToOriginal,
+      ...(start.silence ? { silence: start.silence } : {})
+    };
+  });
 }
 
 export const WAN_S2V_NODES = [
@@ -56,8 +122,14 @@ export const WAN_S2V_NODES = [
   "SaveVideo"
 ] as const;
 
+const WAN_S2V_FP8_MODEL = "wan2.2_s2v_14B_fp8_scaled.safetensors";
+const WAN_S2V_BF16_MODEL = "wan2.2_s2v_14B_bf16.safetensors";
+const configuredDiffusionModel = process.env.WAN_S2V_DIFFUSION_MODEL?.trim();
+
 export const WAN_S2V_MODELS = {
-  diffusion: "wan2.2_s2v_14B_fp8_scaled.safetensors",
+  // BF16 is the quality-first default; retain FP8 as an easy environment-based
+  // fallback for machines prioritizing lower memory use or faster loading.
+  diffusion: configuredDiffusionModel === WAN_S2V_FP8_MODEL ? WAN_S2V_FP8_MODEL : WAN_S2V_BF16_MODEL,
   textEncoder: "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
   audioEncoder: "wav2vec2_large_english_fp16.safetensors",
   vae: "wan_2.1_vae.safetensors"
@@ -111,7 +183,7 @@ export function buildWanS2VExtendedWorkflow(args: {
       inputs: {
         clip: ["2", 0],
         text: args.strictIdentity
-          ? "identity change, different person, different face, face morphing, facial drift, changed facial proportions, changed eyes, changed nose, changed jaw, distorted mouth, deformed face, duplicate face, extra limbs, subtitles, text, watermark, low quality, blurry"
+          ? "identity change, different person, different face, face morphing, facial drift, changed facial proportions, changed eyes, changed nose, changed jaw, red lips, pink lips, lipstick, lip color change, red mouth glow, solid red mouth, oversaturated mouth, painted mouth, flat color patch, color blob, waxy skin, plastic skin, loss of skin texture, oversmoothed face, distorted mouth, deformed face, duplicate face, extra limbs, subtitles, text, watermark, low quality, blurry"
           : "static image, frozen face, bad lip sync, distorted mouth, deformed face, duplicate face, extra limbs, subtitles, text, watermark, low quality, blurry"
       }
     },
@@ -130,7 +202,11 @@ export function buildWanS2VExtendedWorkflow(args: {
         // suivants sont ajoutés sur l'axe temporel par LatentConcat.
         batch_size: 1,
         audio_encoder_output: ["6", 0],
-        ref_image: ["7", 0]
+        ref_image: ["7", 0],
+        // `ref_image` décrit l'identité mais ne verrouille pas les pixels de
+        // départ. La même image est donc aussi encodée comme première image de
+        // contrôle : le tout premier bloc commence réellement sur l'avatar.
+        control_video: ["7", 0]
       }
     },
     "12": {
@@ -221,17 +297,16 @@ export function buildWanS2VExtendedWorkflow(args: {
 }
 
 /**
- * Réinitialise l'historique latent au délai choisi. La dernière image avant la
- * reprise sert à estimer la pose, puis cette pose est reconstruite avec les
- * pixels de l'avatar original avant d'être transmise comme référence de mouvement.
- * L'avatar original reste la référence d'identité de TOUS les conditionnements :
- * remplacer ref_image par l'image générée propagerait sa perte de détails.
- * Les chevauchements sont fusionnés à la finalisation.
+ * Réinitialise l'historique latent au délai choisi. Le premier bloc part de
+ * l'image source exacte. Chaque bloc suivant reçoit directement la dernière
+ * image générée juste avant son instant de départ comme référence de mouvement.
+ * L'avatar original reste en parallèle la référence d'identité (`ref_image`) de
+ * TOUS les conditionnements. Les chevauchements sont fusionnés à la finalisation.
  */
-export function buildWanS2VStabilizedWorkflow(
-  args: Parameters<typeof buildWanS2VExtendedWorkflow>[0]
+function buildWanS2VWindowedWorkflow(
+  args: Parameters<typeof buildWanS2VExtendedWorkflow>[0],
+  windows: WanVideoWindow[]
 ): ReturnType<typeof buildWanS2VExtendedWorkflow> {
-  const windows = planWanS2VWindows(args.durationSeconds, args.stabilizationSeconds);
   if (windows.length === 1) return buildWanS2VExtendedWorkflow(args);
 
   const graph: PromptGraph = {};
@@ -240,6 +315,7 @@ export function buildWanS2VStabilizedWorkflow(
   let nextNodeId = 20;
   let fullImages: string | undefined;
   let previousMotion: string | undefined;
+  let previousAnchor: string | undefined;
   let chunks = 0;
   let generatedFrames = 0;
 
@@ -266,8 +342,12 @@ export function buildWanS2VStabilizedWorkflow(
         key, Array.isArray(value) ? [ids.get(String(value[0]))!, value[1]] : value
       ]));
       if (node.class_type === "AudioEncoderEncode") inputs.audio = [trimId, 0];
-      if (node.class_type === "WanSoundImageToVideo" && previousMotion) {
+      if (node.class_type === "WanSoundImageToVideo" && previousMotion && !windows[windowIndex].resetToOriginal) {
         inputs.ref_motion = [previousMotion, 0];
+        // `ref_motion` et `control_video` reçoivent la même ancre propre. La
+        // dernière image précédente ne fournit que sa pose : aucun de ses
+        // pixels générés n'est réinjecté dans la nouvelle fenêtre.
+        inputs.control_video = [previousAnchor!, 0];
       }
       graph[mappedId] = { class_type: node.class_type, inputs };
       if (node.class_type === "VAEDecode") decodedId = mappedId;
@@ -282,7 +362,7 @@ export function buildWanS2VStabilizedWorkflow(
     };
 
     const nextWindow = windows[windowIndex + 1];
-    if (nextWindow) {
+    if (nextWindow && !nextWindow.resetToOriginal) {
       // Le bloc suivant rejoue le chevauchement. Sa pose précédente est donc
       // l'image juste AVANT cette zone, pas la fin du décodage (dans son futur),
       // ni les frames supplémentaires produites par le VAE temporel.
@@ -291,22 +371,23 @@ export function buildWanS2VStabilizedWorkflow(
         class_type: "ImageFromBatch",
         inputs: { image: [cropId, 0], batch_index: nextWindow.startFrame - startFrame - 1, length: 1 }
       };
-      const restoreId = String(nextNodeId++);
-      graph[restoreId] = {
-        class_type: "DGXRestoreWanReference",
-        // La frame générée fournit uniquement la pose. Les pixels viennent
-        // toujours de l'avatar original intact, jamais d'une reprise précédente.
+      const preparedId = String(nextNodeId++);
+      graph[preparedId] = {
+        class_type: "DGXPrepareWanHandoff",
+        // La sortie 0 maintient l'ancre propre pendant les 9 images de contrôle
+        // (le raccord et sa première image unique). La sortie 1 est cette même
+        // ancre, répétée ensuite comme historique de mouvement.
         inputs: { image: [lastFrameId, 0], original: ["7", 0] }
       };
       const motionId = String(nextNodeId++);
       graph[motionId] = {
         class_type: "RepeatImageBatch",
-        // Avec une seule image, Wan complète ref_motion par 72 images grises
-        // avant l'encodage temporel. Répéter la pose évite ce faux historique
-        // et ses artefacts, sans réintroduire les mouvements des anciens blocs.
-        inputs: { image: [restoreId, 0], amount: WAN_S2V_MOTION_FRAMES }
+        // Ne plus répéter la frame générée dégradée : l'ancre reconstruite avec
+        // les pixels originaux évite la boucle lèvres rouges / perte de texture.
+        inputs: { image: [preparedId, 1], amount: WAN_S2V_MOTION_FRAMES }
       };
       previousMotion = motionId;
+      previousAnchor = preparedId;
     }
     if (fullImages) {
       const concatId = String(nextNodeId++);
@@ -330,4 +411,20 @@ export function buildWanS2VStabilizedWorkflow(
     }
   };
   return { graph, chunks, generatedFrames, windows };
+}
+
+export function buildWanS2VStabilizedWorkflow(
+  args: Parameters<typeof buildWanS2VExtendedWorkflow>[0]
+): ReturnType<typeof buildWanS2VExtendedWorkflow> {
+  return buildWanS2VWindowedWorkflow(args, planWanS2VWindows(args.durationSeconds, args.stabilizationSeconds));
+}
+
+export function buildWanS2VSilenceAwareWorkflow(
+  args: Parameters<typeof buildWanS2VExtendedWorkflow>[0],
+  silences: WanSilenceInterval[]
+): ReturnType<typeof buildWanS2VExtendedWorkflow> {
+  return buildWanS2VWindowedWorkflow(
+    args,
+    planWanS2VSilenceWindows(args.durationSeconds, silences, args.stabilizationSeconds)
+  );
 }

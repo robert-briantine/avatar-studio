@@ -6,7 +6,7 @@ export type Asset = { name: string; path: string; url: string; duration?: number
 
 export type ProjectJob = {
   id: string;
-  type: "image" | "voice-fingerprint" | "voice" | "video-preview" | "video-wan";
+  type: "image" | "voice-fingerprint" | "voice" | "video-preview" | "video-wan" | "video-hybrid" | "video-longcat" | "short";
   status: "queued" | "running" | "done" | "error" | "interrupted";
   createdAt: number;
   startedAt?: number;
@@ -31,9 +31,10 @@ export type VoiceAsset = Asset & {
 };
 
 export type VideoAsset = Asset & {
-  engine: "preview" | "wan-s2v";
+  engine: "preview" | "wan-s2v" | "hybrid" | "longcat";
   continuity?: "stable" | "continuous";
   stabilizationSeconds?: number;
+  upscaled?: boolean;
 };
 
 export type VoiceFingerprint = Asset & {
@@ -44,21 +45,35 @@ export type VoiceFingerprint = Asset & {
   createdAt: number;
 };
 
+export type ShortAsset = Asset & {
+  format: "youtube-short";
+  width: 1080;
+  height: 1920;
+  framing: "blur" | "crop" | "fit";
+  upscaled: boolean;
+  aiModel?: "RealESRGAN_x2plus" | "RealESRGAN_x4plus";
+  normalizeAudio: boolean;
+};
+
 export type AvatarGeneration = {
   id: string;
   name: string;
   text: string;
   createdAt: number;
   updatedAt: number;
-  status: "draft" | "voice-running" | "voice-ready" | "video-running" | "done" | "error" | "stopped";
+  status: "draft" | "voice-running" | "voice-ready" | "video-running" | "short-running" | "short-error" | "done" | "error" | "stopped";
   voice?: VoiceAsset;
   video?: VideoAsset;
+  short?: ShortAsset;
   error?: string;
+  shortError?: string;
   batchId?: string;
   videoSettings?: {
+    engine?: "wan-s2v" | "hybrid" | "longcat";
+    upscale?: boolean;
     quality?: "fast" | "normal" | "final";
     continuity: "stable" | "continuous";
-    stabilizationSeconds: number;
+    stabilizationSeconds?: number;
     sourceMode?: "strict" | "creative";
     framing?: "original" | "fit" | "crop";
     motionPrompt?: string;
@@ -90,7 +105,12 @@ export type AvatarProject = {
   // utilisent generations[] et ne remplacent plus l'historique.
   voice?: VoiceAsset;
   video?: VideoAsset;
-  videoSettings?: { continuity: "stable" | "continuous"; stabilizationSeconds: number };
+  videoSettings?: {
+    engine?: "wan-s2v" | "hybrid" | "longcat";
+    upscale?: boolean;
+    continuity: "stable" | "continuous";
+    stabilizationSeconds?: number;
+  };
   currentJob?: ProjectJob;
   jobHistory?: ProjectJob[];
 };
@@ -100,9 +120,10 @@ type StoredProject = Omit<AvatarProject, "avatar" | "voice" | "video"> & {
   voice?: Omit<NonNullable<AvatarProject["voice"]>, "path"> & { path: string };
   video?: Omit<NonNullable<AvatarProject["video"]>, "path"> & { path: string };
   voiceFingerprint?: Omit<VoiceFingerprint, "path"> & { path: string };
-  generations?: Array<Omit<AvatarGeneration, "voice" | "video"> & {
+  generations?: Array<Omit<AvatarGeneration, "voice" | "video" | "short"> & {
     voice?: Omit<VoiceAsset, "path"> & { path: string };
     video?: Omit<VideoAsset, "path"> & { path: string };
+    short?: Omit<ShortAsset, "path"> & { path: string };
   }>;
 };
 
@@ -174,7 +195,8 @@ export class AvatarStore {
           generations: (raw.generations || []).map(generation => ({
             ...generation,
             voice: abs(generation.voice, "voice"),
-            video: abs(generation.video, "video")
+            video: abs(generation.video, "video"),
+            short: abs(generation.short, "video")
           }))
         };
 
@@ -267,9 +289,10 @@ export class AvatarStore {
     for (const generation of generations) {
       keep(generation.voice);
       keep(generation.video);
+      keep(generation.short);
     }
 
-    for (const asset of [removed.voice, removed.video]) {
+    for (const asset of [removed.voice, removed.video, removed.short]) {
       if (asset && !referenced.has(path.resolve(asset.path))) {
         await fs.rm(asset.path, { force: true }).catch(() => undefined);
       }
@@ -311,6 +334,7 @@ export class AvatarStore {
       for (const generation of p.generations || []) {
         remap(generation.voice);
         remap(generation.video);
+        remap(generation.short);
       }
       this.baseById.set(p.id, newBase);
     }
@@ -344,7 +368,8 @@ export class AvatarStore {
       generations: (p.generations || []).map(generation => ({
         ...generation,
         voice: normalize(generation.voice, "voice"),
-        video: normalize(generation.video, "video")
+        video: normalize(generation.video, "video"),
+        short: normalize(generation.short, "video")
       }))
     };
     const tmp = path.join(base, "project.json.tmp");

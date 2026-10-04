@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildWanS2VExtendedWorkflow, buildWanS2VStabilizedWorkflow, planWanS2VWindows, parseWanStabilizationSeconds, WAN_S2V_NODES, WAN_S2V_STABLE_NODES } from "../src/wanS2V.js";
+import { buildWanS2VExtendedWorkflow, buildWanS2VSilenceAwareWorkflow, buildWanS2VStabilizedWorkflow, planWanS2VSilenceWindows, planWanS2VWindows, parseWanStabilizationSeconds, WAN_S2V_NODES, WAN_S2V_STABLE_NODES, WAN_S2V_STABILIZATION_SECONDS } from "../src/wanS2V.js";
 import type { PromptGraph } from "../src/workflows.js";
 
 const input = {
@@ -95,13 +95,15 @@ test("explicit quality and identity settings survive every extension", () => {
       assert.equal(reference.inputs.image, input.imageName);
       const negative = graph[(conditioning.inputs.negative as [string, number])[0]];
       assert.match(String(negative.inputs.text), /identity change/);
+      assert.match(String(negative.inputs.text), /red lips/);
+      assert.match(String(negative.inputs.text), /loss of skin texture/);
     }
     if (node.class_type === "SaveVideo") assert.equal(node.inputs.filename_prefix, "test/custom");
   }
 });
 
 test("stabilization preserves the existing workflow for short videos", () => {
-  for (const durationSeconds of [1, 6, 20, 20.5]) {
+  for (const durationSeconds of [1, 4, 4.3125, 4.8125]) {
     const args = { ...input, durationSeconds };
     assert.deepEqual(buildWanS2VStabilizedWorkflow(args), buildWanS2VExtendedWorkflow(args));
   }
@@ -126,12 +128,12 @@ for (const durationSeconds of [329 / 16, 648 / 16, 649 / 16, 24, 53.657, 60, 60.
       const frames = Number(crops[i].inputs.length);
       assert.deepEqual(windows[i], { startFrame: elapsedFrames, frames });
       assert.equal(trims[i].inputs.duration, frames / 16);
-      assert.ok(frames > 0 && frames <= 328);
+      assert.ok(frames > 0 && frames <= 77);
       const decoder = graph[(crops[i].inputs.image as [string, number])[0]];
       const latent = latentShape(graph, (decoder.inputs.samples as [string, number])[0]);
       assert.equal(latent.batch, 1);
       assert.equal(latent.blocks, Math.ceil(frames / 77));
-      assert.ok(latent.blocks <= 5, "latent history must stay within the configured interval plus overlap");
+      assert.equal(latent.blocks, 1, "every reset window must be exactly one native block at most");
       elapsedFrames += frames;
     }
     assert.equal(elapsedFrames, requestedFrames);
@@ -169,7 +171,7 @@ for (const durationSeconds of [329 / 16, 648 / 16, 649 / 16, 24, 53.657, 60, 60.
 }
 
 for (const chunkFrames of [77, 41]) {
-  test(`pose handoff stays before the overlap and preserves the original identity (${chunkFrames} frames)`, () => {
+  test(`cleaned last-frame pose controls the reset while the original anchors identity (${chunkFrames} frames)`, () => {
     const { graph, windows } = buildWanS2VStabilizedWorkflow({
       ...input, durationSeconds: 60, chunkFrames, width: 832, height: 480, steps: 28, cfg: 5.5
     });
@@ -179,27 +181,34 @@ for (const chunkFrames of [77, 41]) {
     const crops = Object.entries(graph).filter(([, node]) => node.class_type === "ImageFromBatch"
       && graph[(node.inputs.image as [string, number])[0]].class_type === "VAEDecode");
     assert.equal(starts.length, windows.length);
-    assert.equal(nodes.filter(node => node.class_type === "DGXRestoreWanReference").length, windows.length - 1);
+    assert.equal(nodes.filter(node => node.class_type === "DGXRestoreWanReference").length, 0);
+    assert.equal(nodes.filter(node => node.class_type === "DGXPrepareWanHandoff").length, windows.length - 1);
     assert.equal(nodes.filter(node => node.class_type === "ImageSharpen").length, 0);
     assert.equal(nodes.filter(node => node.class_type === "RepeatImageBatch").length, windows.length - 1);
     assert.equal(starts[0].inputs.ref_motion, undefined);
+    assert.deepEqual(starts[0].inputs.control_video, starts[0].inputs.ref_image,
+      "the first window must start from the exact original image");
     for (let i = 1; i < starts.length; i++) {
       const motion = graph[(starts[i].inputs.ref_motion as [string, number])[0]];
       assert.equal(motion.class_type, "RepeatImageBatch");
       assert.equal(motion.inputs.amount, 73, "fill Wan's pose context without synthetic gray frames");
-      const restore = graph[(motion.inputs.image as [string, number])[0]];
-      assert.equal(restore.class_type, "DGXRestoreWanReference");
-      const original = graph[(restore.inputs.original as [string, number])[0]];
-      assert.equal(original.class_type, "LoadImage", "rebuild every handoff from the untouched original");
-      assert.equal(original.inputs.image, input.imageName);
-      const frame = graph[(restore.inputs.image as [string, number])[0]];
+      const prepared = graph[(motion.inputs.image as [string, number])[0]];
+      assert.equal(prepared.class_type, "DGXPrepareWanHandoff");
+      assert.deepEqual(motion.inputs.image, [String((starts[i].inputs.control_video as [string, number])[0]), 1],
+        "motion history must use the restored anchor, not the generated pixels");
+      const frame = graph[(prepared.inputs.image as [string, number])[0]];
       assert.equal(frame.class_type, "ImageFromBatch");
       assert.equal(frame.inputs.length, 1);
       assert.deepEqual(frame.inputs.image, [crops[i - 1][0], 0], "read the preceding window before video compression");
+      const original = graph[(prepared.inputs.original as [string, number])[0]];
+      assert.equal(original.class_type, "LoadImage");
+      assert.equal(original.inputs.image, input.imageName);
       const localIndex = Number(frame.inputs.batch_index);
       assert.ok(localIndex >= 0 && localIndex < windows[i - 1].frames);
       assert.equal(windows[i - 1].startFrame + localIndex, windows[i].startFrame - 1,
         "future overlap frames must never condition an earlier audio instant");
+      assert.deepEqual(starts[i].inputs.control_video, [(motion.inputs.image as [string, number])[0], 0],
+        "the reset control must hold the cleaned last-frame pose");
     }
     const requiredNodes = new Set<string>([...WAN_S2V_NODES, ...WAN_S2V_STABLE_NODES]);
     for (const node of nodes) {
@@ -225,7 +234,9 @@ for (const chunkFrames of [77, 41]) {
 }
 
 test("20-second stabilization resumes at 20, 40 and 60 seconds from the preceding image", () => {
-  const { graph, windows } = buildWanS2VStabilizedWorkflow({ ...input, durationSeconds: 65 });
+  const { graph, windows } = buildWanS2VStabilizedWorkflow({
+    ...input, durationSeconds: 65, stabilizationSeconds: 20
+  });
   assert.deepEqual(windows, [
     { startFrame: 0, frames: 328 }, { startFrame: 320, frames: 328 },
     { startFrame: 640, frames: 328 }, { startFrame: 960, frames: 80 }
@@ -233,15 +244,53 @@ test("20-second stabilization resumes at 20, 40 and 60 seconds from the precedin
   const starts = Object.values(graph).filter(node => node.class_type === "WanSoundImageToVideo");
   for (const start of starts.slice(1)) {
     const repeated = graph[(start.inputs.ref_motion as [string, number])[0]];
-    const restored = graph[(repeated.inputs.image as [string, number])[0]];
-    assert.equal(restored.class_type, "DGXRestoreWanReference");
-    const original = graph[(restored.inputs.original as [string, number])[0]];
-    assert.equal(original.class_type, "LoadImage");
-    assert.equal(original.inputs.image, input.imageName);
-    const lastFrame = graph[(restored.inputs.image as [string, number])[0]];
+    const prepared = graph[(repeated.inputs.image as [string, number])[0]];
+    assert.equal(prepared.class_type, "DGXPrepareWanHandoff");
+    const lastFrame = graph[(prepared.inputs.image as [string, number])[0]];
+    assert.deepEqual(start.inputs.control_video, [(repeated.inputs.image as [string, number])[0], 0],
+      "the reset must use the cleaned control sequence");
+    assert.equal((repeated.inputs.image as [string, number])[1], 1,
+      "reference motion must receive the restored identity output");
     assert.equal(lastFrame.inputs.batch_index, 319, "handoff uses the last image before 20 seconds, not a later overlap frame");
     assert.equal(lastFrame.inputs.length, 1);
   }
+});
+
+test("silence-aware planning aligns original-image resets to detected pauses and keeps bounded fallback windows", () => {
+  const windows = planWanS2VSilenceWindows(13, [
+    { start: 5.5, end: 5.9, duration: 0.4 },
+    { start: 10.8, end: 11.3, duration: 0.5 }
+  ]);
+  assert.deepEqual(windows.map(({ startFrame, frames, resetToOriginal }) => ({ startFrame, frames, resetToOriginal })), [
+    { startFrame: 0, frames: 77, resetToOriginal: true },
+    { startFrame: 69, frames: 30, resetToOriginal: false },
+    { startFrame: 91, frames: 77, resetToOriginal: true },
+    { startFrame: 160, frames: 25, resetToOriginal: false },
+    { startFrame: 177, frames: 31, resetToOriginal: true }
+  ]);
+  assert.deepEqual(windows[2].silence, { start: 5.5, end: 5.9, duration: 0.4 });
+  assert.deepEqual(windows[4].silence, { start: 10.8, end: 11.3, duration: 0.5 });
+  assert.equal(windows.at(-1)!.startFrame + windows.at(-1)!.frames, Math.ceil(13 * 16));
+  assert.ok(windows.every(window => window.frames <= 77));
+});
+
+test("silence-aware Wan blocks restart from the source image at pauses and retain handoffs elsewhere", () => {
+  const { graph, windows, chunks } = buildWanS2VSilenceAwareWorkflow({ ...input, durationSeconds: 13 }, [
+    { start: 5.5, end: 5.9, duration: 0.4 },
+    { start: 10.8, end: 11.3, duration: 0.5 }
+  ]);
+  assert.equal(chunks, 5);
+  assert.deepEqual(windows?.map(window => window.resetToOriginal), [true, false, true, false, true]);
+  const starts = Object.values(graph).filter(node => node.class_type === "WanSoundImageToVideo");
+  assert.equal(starts.length, 5);
+  assert.equal(starts[0].inputs.ref_motion, undefined);
+  assert.ok(starts[1].inputs.ref_motion, "fixed-deadline fallback should preserve the clean previous handoff");
+  assert.equal(starts[2].inputs.ref_motion, undefined, "pause reset should discard prior motion and start from the source");
+  assert.deepEqual(starts[2].inputs.control_video, ["7", 0]);
+  assert.ok(starts[3].inputs.ref_motion, "handoffs should resume after the silence reset");
+  assert.equal(starts[4].inputs.ref_motion, undefined, "a later silence should create another source-image reset");
+  assert.equal(Object.values(graph).filter(node => node.class_type === "DGXPrepareWanHandoff").length, 2);
+  assertAcyclic(graph);
 });
 
 for (const stabilizationSeconds of [1, 5, 9.5, 20, 30, 120]) {
@@ -274,7 +323,7 @@ for (const stabilizationSeconds of [1, 5, 9.5, 20, 30, 120]) {
 }
 
 test("invalid delays are rejected and valid delays align to video frames", () => {
-  assert.equal(parseWanStabilizationSeconds(), 20);
+  assert.equal(parseWanStabilizationSeconds(), WAN_S2V_STABILIZATION_SECONDS);
   assert.equal(parseWanStabilizationSeconds("20.5"), 20.5);
   assert.equal(parseWanStabilizationSeconds(20.1), 20.125);
   for (const invalid of [0, -1, 0.5, 120.1, NaN, Infinity, null, "", " ", "bad", true, [], {}]) {

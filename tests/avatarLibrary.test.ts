@@ -29,6 +29,11 @@ test("an avatar keeps its voice fingerprint and named generation history after r
       video: {
         name: "video-generation-1.mp4", path: path.join(base, "video/video-generation-1.mp4"), url: "",
         duration: 2, engine: "wan-s2v", continuity: "stable", stabilizationSeconds: 20
+      },
+      short: {
+        name: "short-generation-1.mp4", path: path.join(base, "video/short-generation-1.mp4"), url: "",
+        duration: 2, format: "youtube-short", width: 1080, height: 1920, framing: "blur",
+        upscaled: true, aiModel: "RealESRGAN_x2plus", normalizeAudio: true
       }
     }];
     await store.save(project);
@@ -41,6 +46,8 @@ test("an avatar keeps its voice fingerprint and named generation history after r
     assert.equal(avatar.generations?.[0].name, "Accueil");
     assert.match(avatar.generations?.[0].voice?.url || "", /speech-generation-1\.wav$/);
     assert.match(avatar.generations?.[0].video?.url || "", /video-generation-1\.mp4$/);
+    assert.match(avatar.generations?.[0].short?.url || "", /short-generation-1\.mp4$/);
+    assert.equal(avatar.generations?.[0].short?.width, 1080);
     assert.ok(path.isAbsolute(avatar.generations?.[0].video?.path || ""));
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -63,6 +70,7 @@ test("a running batch becomes safely resumable after a server restart", async ()
         status: "voice", progress: 12, message: "Voix en cours"
       }],
       videoSettings: {
+        engine: "wan-s2v", upscale: false,
         quality: "normal", continuity: "stable", stabilizationSeconds: 20, sourceMode: "strict",
         framing: "original", motionPrompt: "", width: 768, height: 432, steps: 20, cfg: 6, seed: 123456
       }
@@ -88,8 +96,10 @@ test("deleting history preserves a shared fingerprint and archiving removes the 
     const base = store.base(project);
     const sharedVoice = path.join(base, "voice/shared.wav");
     const generationVideo = path.join(base, "video/generation.mp4");
+    const generationShort = path.join(base, "video/short-generation.mp4");
     await writeFile(sharedVoice, "voice");
     await writeFile(generationVideo, "video");
+    await writeFile(generationShort, "short");
     project.voiceFingerprint = {
       name: "shared.wav", path: sharedVoice, url: "", refText: "Reference", presetId: "narrator",
       voicePrompt: "Voix", createdAt: 1
@@ -97,7 +107,11 @@ test("deleting history preserves a shared fingerprint and archiving removes the 
     project.generations = [{
       id: "generation-delete", name: "A supprimer", text: "Texte", createdAt: 2, updatedAt: 2, status: "done",
       voice: { name: "shared.wav", path: sharedVoice, url: "", text: "Texte", presetId: "narrator", voicePrompt: "Voix" },
-      video: { name: "generation.mp4", path: generationVideo, url: "", engine: "wan-s2v" }
+      video: { name: "generation.mp4", path: generationVideo, url: "", engine: "wan-s2v" },
+      short: {
+        name: "short-generation.mp4", path: generationShort, url: "", format: "youtube-short",
+        width: 1080, height: 1920, framing: "blur", upscaled: false, normalizeAudio: true
+      }
     }];
     await store.save(project);
 
@@ -105,6 +119,7 @@ test("deleting history preserves a shared fingerprint and archiving removes the 
     assert.equal(project.generations?.length, 0);
     await access(sharedVoice);
     await assert.rejects(access(generationVideo));
+    await assert.rejects(access(generationShort));
 
     const archivedAt = await store.archive(project);
     assert.equal(store.get(project.id), undefined);

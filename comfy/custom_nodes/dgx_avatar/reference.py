@@ -6,6 +6,13 @@ import numpy as np
 # Bounds are relative to the ORIGINAL at every handoff, not the preceding frame.
 MAX_DISPLACEMENT_RATIO = 0.08
 MAX_DEFORMATION = 0.25
+HANDOFF_APPEARANCE_GAIN = 0.65
+HANDOFF_MAX_CHANNEL_SHIFT = 0.035
+# A reset anchor must not feed generated texture back into the next window.
+# The preceding frame still supplies its pose through optical flow, while every
+# output pixel comes from the untouched avatar reference.
+HANDOFF_RESTORE_BLEND = 1.0
+HANDOFF_CONTROL_FRAMES = 9
 
 
 def bounded_motion(flow, confidence):
@@ -90,3 +97,70 @@ def restore_reference(original, previous):
         "mode": "aligned_original", "confidence": round(score, 3),
         "max_displacement": round(float(np.linalg.norm(flow, axis=2).max()), 2),
     }
+
+
+def prepare_handoff(original, previous):
+    """Build a clean motion anchor from original pixels aligned to the last pose.
+
+    A successful alignment supplies the entire clean anchor. The generated
+    frame contributes geometry through registration, but never output pixels.
+    This breaks the recursive feedback of invented lip colour and softened
+    texture. If registration is unreliable, geometry is left untouched and
+    only a bounded per-channel exposure correction is applied.
+    """
+    if (original.shape != previous.shape or original.ndim != 3 or original.shape[2] != 3
+            or min(original.shape[:2]) < 16):
+        raise ValueError("Les références doivent être deux images RGB de même taille (au moins 16 pixels).")
+    if not np.isfinite(original).all() or not np.isfinite(previous).all():
+        raise ValueError("Une image de référence contient des valeurs non finies.")
+    original = np.clip(original, 0, 1).astype(np.float32)
+    previous = np.clip(previous, 0, 1).astype(np.float32)
+    restored, alignment = restore_reference(original, previous)
+    if alignment["mode"] in ("identical", "aligned_original"):
+        restored_weight = HANDOFF_RESTORE_BLEND
+        prepared = previous * (1 - restored_weight) + restored * restored_weight
+    else:
+        # Never blend an unregistered original into a different pose. A global
+        # channel shift has no geometry and cannot create a double face.
+        current_mean = previous.mean(axis=(0, 1), keepdims=True)
+        original_mean = original.mean(axis=(0, 1), keepdims=True)
+        channel_shift = HANDOFF_APPEARANCE_GAIN * (original_mean - current_mean)
+        channel_shift = np.clip(
+            channel_shift, -HANDOFF_MAX_CHANNEL_SHIFT, HANDOFF_MAX_CHANNEL_SHIFT
+        )
+        prepared = previous + channel_shift
+        restored_weight = 0.0
+
+    prepared = np.clip(prepared, 0, 1).astype(np.float32)
+    before = float(cv2.Laplacian(cv2.cvtColor(previous, cv2.COLOR_RGB2GRAY), cv2.CV_32F).var())
+    after = float(cv2.Laplacian(cv2.cvtColor(prepared, cv2.COLOR_RGB2GRAY), cv2.CV_32F).var())
+    return prepared, {
+        "mode": "restored_motion_anchor",
+        "alignment": alignment["mode"],
+        "confidence": alignment.get("confidence", 0.0),
+        "original_weight": restored_weight,
+        "sharpness_before": round(before, 6),
+        "sharpness_after": round(after, 6),
+        "brightness_before": round(float(previous.mean()), 6),
+        "brightness_after": round(float(prepared.mean()), 6),
+        "mean_correction": round(float(np.mean(np.abs(prepared - previous))), 6),
+    }
+
+
+def build_handoff_sequence(original, previous):
+    """Return a clean 9-frame reset control and its clean motion anchor.
+
+    The last generated image supplies only the pose used to rebuild ``prepared``
+    from original pixels. Holding that cleaned base for the complete assembly
+    overlap prevents Wan from seeing the raw generated texture at reset time.
+    The preceding window remains visible during the overlap and is motion-warped
+    by the final assembler, so continuity does not depend on dirty control input.
+    """
+    prepared, diagnostics = prepare_handoff(original, previous)
+    sequence = np.repeat(prepared[None, ...], HANDOFF_CONTROL_FRAMES, axis=0)
+    diagnostics = {
+        **diagnostics,
+        "control_frames": HANDOFF_CONTROL_FRAMES,
+        "control_mode": "clean_hold",
+    }
+    return sequence, prepared, diagnostics

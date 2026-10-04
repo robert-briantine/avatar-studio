@@ -10,11 +10,12 @@ import { config } from "./config.js";
 import { ComfyClient } from "./comfy.js";
 import { TtsClient } from "./tts.js";
 import { GeneratorService } from "./generation.js";
-import { assembleWanVideo, checkWanTransitions, createSegmentVideo, mediaHealth, probeDuration } from "./media.js";
+import { assembleWanVideo, checkWanTransitions, createSegmentVideo, detectSilences, mediaHealth, probeDuration } from "./media.js";
 import { voicePresets, getVoicePreset } from "./voicePresets.js";
-import { AvatarStore, type AvatarGeneration, type AvatarProject, type ProjectJob, type VoiceAsset, type VideoAsset } from "./avatarStore.js";
+import { AvatarStore, type AvatarGeneration, type AvatarProject, type ProjectJob, type ShortAsset, type VoiceAsset, type VideoAsset } from "./avatarStore.js";
 import { BatchStore, type BatchRun, type BatchVideoSettings } from "./batchStore.js";
-import { buildWanS2VExtendedWorkflow, buildWanS2VStabilizedWorkflow, planWanS2VWindows, parseWanStabilizationSeconds, WAN_S2V_MODELS, WAN_S2V_NODES, WAN_S2V_STABLE_NODES, WAN_S2V_CHUNK_FRAMES, WAN_S2V_FPS } from "./wanS2V.js";
+import { createYouTubeShort, parseShortOptions, shortMakerHealth } from "./shortMaker.js";
+import { buildWanS2VExtendedWorkflow, buildWanS2VSilenceAwareWorkflow, buildWanS2VStabilizedWorkflow, parseWanStabilizationSeconds, planWanS2VSilenceWindows, planWanS2VWindows, WAN_S2V_MODELS, WAN_S2V_NODES, WAN_S2V_STABLE_NODES, WAN_S2V_CHUNK_FRAMES, WAN_S2V_FPS, WAN_S2V_STABILIZATION_SECONDS } from "./wanS2V.js";
 import { availableBenchmarkWorkers, executeBenchmark, parseBenchmarkWorkers, type BenchmarkRun } from "./benchmark.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -86,6 +87,21 @@ function createAvatarGeneration(project: AvatarProject, nameValue: unknown, text
   const generation: AvatarGeneration = {
     id: randomUUID(), name: name.slice(0, 120), text, createdAt: now, updatedAt: now,
     status: "draft", batchId
+  };
+  project.generations = [generation, ...(project.generations || [])];
+  return generation;
+}
+
+function nextVideoRevision(project: AvatarProject, source: AvatarGeneration): AvatarGeneration {
+  const baseName = source.name.replace(/ — vidéo \d+$/i, "");
+  const names = new Set((project.generations || []).map(item => item.name));
+  let revision = 2;
+  while (names.has(`${baseName} — vidéo ${revision}`)) revision++;
+  const now = Date.now();
+  const generation: AvatarGeneration = {
+    id: randomUUID(), name: `${baseName} — vidéo ${revision}`.slice(0, 120), text: source.text,
+    createdAt: now, updatedAt: now, status: "video-running", voice: source.voice || project.voice,
+    batchId: source.batchId
   };
   project.generations = [generation, ...(project.generations || [])];
   return generation;
@@ -636,11 +652,15 @@ app.post("/api/voice/generate", async (req, res) => {
         project.voice = voice;
         project.video = undefined;
         if (generation) {
+          const obsoleteShort = generation.short?.path;
           generation.voice = voice;
           generation.video = undefined;
+          generation.short = undefined;
+          generation.shortError = undefined;
           generation.status = "voice-ready";
           generation.error = undefined;
           generation.updatedAt = Date.now();
+          if (obsoleteShort) await fs.rm(obsoleteShort, { force: true }).catch(() => undefined);
         }
         await finishProjectJob(project, { message: `Voix terminée (${audio.duration.toFixed(1)} s).`, progress: 100 });
       } catch (error) {
@@ -784,10 +804,14 @@ app.post("/api/video/preview", async (req, res) => {
         const video: VideoAsset = { name: filename, path: target, url: pub(project.id, "video", filename), duration, engine: "preview" };
         project.video = video;
         if (generation) {
+          const obsoleteShort = generation.short?.path;
           generation.video = video;
+          generation.short = undefined;
+          generation.shortError = undefined;
           generation.status = "done";
           generation.error = undefined;
           generation.updatedAt = Date.now();
+          if (obsoleteShort) await fs.rm(obsoleteShort, { force: true }).catch(() => undefined);
         }
         await finishProjectJob(project, { message: "Vidéo test terminée.", progress: 100 });
       } catch (error) {
@@ -808,29 +832,40 @@ app.post("/api/video/preview", async (req, res) => {
 app.post("/api/video/generate", async (req, res) => {
   try {
     const project = projectOrThrow(req.body.projectId);
-    const generation = req.body.generationId ? generationOrThrow(project, req.body.generationId) : undefined;
+    if (req.body.engine && req.body.engine !== "wan-s2v") throw new RangeError("Seul Wan2.2-S2V + Extend est disponible.");
+    let generation = req.body.generationId ? generationOrThrow(project, req.body.generationId) : undefined;
     const voice = generation?.voice || project.voice;
     if (!project.avatar) throw new Error("Génère ou charge d'abord un avatar.");
     if (!voice) throw new Error("Génère d'abord la voix.");
 
-    const stabilized = req.body.continuity !== "continuous";
-    // Valider avant de créer un job ou de contacter ComfyUI. Le mode continu
-    // ignore ce champ, mais conserve le dernier délai choisi pour le projet.
-    const stabilizationSeconds = parseWanStabilizationSeconds(stabilized
-      ? (req.body.stabilizationSeconds === undefined ? project.videoSettings?.stabilizationSeconds : req.body.stabilizationSeconds)
-      : project.videoSettings?.stabilizationSeconds);
-    const job = await createProjectJob(project, "video-wan", "Génération Wan2.2-S2V native Extend en attente…", {
+    // A video already in history is immutable: re-render into a fresh entry
+    // with a new asset filename so both versions remain accessible.
+    if (generation?.video) generation = nextVideoRevision(project, generation);
+
+    const engine = "wan-s2v" as const;
+    const engineLabel = "Wan2.2-S2V + Extend";
+    const upscale = false;
+
+    // New renders use only native Wan Extend; legacy engine types remain in
+    // stored history so old videos continue to display correctly.
+    const stabilized = false;
+    const resetOnSilence = false;
+    const stabilizationSeconds = WAN_S2V_STABILIZATION_SECONDS;
+    const continuity = "continuous" as const;
+    const job = await createProjectJob(project, "video-wan", `Génération ${engineLabel} en attente…`, {
       generationId: generation?.id,
       batchId: s(req.body.batchId) || undefined
     });
     const controller = controllerFor(job);
-    project.videoSettings = { continuity: stabilized ? "stable" : "continuous", stabilizationSeconds };
+    project.videoSettings = { engine, upscale, continuity, ...(stabilized ? { stabilizationSeconds } : {}) };
     if (generation) {
       generation.status = "video-running";
       generation.videoSettings = {
+        engine,
+        upscale,
         quality: req.body.quality === "fast" || req.body.quality === "final" ? req.body.quality : "normal",
-        continuity: stabilized ? "stable" : "continuous",
-        stabilizationSeconds,
+        continuity,
+        ...(stabilized ? { stabilizationSeconds } : {}),
         sourceMode: req.body.sourceMode === "creative" ? "creative" : "strict",
         framing: req.body.framing === "fit" || req.body.framing === "crop" ? req.body.framing : "original",
         motionPrompt: s(req.body.motionPrompt),
@@ -887,11 +922,22 @@ app.post("/api/video/generate", async (req, res) => {
         const framing: VideoFramingMode =
           req.body.framing === "fit" || req.body.framing === "crop" ? req.body.framing : "original";
 
+        const silences = resetOnSilence
+          ? await detectSilences(voice.path, controller.signal, 0.20, -38)
+          : undefined;
+        const plannedWindows = stabilized
+          ? (resetOnSilence
+            ? planWanS2VSilenceWindows(total, silences || [], stabilizationSeconds)
+            : planWanS2VWindows(total, stabilizationSeconds))
+          : undefined;
+        const silenceResetCount = plannedWindows?.filter((window, index) => index > 0 && window.resetToOriginal).length || 0;
         const totalFrames = Math.max(1, Math.ceil(total * WAN_S2V_FPS));
-        const plannedWindows = stabilized ? planWanS2VWindows(total, stabilizationSeconds) : undefined;
         const chunks = plannedWindows
           ? plannedWindows.reduce((sum, window) => sum + Math.ceil(window.frames / WAN_S2V_CHUNK_FRAMES), 0)
           : Math.max(1, Math.ceil(totalFrames / WAN_S2V_CHUNK_FRAMES));
+        if (!info.WanSoundImageToVideo?.input?.optional?.control_video) {
+          throw new Error("Cette version de ComfyUI ne propose pas control_video pour Wan2.2-S2V. Mets ComfyUI à jour pour verrouiller l'image de depart de chaque bloc.");
+        }
         if (plannedWindows && plannedWindows.length > 1) {
           const missing = WAN_S2V_STABLE_NODES.filter(name => !info[name]);
           if (missing.length) {
@@ -909,7 +955,9 @@ app.post("/api/video/generate", async (req, res) => {
           doneSeconds: 0,
           current: 1,
           total: chunks,
-          message: `Wan2.2 natif : ${chunks} passe(s) de ${WAN_S2V_CHUNK_FRAMES} frames pour ${total.toFixed(1)} s d'audio…`
+          message: resetOnSilence
+            ? `Test Wan2.2 : ${silenceResetCount} reprise(s) sur silence détecté(s), ${chunks} passe(s) au total…`
+            : `Wan2.2 natif : ${chunks} passe(s) de ${WAN_S2V_CHUNK_FRAMES} frames pour ${total.toFixed(1)} s d'audio…`
         });
 
         const base = await store.ensure(project);
@@ -921,9 +969,10 @@ app.post("/api/video/generate", async (req, res) => {
         const sourceExt = path.extname(project.avatar!.path) || ".png";
         const imageExt = framing === "original" ? sourceExt : ".png";
         const imageName = `wan-avatar-${project.id}-${randomUUID()}${imageExt}`;
+        const preparedImagePath = path.join(comfyInputDir, imageName);
         await prepareWanReferenceImage(
           project.avatar!.path,
-          path.join(comfyInputDir, imageName),
+          preparedImagePath,
           requestedWidth,
           requestedHeight,
           framing
@@ -936,11 +985,10 @@ app.post("/api/video/generate", async (req, res) => {
 
         const userMotionPrompt = String(req.body.motionPrompt || "").trim();
         const prompt = sourceMode === "strict"
-          ? ""
+          ? "The same person with the exact original appearance from the reference image. Preserve the natural skin and beard texture, original lip color, lighting, contrast, clothing and background. Natural synchronized speech and a stable camera."
           : (userMotionPrompt || "The subject speaks naturally with synchronized mouth movement while keeping the camera stable and preserving the original appearance and background.");
 
-        const buildVideoWorkflow = stabilized ? buildWanS2VStabilizedWorkflow : buildWanS2VExtendedWorkflow;
-        const { graph, generatedFrames, windows } = buildVideoWorkflow({
+        const workflowArgs = {
           imageName,
           audioName,
           prompt,
@@ -954,7 +1002,10 @@ app.post("/api/video/generate", async (req, res) => {
           cfg,
           filenamePrefix: `dgx-avatar/wan-extend-${project.id}`,
           chunkFrames: WAN_S2V_CHUNK_FRAMES
-        });
+        };
+        const { graph, generatedFrames, windows } = resetOnSilence
+          ? buildWanS2VSilenceAwareWorkflow(workflowArgs, silences || [])
+          : (stabilized ? buildWanS2VStabilizedWorkflow(workflowArgs) : buildWanS2VExtendedWorkflow(workflowArgs));
 
         // Évite de vider les poids et le cache à chaque nouvelle vidéo.
         // ComfyUI libère lui-même de la mémoire lorsque le workflow en a besoin.
@@ -964,7 +1015,9 @@ app.post("/api/video/generate", async (req, res) => {
           current: 1,
           total: chunks,
           message: windows
-            ? `Calcul Wan2.2 : ${chunks} passe(s), pose reconstruite depuis l'avatar original toutes les ${stabilizationSeconds} s…`
+            ? (resetOnSilence
+              ? `Test Wan2.2 : ${silenceResetCount} reset(s) sur silence, autres raccords stabilisés (${stabilizationSeconds} s max)…`
+              : `Calcul Wan2.2 : ${chunks} passe(s), reprise corrigée à chaque bloc natif (${stabilizationSeconds} s)…`)
             : `Calcul Wan2.2 : bloc initial + ${Math.max(0, chunks - 1)} extension(s) natives…`
         });
 
@@ -1023,8 +1076,8 @@ app.post("/api/video/generate", async (req, res) => {
               doneSeconds: Math.min(total, sampledSeconds()), totalSeconds: total,
               message: reanchored
                 ? (graph[nodeId].inputs.ref_motion
-                  ? `Wan2.2 : bloc ${current}/${chunks}, reprise depuis la dernière image…`
-                  : `Wan2.2 : bloc ${current}/${chunks} depuis l'image originale…`)
+                  ? `Wan2.2 : bloc ${current}/${chunks}, depart verrouille sur la dernière image…`
+                  : `Wan2.2 : bloc ${current}/${chunks} depuis l'image originale exacte…`)
                 : `Wan2.2 : extension native ${current}/${chunks}…`
             }, true);
             return;
@@ -1088,7 +1141,7 @@ app.post("/api/video/generate", async (req, res) => {
         const target = path.join(base, "video", filename);
         // Fusionne les mêmes instants des fenêtres voisines, puis remet le WAV
         // original. Le mode continu garde sa simple coupe de fin habituelle.
-        await assembleWanVideo(raw, voice.path, target, total, windows, controller.signal);
+        await assembleWanVideo(raw, voice.path, target, total, windows, preparedImagePath, controller.signal);
 
         const duration = await probeDuration(target, controller.signal).catch(() => total);
         const video: VideoAsset = {
@@ -1097,15 +1150,19 @@ app.post("/api/video/generate", async (req, res) => {
           url: pub(project.id, "video", filename),
           duration,
           engine: "wan-s2v",
-          continuity: stabilized ? "stable" : "continuous",
+          continuity,
           stabilizationSeconds: stabilized ? stabilizationSeconds : undefined
         };
         project.video = video;
         if (generation) {
+          const obsoleteShort = generation.short?.path;
           generation.video = video;
+          generation.short = undefined;
+          generation.shortError = undefined;
           generation.status = "done";
           generation.error = undefined;
           generation.updatedAt = Date.now();
+          if (obsoleteShort) await fs.rm(obsoleteShort, { force: true }).catch(() => undefined);
         }
 
         await finishProjectJob(project, {
@@ -1125,7 +1182,7 @@ app.post("/api/video/generate", async (req, res) => {
         }
         await finishProjectJob(project, {
           status: abortMessage(error) ? "interrupted" : "error",
-          message: abortMessage(error) ? "Generation Wan2.2 arretee." : "Erreur pendant la génération Wan2.2 Extend.",
+          message: abortMessage(error) ? `Génération ${engineLabel} arrêtée.` : `Erreur pendant la génération ${engineLabel}.`,
           error: error instanceof Error ? error.message : String(error)
         });
       } finally {
@@ -1133,9 +1190,91 @@ app.post("/api/video/generate", async (req, res) => {
       }
     });
 
-    res.status(202).json({ project, job });
+    res.status(202).json({ project, generation, job });
   } catch (e) {
     res.status(e instanceof RangeError ? 400 : 500).json({ error: e instanceof Error ? e.message : String(e) });
+  }
+});
+
+app.get("/api/short/status", async (_req, res) => {
+  res.json(await shortMakerHealth());
+});
+
+app.post("/api/short/generate", async (req, res) => {
+  try {
+    const project = projectOrThrow(req.body.projectId);
+    const generation = generationOrThrow(project, req.body.generationId);
+    if (!generation.video) throw new Error("Genere d'abord la video de cette generation.");
+    const sourceVideo = generation.video;
+    const options = parseShortOptions(req.body);
+    const job = await createProjectJob(project, "short", "Creation du Short YouTube en attente…", {
+      generationId: generation.id,
+      batchId: s(req.body.batchId) || undefined
+    });
+    const controller = controllerFor(job);
+    generation.status = "short-running";
+    generation.shortError = undefined;
+    generation.updatedAt = Date.now();
+    await store.save(project);
+
+    runDetached(async () => {
+      try {
+        await updateProjectJob(project, {
+          status: "running", startedAt: Date.now(), progress: 1,
+          message: options.upscale ? "Preparation du Short avec upscale IA…" : "Preparation du Short YouTube…"
+        });
+        const base = await store.ensure(project);
+        const filename = `short-${generation.id}.mp4`;
+        const target = path.join(base, "video", filename);
+        const workingTarget = path.join(base, "video", `.short-${generation.id}-${randomUUID()}.mp4`);
+        let updateChain = Promise.resolve();
+        const result = await createYouTubeShort(sourceVideo.path, workingTarget, options, {
+          signal: controller.signal,
+          onProgress: event => {
+            updateChain = updateChain.then(() => updateProjectJob(project, {
+              progress: Math.max(1, Math.min(99, Math.round(event.progress * 10) / 10)),
+              message: event.message
+            })).catch(error => console.error("[Short progress]", error));
+          }
+        });
+        await updateChain;
+        await fs.rename(workingTarget, target);
+        const short: ShortAsset = {
+          name: filename,
+          path: target,
+          url: pub(project.id, "video", filename),
+          duration: result.duration,
+          format: "youtube-short",
+          width: 1080,
+          height: 1920,
+          framing: options.framing,
+          upscaled: options.upscale,
+          aiModel: options.upscale ? options.aiModel : undefined,
+          normalizeAudio: options.normalizeAudio
+        };
+        generation.short = short;
+        generation.shortError = undefined;
+        generation.status = "done";
+        generation.updatedAt = Date.now();
+        await finishProjectJob(project, {
+          progress: 100,
+          message: `Short YouTube termine (1080 x 1920${options.upscale ? `, ${options.aiModel}` : ""}).`
+        });
+      } catch (error) {
+        generation.status = abortMessage(error) ? "stopped" : "short-error";
+        generation.shortError = error instanceof Error ? error.message : String(error);
+        generation.updatedAt = Date.now();
+        await finishProjectJob(project, {
+          status: abortMessage(error) ? "interrupted" : "error",
+          message: abortMessage(error) ? "Creation du Short arretee." : "Erreur pendant la creation du Short.",
+          error: generation.shortError
+        });
+      }
+    });
+
+    res.status(202).json({ project, generation, job });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -1162,11 +1301,13 @@ function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
 
 function parseBatchVideoSettings(value: any): BatchVideoSettings {
   const quality = videoQualitySettings(value?.quality);
-  const continuity = value?.continuity === "continuous" ? "continuous" : "stable";
-  const stabilizationSeconds = parseWanStabilizationSeconds(
-    continuity === "stable" ? (value?.stabilizationSeconds ?? 20) : 20
-  );
+  const engine = "wan-s2v" as const;
+  const continuity = "continuous" as const;
+  const stabilizationSeconds = WAN_S2V_STABILIZATION_SECONDS;
+  const short = parseShortOptions(value?.short);
   return {
+    engine,
+    upscale: false,
     quality: quality.profile,
     continuity,
     stabilizationSeconds,
@@ -1177,7 +1318,11 @@ function parseBatchVideoSettings(value: any): BatchVideoSettings {
     height: Math.floor(n(value?.height, quality.height)),
     steps: Math.max(4, Math.min(60, Math.floor(n(value?.steps, quality.steps)))),
     cfg: n(value?.cfg, quality.cfg),
-    seed: Math.floor(n(value?.seed, 123456))
+    seed: Math.floor(n(value?.seed, 123456)),
+    short: {
+      enabled: boolValue(value?.short?.enabled, false),
+      ...short
+    }
   };
 }
 
@@ -1241,6 +1386,9 @@ async function runBatch(batch: BatchRun, controller: AbortController): Promise<v
       let generation = item.generationId
         ? (project.generations || []).find(candidate => candidate.id === item.generationId)
         : undefined;
+      const wantsShort = batch.videoSettings.short?.enabled === true;
+      const voiceEnd = wantsShort ? 25 : 35;
+      const videoEnd = wantsShort ? 80 : 100;
 
       if (!generation?.voice) {
         item.status = "voice";
@@ -1261,25 +1409,44 @@ async function runBatch(batch: BatchRun, controller: AbortController): Promise<v
         item.generationId = String(payload.generation.id);
         generation = payload.generation as AvatarGeneration;
         await batchStore.save(batch);
-        await waitForBatchProjectJob(batch, item, project, payload.job.id, 0, 35, controller.signal);
+        await waitForBatchProjectJob(batch, item, project, payload.job.id, 0, voiceEnd, controller.signal);
         generation = generationOrThrow(project, item.generationId);
       }
 
-      item.status = "video";
-      item.progress = Math.max(item.progress, 35);
-      item.message = "Generation de la video…";
-      await batchStore.save(batch);
-      const payload = await callLocalApi("/api/video/generate", {
-        projectId: project.id,
-        generationId: generation!.id,
-        batchId: batch.id,
-        ...batch.videoSettings
-      }, controller.signal);
-      await waitForBatchProjectJob(batch, item, project, payload.job.id, 35, 65, controller.signal);
+      if (!generation?.video) {
+        item.status = "video";
+        item.progress = Math.max(item.progress, voiceEnd);
+        item.message = "Generation de la video…";
+        await batchStore.save(batch);
+        const payload = await callLocalApi("/api/video/generate", {
+          projectId: project.id,
+          generationId: generation!.id,
+          batchId: batch.id,
+          ...batch.videoSettings
+        }, controller.signal);
+        await waitForBatchProjectJob(batch, item, project, payload.job.id, voiceEnd, videoEnd - voiceEnd, controller.signal);
+        generation = generationOrThrow(project, item.generationId!);
+      }
+
+      if (wantsShort && !generation?.short) {
+        item.status = "short";
+        item.progress = Math.max(item.progress, videoEnd);
+        item.message = batch.videoSettings.short?.upscale
+          ? "Creation du Short et upscale Real-ESRGAN…"
+          : "Creation du Short YouTube…";
+        await batchStore.save(batch);
+        const payload = await callLocalApi("/api/short/generate", {
+          projectId: project.id,
+          generationId: generation!.id,
+          batchId: batch.id,
+          ...batch.videoSettings.short
+        }, controller.signal);
+        await waitForBatchProjectJob(batch, item, project, payload.job.id, videoEnd, 100 - videoEnd, controller.signal);
+      }
 
       item.status = "done";
       item.progress = 100;
-      item.message = "Voix et video terminees";
+      item.message = wantsShort ? "Voix, video et Short termines" : "Voix et video terminees";
       item.error = undefined;
     } catch (error) {
       if (controller.signal.aborted || abortMessage(error)) {
@@ -1292,14 +1459,20 @@ async function runBatch(batch: BatchRun, controller: AbortController): Promise<v
         batchControllers.delete(batch.id);
         return;
       }
+      const failedStage = item.status;
       item.status = "error";
       item.error = error instanceof Error ? error.message : String(error);
       item.message = "Erreur — reprise possible";
       if (item.generationId && project) {
         const generation = (project.generations || []).find(candidate => candidate.id === item.generationId);
         if (generation) {
-          generation.status = "error";
-          generation.error = item.error;
+          if (failedStage === "short") {
+            generation.status = "short-error";
+            generation.shortError = item.error;
+          } else {
+            generation.status = "error";
+            generation.error = item.error;
+          }
           generation.updatedAt = Date.now();
           await store.save(project);
         }

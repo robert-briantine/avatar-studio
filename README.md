@@ -2,6 +2,32 @@
 
 Application locale DGX Spark : image Qwen, voix Qwen3-TTS et vidéo Wan2.2-S2V.
 
+## Génération vidéo
+
+Les nouveaux rendus utilisent **Wan2.2-S2V + Extend** avec le checkpoint BF16
+pour privilégier la qualité. La luminosité est stabilisée pendant l’assemblage
+pour limiter la dérive entre extensions. Les anciennes vidéos MuseTalk/LongCat
+restent visibles dans l’historique, mais ces moteurs ne sont plus proposés pour
+les nouvelles générations. Pour revenir au checkpoint FP8 moins gourmand en
+mémoire, définissez `WAN_S2V_DIFFUSION_MODEL=wan2.2_s2v_14B_fp8_scaled.safetensors`.
+
+## Shorts YouTube et upscale — octobre 2026
+
+Chaque génération vidéo peut maintenant produire un **Short YouTube 9:16 en
+1080 × 1920** directement depuis le Studio. Trois cadrages sont disponibles :
+fond flouté, recadrage plein écran ou bandes noires. La piste audio peut être
+normalisée à −14 LUFS. L’option d’upscale réutilise Real-ESRGAN x2/x4 et son
+environnement CUDA installés dans
+`/home/blockapicoder/dgx-short-maker-fixed/dgx-short-maker` ; ce chemin peut être
+remplacé avec `DGX_SHORT_MAKER_ROOT`, `REALESRGAN_PYTHON` et
+`REALESRGAN_VIDEO_SCRIPT`.
+
+Le mode **Batch** propose la même étape en option. Une ligne suit alors le flux
+voix → vidéo raccordée → Short. L’arrêt et la reprise sont conservés pendant la
+conversion ou l’upscale et les étapes déjà terminées ne sont pas recalculées.
+Chaque Short reste attaché à la génération correspondante dans l’historique ; la
+suppression de la génération supprime également son fichier Short.
+
 ## Bibliotheque d'avatars, empreintes vocales et batchs — octobre 2026
 
 L'ecran principal suit maintenant un parcours guide :
@@ -22,39 +48,53 @@ etre arrete, repris a son point non termine, ou recommence depuis le debut. Son
 etat est enregistre dans `batches.json` sous `DGX_AVATAR_DATA_DIR`, ce qui permet
 de le reprendre apres un redemarrage du serveur.
 
-## Durée de stabilisation réglable — octobre 2026
+## Raccord anti-derive par derniere image — octobre 2026
 
-En mode **Stabilisé**, le champ **Intervalle entre les reprises (secondes)** permet de
-choisir la durée de mouvement continu entre deux reprises : **20 s par défaut**,
-de 1 à 120 s. Le réglage est enregistré dans le projet au lancement, même si la
-génération échoue, puis retrouvé au rechargement. Le mode Continu masque ce champ
-et conserve son fonctionnement habituel.
+L'interface utilise un seul profil video : **512 x 288**, 12 steps, CFG 5,5 et
+mode avec raccord. Les choix de resolution, de qualite et de mode Continu ont ete
+retires du Studio et des batchs. L'intervalle manuel a également été retiré : une
+reprise est maintenant imposée toutes les **69 images, soit 4,3125 s**.
 
-Dans la section **3. Vidéo**, choisir cet intervalle dans l'interface, juste
-au-dessus du bouton **Générer la vidéo parlante**, puis lancer la génération.
-L'intervalle et le mode sont verrouillés dès le clic et pendant tout le rendu.
-Ils redeviennent modifiables après la fin ou une erreur, pour la prochaine vidéo.
+Le premier bloc part de l'image source exacte grâce à `control_video`. La derniere
+image generee juste avant chaque reprise est extraite avant compression : a
+16 fps, l'image 68 devient l'ancre du bloc qui commence a l'image 69. Elle est
+utilisee uniquement pour mesurer la pose. L'avatar original est recalé sur cette
+pose, puis cette base propre alimente `control_video` et les 73 images attendues
+par `ref_motion`. Cette double utilisation est importante : `ref_motion` seul
+guide la pose, mais peut encore laisser Wan changer brutalement de cadrage.
+L'avatar original reste simultanement la reference d'identite (`ref_image`) de
+toutes les passes.
 
-Avec 20 s, les reprises commencent à 20, 40, 60 s, etc. La dernière image avant
-chaque reprise est extraite du décodage avant compression : à 16 fps, l'image 319
-pour reprendre à l'image 320. Elle sert seulement à estimer la pose. Le nœud
-`DGXRestoreWanReference` applique cette pose aux pixels de l'avatar original ;
-cette image reconstruite devient le contexte de mouvement (`ref_motion`, répété
-sur 73 images). Le flou, les couleurs altérées et les détails inventés par la
-fenêtre précédente ne sont donc pas recopiés. L'avatar original reste aussi la
-référence d'identité (`ref_image`) de toutes les passes.
+Le raccord utilise une séquence de contrôle de 9 images identiques et propres.
+La dernière image générée ne fournit plus aucun pixel : elle fournit seulement la
+géométrie qui sert à reconstruire la base avec 100 % des pixels de l'avatar
+original. Cette base est maintenue pendant les 8 images de chevauchement et la
+première image non recouverte. La fenêtre précédente reste visible et est
+morphée par le montage pendant le chevauchement, sans devoir réinjecter sa texture
+dégradée dans Wan. Si le recalage est incertain, l'original n'est pas mélangé
+spatialement et seule une correction globale bornée est faite.
 
-Les raccords de 0,5 s commencent **après** la durée choisie, pour préserver tout
-le début du mouvement. Une fenêtre peut donc couvrir 20,5 s. S'il reste au plus
-0,5 s à la prochaine reprise, la fenêtre en cours termine la vidéo sans nouvelle
-réinitialisation. Les fractions de seconde sont arrondies à l'image la plus proche
-(1/16 s). Le WAV complet reste la piste finale, sans répétition ni coupure audio.
-Si l'estimation de pose est peu fiable, le raccord repart de l'avatar original.
-Réduire la durée permet toujours de réancrer plus tôt. La qualité visuelle reste
-à valider sur le rendu GPU.
+`ref_motion` ne répète plus la frame générée dégradée : il reçoit l'ancre propre.
+Cela casse la boucle locale qui réinjectait une bouche toujours plus rose/rouge
+et une texture de peau toujours plus synthétique. Le prompt strict interdit aussi
+explicitement rouge à lèvres, changement de couleur de bouche, peau cireuse et
+perte de texture.
 
-Pour **extra-terrestre**, sélectionner **Stabilisé**, garder **20** puis lancer
-la génération. La vidéo continue existante n'est pas modifiée par cette mise à jour.
+Les 8 images de raccord (0,5 s) portent chaque fenêtre à exactement **77 images**,
+la taille d'un bloc Wan natif. Il n'y a donc plus d'extension latente récursive à
+l'intérieur d'une fenêtre : chaque bloc repart de l'image précédente corrigée,
+avec l'avatar original conservé comme ancre d'identité. Le WAV complet reste la
+piste finale, sans répétition ni coupure audio.
+
+Le rendu de 62,3 s « Robert briantine test » a permis d'isoler un défaut précis :
+entre les images 418 et 475 (26,1 à 29,7 s), le bloc démarrant à l'image 414
+transforme la bouche puis le menton en une masse rouge. L'ancien garde-fou
+supprimait la couleur mais produisait alors une plaque grise visible. Il restaure
+désormais la texture de la dernière image saine ; surtout, la nouvelle reprise ne
+présente plus la frame générée brute au bloc suivant. Un nouveau rendu long reste
+nécessaire pour confirmer la prévention côté modèle sur les 62,3 s complets.
+
+Les videos existantes ne sont pas modifiees par cette mise a jour.
 Sauvegarde des sources précédentes :
 `backups/avant-stabilisation-reglable-20261001.tar.gz`.
 

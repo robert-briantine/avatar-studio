@@ -1,0 +1,25 @@
+FROM nvcr.io/nvidia/pytorch:25.06-py3
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ffmpeg libgl1 libglib2.0-0 libsndfile1 git curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# NVIDIA's base already contains PyTorch, torchvision, CUDA and flash-attn.
+# Replacing them with the upstream cu124 wheels would lose GB10 support.
+RUN python -m pip install --no-cache-dir \
+      "numpy==1.26.4" "transformers==4.41.0" "diffusers==0.35.1" \
+      "huggingface_hub[cli]>=0.30,<1" "loguru==0.7.2" "einops==0.8.0" \
+      "ftfy==6.2.0" "psutil==6.0.0" "av==12.0.0" \
+      "opencv-python-headless==4.9.0.80" "imageio==2.37.0" \
+      "imageio-ffmpeg==0.6.0" "scikit-learn==1.6.1" \
+      "scikit-image==0.25.2" "scipy==1.15.3" "soundfile==0.13.1" \
+      "soxr==0.5.0.post1" "librosa==0.11.0" "audio-separator==0.30.2" \
+      "pyloudnorm==0.1.1" "onnx==1.18.0" \
+      "onnxruntime>=1.20,<2" "safetensors>=0.4" \
+    && python -m pip cache purge
+
+WORKDIR /engines/src/LongCat-Video

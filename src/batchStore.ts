@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
-export type BatchItemStatus = "pending" | "voice" | "video" | "done" | "error" | "stopped";
+export type BatchItemStatus = "pending" | "voice" | "video" | "short" | "done" | "error" | "stopped";
 
 export type BatchItem = {
   id: string;
@@ -18,6 +18,8 @@ export type BatchItem = {
 };
 
 export type BatchVideoSettings = {
+  engine: "wan-s2v" | "hybrid" | "longcat";
+  upscale: boolean;
   quality: "fast" | "normal" | "final";
   continuity: "stable" | "continuous";
   stabilizationSeconds: number;
@@ -29,6 +31,13 @@ export type BatchVideoSettings = {
   steps: number;
   cfg: number;
   seed: number;
+  short?: {
+    enabled: boolean;
+    framing: "blur" | "crop" | "fit";
+    upscale: boolean;
+    aiModel: "RealESRGAN_x2plus" | "RealESRGAN_x4plus";
+    normalizeAudio: boolean;
+  };
 };
 
 export type BatchRun = {
@@ -66,7 +75,7 @@ export class BatchStore {
         run.finishedAt = Date.now();
         run.message = "Batch interrompu par un redemarrage du serveur. Il peut etre repris.";
         for (const item of run.items) {
-          if (item.status === "voice" || item.status === "video") {
+          if (item.status === "voice" || item.status === "video" || item.status === "short") {
             item.status = "stopped";
             item.message = "Interrompu par le redemarrage.";
           }

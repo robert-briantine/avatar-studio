@@ -145,8 +145,8 @@
         <div>
           <label>Mode longue durée</label>
           <select id="videoContinuity">
-            <option value="stable" selected>Stabilisé — limiter le flou progressif</option>
-            <option value="continuous">Continu — mouvement sans réinitialisation</option>
+            <option value="continuous" selected>Extend natif — continuité du mouvement (recommandé)</option>
+            <option value="stable">Stabilisé — ancien mode de repli</option>
           </select>
         </div>
       </div>
@@ -208,20 +208,20 @@ function renderJob(){
   updateVideoModeUi();
   if(!job){box.style.display='none';return}
   box.style.display='block';
-  const labels={image:'Image Qwen',voice:'Voix Qwen3-TTS','video-preview':'Vidéo test','video-wan':'Vidéo Wan2.2 Extend'};
+  const labels={image:'Image Qwen',voice:'Voix Qwen3-TTS','video-preview':'Vidéo test','video-wan':'Vidéo Wan2.2 Extend','video-hybrid':'Vidéo LivePortrait + MuseTalk','video-longcat':'Vidéo LongCat 1.5'};
   const states={queued:'en attente',running:'en cours',done:'terminé',error:'erreur',interrupted:'interrompu'};
   $('#jobTitle').textContent=`${labels[job.type]||job.type} — ${states[job.status]||job.status}`;
   const pct=Math.max(0,Math.min(100,Number(job.progress||0)));
   $('#jobProgressBar').style.width=`${pct}%`;
   const parts=[`${pct}%`];
   if(job.total&&job.current) parts.push(`${job.current}/${job.total}`);
-  if(job.type==='video-wan'){
+  if(['video-wan','video-hybrid','video-longcat'].includes(job.type)){
     if(job.doneSeconds!==undefined&&job.totalSeconds!==undefined) parts.push(`vidéo faite ${formatSeconds(job.doneSeconds)} / ${formatSeconds(job.totalSeconds)}`);
     if(job.etaSeconds!==undefined&&job.status==='running') parts.push(`reste estimé ${formatSeconds(job.etaSeconds)}`);
   } else if(job.etaSeconds!==undefined&&job.status==='running') {
     parts.push(`reste estimé ${formatSeconds(job.etaSeconds)}`);
   }
-  if(job.status==='done'&&(job.type==='video-wan'||job.type==='video-preview')){
+  if(job.status==='done'&&(['video-wan','video-hybrid','video-longcat','video-preview'].includes(job.type))){
     // Du lancement jusqu'au MP4 final, préparation et attente ComfyUI incluses.
     const startedAt=job.createdAt??job.startedAt;
     if(Number.isFinite(startedAt)&&Number.isFinite(job.finishedAt)&&job.finishedAt>=startedAt){
@@ -246,7 +246,9 @@ function render(){
   }
   $('#voicePreview').innerHTML=project?.voice?`<audio controls src="${project.voice.url}?t=${Date.now()}" style="width:100%"></audio>`:'Aucune voix';
   $('#videoPreview').innerHTML=project?.video?`<video controls src="${project.video.url}?t=${Date.now()}"></video>`:'Aucune vidéo';
-  $('#videoContinuity').value=project?.videoSettings?.continuity||project?.video?.continuity||'stable';
+  const savedContinuity=project?.videoSettings?.continuity||project?.video?.continuity;
+  const continuityPreference=project?.id?localStorage.getItem(`wan-continuity:${project.id}`):null;
+  $('#videoContinuity').value=continuityPreference||(savedContinuity==='stable'?'continuous':savedContinuity||'continuous');
   $('#videoStabilizationSeconds').value=project?.videoSettings?.stabilizationSeconds??project?.video?.stabilizationSeconds??20;
   updateVideoModeUi();
   if(project?.avatar?.prompt) $('#avatarPrompt').value=project.avatar.prompt;
@@ -315,8 +317,8 @@ function updateVideoModeUi(){
   $('#videoModeHint').textContent=stable
     ? (busy
       ? "Intervalle verrouillé pendant la génération. Tu pourras le choisir à nouveau une fois celle-ci terminée."
-      : "Choisis cet intervalle avant de cliquer sur « Générer la vidéo parlante » (1 à 120 s). Exemple : 5 s pour reprendre à 5, 10, 15 s… La valeur est mémorisée au lancement et reste fixe pendant toute la génération.")
-    : "Le mouvement se prolonge sans réinitialisation. Sur les vidéos longues, le visage peut progressivement perdre en netteté.";
+      : "Mode de repli : relance des fenêtres à intervalle fixe, avec l’image générée précédente comme ancre de pose et l’avatar original comme référence d’identité.")
+    : "Extend natif : chaque bloc reprend le mouvement du précédent et conserve l’image d’origine comme référence d’identité. Recommandé pour les longues prises de parole.";
 }
 
 async function saveProjectName(){
@@ -335,7 +337,7 @@ $('#saveProjectName').onclick=saveProjectName;
 $('#projectName').addEventListener('keydown',e=>{if(e.key==='Enter')saveProjectName()});
 $('#imageQuality').onchange=()=>updateQualityUi(true);
 $('#videoQuality').onchange=()=>updateVideoQualityUi(true);
-$('#videoContinuity').onchange=updateVideoModeUi;
+$('#videoContinuity').onchange=()=>{if(project?.id)localStorage.setItem(`wan-continuity:${project.id}`,$('#videoContinuity').value);updateVideoModeUi()};
 $('#sourceMode').onchange=()=>{const strict=$('#sourceMode').value==='strict';$('#motionPrompt').disabled=strict;$('#sourceModeHint').textContent=strict?"Image stricte : aucun prompt positif n'est envoyé à Wan2.2.":"Créatif : le prompt de mouvement guide Wan2.2.";};
 $('#reloadProjects').onclick=()=>refreshProjects(true);
 $('#generateAvatar').onclick=async()=>{if(!project){const created=await createProject();if(!created)return;}const st=$('#avatarStatus');st.textContent='Lancement de la génération…';try{const payload={projectId:project.id,prompt:$('#avatarPrompt').value,quality:$('#imageQuality').value,strictReset:$('#strictReset').checked};const d=await api('/api/avatar/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});project=d.project;st.textContent='Génération lancée côté serveur. Tu peux fermer cet onglet.';renderJob();await refreshProjects()}catch(e){st.textContent=e.message}};

@@ -29,18 +29,59 @@ class TransitionsTest(unittest.TestCase):
         a = np.random.default_rng(123).integers(0, 256, (64, 64, 3), dtype=np.uint8)
         np.testing.assert_allclose(transitions.blend_frames(a, a, 0.5), a, atol=2)
 
+    def test_unexpected_solid_red_is_repaired_but_source_red_is_preserved(self):
+        reference = np.full((80, 120, 3), [72, 66, 62], dtype=np.uint8)
+        reference[8:24, 8:24] = [220, 22, 18]
+        frame = reference.copy()
+        frame[42:62, 55:88] = [250, 8, 12]
+        protected = transitions.prepare_colour_guard(reference)
+        repaired, pixels = transitions.repair_unexpected_red(frame, reference, protected)
+        self.assertGreater(pixels, 400)
+        np.testing.assert_array_equal(repaired[10:20, 10:20], frame[10:20, 10:20])
+        before = frame[47:57, 62:80].astype(float)
+        after = repaired[47:57, 62:80].astype(float)
+        self.assertLess(np.mean(after[:, :, 0] - np.maximum(after[:, :, 1], after[:, :, 2])), 8)
+        expected = reference[47:57, 62:80].astype(float)
+        self.assertLess(np.mean(np.abs(after - expected)), np.mean(np.abs(before - expected)) * 0.1)
+
+    def test_unexpected_red_uses_last_clean_texture_instead_of_a_gray_patch(self):
+        reference = np.full((80, 120, 3), [72, 66, 62], dtype=np.uint8)
+        clean = reference.copy()
+        clean[42:62, 55:88] = [94, 58, 45]
+        frame = clean.copy()
+        frame[42:62, 55:88] = [250, 8, 12]
+        repaired, pixels = transitions.repair_unexpected_red(
+            frame, reference, transitions.prepare_colour_guard(reference), clean
+        )
+        self.assertGreater(pixels, 400)
+        np.testing.assert_allclose(repaired[47:57, 62:80], clean[47:57, 62:80], atol=1)
+
+    def test_natural_skin_and_small_red_detail_are_untouched(self):
+        reference = np.full((64, 64, 3), [105, 76, 68], dtype=np.uint8)
+        frame = reference.copy()
+        frame[20:35, 18:46] = [170, 92, 88]
+        frame[4:6, 4:6] = [255, 0, 0]
+        repaired, pixels = transitions.repair_unexpected_red(
+            frame, reference, transitions.prepare_colour_guard(reference)
+        )
+        self.assertEqual(pixels, 0)
+        np.testing.assert_array_equal(repaired, frame)
+
     def test_rejects_audio_timeline_drift(self):
         with self.assertRaises(ValueError):
             transitions.validate_windows([{"startFrame": 0, "frames": 24}, {"startFrame": 24, "frames": 24}], 3, 16)
         with self.assertRaises(ValueError):
             transitions.validate_windows([{"startFrame": 0, "frames": 24}, {"startFrame": 16, "frames": 16}], 3, 16)
 
+    def test_single_native_window_is_valid_for_colour_guard(self):
+        self.assertEqual(transitions.validate_windows([{"startFrame": 0, "frames": 64}], 4, 16), 64)
+
     def test_real_ffmpeg_assembly_preserves_frames_and_master_audio(self):
         with tempfile.TemporaryDirectory(prefix="wan-transitions-test-") as directory:
             root = Path(directory)
             raw, audio, output = root / "raw.mkv", root / "audio.wav", root / "final.mp4"
             # Global frames 16..23 occur twice in the intermediate video.
-            frames = [np.full((64, 64, 3), i * 6, dtype=np.uint8) for i in list(range(24)) + list(range(16, 32))]
+            frames = [np.full((64, 64, 3), i * 2, dtype=np.uint8) for i in list(range(24)) + list(range(16, 32))]
             subprocess.run([
                 "ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
                 "-s", "64x64", "-r", "16", "-i", "pipe:0", "-c:v", "ffv1", str(raw),
@@ -64,7 +105,15 @@ class TransitionsTest(unittest.TestCase):
                 "-pix_fmt", "rgb24", "pipe:1",
             ], check=True, capture_output=True).stdout
             brightness = np.frombuffer(decoded, dtype=np.uint8).reshape(32, 64, 64, 3).mean(axis=(1, 2, 3))
-            np.testing.assert_allclose(brightness, np.arange(32) * 6, atol=3)
+            # Extend exposure drift is compensated while keeping the clip's
+            # early-frame exposure as its reference.
+            self.assertLess(float(np.percentile(brightness, 95) - np.percentile(brightness, 5)), 42)
+            padded = root / "padded-final.mp4"
+            # A native 77-frame chunk can contain padding past the audio end.
+            # The requested window must be assembled and the tail discarded.
+            self.assertEqual(transitions.assemble(
+                str(raw), str(audio), str(padded), [{"startFrame": 0, "frames": 32}], 2, 16
+            ), 32)
             sound = subprocess.run([
                 "ffmpeg", "-v", "error", "-i", str(output), "-map", "0:a:0", "-ar", "16000",
                 "-ac", "1", "-f", "f32le", "pipe:1",

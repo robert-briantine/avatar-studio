@@ -8,8 +8,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { AvatarStore, type AvatarProject } from "../src/avatarStore.js";
+import { WAN_S2V_STABILIZATION_SECONDS } from "../src/wanS2V.js";
 
-test("video API validates and remembers stabilization settings without touching an existing video", { timeout: 15_000 }, async () => {
+test("video API is Wan Extend only and regenerations create a new history entry", { timeout: 15_000 }, async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "wan-settings-test-"));
   // No models or GPU are contacted. The detached job deliberately fails its
   // preflight, so settings must also survive a failed attempt and an app restart.
@@ -59,6 +60,10 @@ test("video API validates and remembers stabilization settings without touching 
     project.avatar = { name: "avatar.png", path: path.join(base, "avatar/avatar.png"), url: "", source: "uploaded" };
     project.voice = { name: "voice.wav", path: path.join(base, "voice/voice.wav"), url: "", duration: 122.18, text: "", presetId: "", voicePrompt: "" };
     project.video = { name: "existing.mp4", path: path.join(base, "video/existing.mp4"), url: "", engine: "wan-s2v", continuity: "continuous" };
+    project.generations = [{
+      id: "previous", name: "Version initiale", text: "Bonjour", createdAt: Date.now(), updatedAt: Date.now(),
+      status: "done", voice: project.voice, video: project.video
+    }];
     await store.save(project);
     await start();
     const getProject = async (): Promise<AvatarProject> => (await (await fetch(`${origin}/api/project/${project.id}`)).json()).project;
@@ -77,29 +82,26 @@ test("video API validates and remembers stabilization settings without touching 
       }
       assert.fail(`Detached preflight did not finish: ${output}`);
     };
-    for (const stabilizationSeconds of [0, -1, 121, "", null, "invalid"]) {
-      const response = await generate({ continuity: "stable", stabilizationSeconds });
-      assert.equal(response.status, 400);
-      assert.match((await response.json()).error, /entre 1 et 120/);
-    }
-    assert.equal((await getProject()).currentJob, undefined, "invalid input must not create a job");
-    assert.equal((await getProject()).videoSettings, undefined);
-
-    assert.equal((await generate({ continuity: "stable" })).status, 202);
-    assert.deepEqual((await waitForFailure()).videoSettings, { continuity: "stable", stabilizationSeconds: 20 });
-    assert.equal((await generate({ continuity: "stable", stabilizationSeconds: 12.5 })).status, 202);
+    const firstResponse = await generate({ generationId: "previous", stabilizationSeconds: 120 });
+    assert.equal(firstResponse.status, 202);
+    const created = await firstResponse.json() as { generation: { id: string; name: string }; project: AvatarProject };
+    assert.notEqual(created.generation.id, "previous");
+    assert.equal(created.generation.name, "Version initiale — vidéo 2");
+    assert.equal(created.project.generations?.length, 2);
+    assert.equal(created.project.generations?.[1].video?.name, "existing.mp4");
+    assert.equal(created.project.generations?.[0].voice?.name, "voice.wav");
     const saved = await waitForFailure();
-    assert.deepEqual(saved.videoSettings, { continuity: "stable", stabilizationSeconds: 12.5 });
+    assert.deepEqual(saved.videoSettings, { engine: "wan-s2v", upscale: false, continuity: "continuous" });
     assert.equal(saved.video?.name, "existing.mp4");
     assert.equal(saved.video?.continuity, "continuous");
 
     await stop();
     await start();
     assert.deepEqual((await getProject()).videoSettings, saved.videoSettings);
-    assert.equal((await generate({ continuity: "continuous", stabilizationSeconds: "ignored" })).status, 202);
-    assert.deepEqual((await waitForFailure()).videoSettings, { continuity: "continuous", stabilizationSeconds: 12.5 });
-    assert.equal((await generate({ continuity: "stable" })).status, 202);
-    assert.deepEqual((await waitForFailure()).videoSettings, saved.videoSettings);
+    assert.equal((await generate({ continuity: "stable", stabilizationSeconds: 9 })).status, 202);
+    const continuousOnly = await waitForFailure();
+    assert.deepEqual(continuousOnly.videoSettings, { engine: "wan-s2v", upscale: false, continuity: "continuous" });
+    assert.equal((await generate({ engine: "hybrid" })).status, 400);
   } finally {
     await stop();
     comfy.closeAllConnections();

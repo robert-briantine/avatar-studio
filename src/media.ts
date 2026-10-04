@@ -637,15 +637,22 @@ export async function checkWanTransitions(): Promise<void> {
 
 export async function assembleWanVideo(
   inputPath: string, audioPath: string, outputPath: string, durationSeconds: number,
-  windows?: WanVideoWindow[], signal?: AbortSignal
+  windows?: WanVideoWindow[], referencePath?: string, signal?: AbortSignal
 ): Promise<number> {
-  if (!windows || windows.length < 2) return trimVideoDuration(inputPath, outputPath, durationSeconds, signal);
+  if (!referencePath && !windows?.length) {
+    return trimVideoDuration(inputPath, outputPath, durationSeconds, signal);
+  }
+  const assemblyWindows = windows?.length
+    ? windows
+    : [{ startFrame: 0, frames: Math.ceil(durationSeconds * WAN_S2V_FPS) }];
   const temporary = path.join(path.dirname(outputPath), `.wan-transitions-${randomUUID()}.mp4`);
   try {
-    await run(config.video.transitionPython, [
+    const args = [
       wanTransitionScript, "--input", inputPath, "--audio", audioPath, "--output", temporary,
-      "--windows", JSON.stringify(windows), "--duration", String(durationSeconds), "--fps", String(WAN_S2V_FPS)
-    ], signal);
+      "--windows", JSON.stringify(assemblyWindows), "--duration", String(durationSeconds), "--fps", String(WAN_S2V_FPS)
+    ];
+    if (referencePath) args.push("--reference", referencePath);
+    await run(config.video.transitionPython, args, signal);
     const duration = await probeDuration(temporary, signal);
     await fs.rename(temporary, outputPath);
     return duration;

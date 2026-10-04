@@ -91,6 +91,95 @@ class ReferenceTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             reference.restore_reference(original, invalid)
 
+    def test_handoff_rebuilds_detail_and_restores_appearance(self):
+        original = fixture()
+        moved = cv2.warpAffine(original, np.float32([[1, 0, 3], [0, 1, 2]]),
+                               (192, 128), borderMode=cv2.BORDER_REPLICATE)
+        previous = cv2.GaussianBlur(moved, (0, 0), 1.4)
+        prepared, info = reference.prepare_handoff(original, previous)
+        self.assertEqual(info["mode"], "restored_motion_anchor")
+        self.assertEqual(info["alignment"], "aligned_original")
+        self.assertEqual(info["original_weight"], reference.HANDOFF_RESTORE_BLEND)
+        self.assertEqual(prepared.shape, previous.shape)
+        self.assertGreater(sharpness(prepared), sharpness(previous))
+        restored, _ = reference.restore_reference(original, previous)
+        expected = previous * (1 - reference.HANDOFF_RESTORE_BLEND) + restored * reference.HANDOFF_RESTORE_BLEND
+        np.testing.assert_allclose(prepared, expected, atol=1e-7)
+
+    def test_handoff_fallback_never_replaces_generated_pose_with_original(self):
+        original = fixture()
+        previous = np.flip(original, axis=1).copy()
+        prepared, info = reference.prepare_handoff(original, previous)
+        self.assertEqual(info["alignment"], "original")
+        self.assertLess(np.mean(np.abs(prepared - previous)), 0.01)
+        self.assertGreater(np.mean(np.abs(prepared - original)), 0.02)
+
+    def test_control_sequence_holds_only_the_clean_anchor_during_overlap(self):
+        original = fixture()
+        moved = cv2.warpAffine(original, np.float32([[1, 0, 3], [0, 1, 2]]),
+                               (192, 128), borderMode=cv2.BORDER_REPLICATE)
+        previous = cv2.GaussianBlur(moved, (0, 0), 1.4)
+        control, prepared, info = reference.build_handoff_sequence(original, previous)
+        self.assertEqual(control.shape, (reference.HANDOFF_CONTROL_FRAMES, *previous.shape))
+        for frame in control:
+            np.testing.assert_array_equal(frame, prepared)
+        self.assertEqual(info["control_frames"], 9)
+        self.assertEqual(info["control_mode"], "clean_hold")
+        self.assertGreater(float(np.mean(np.abs(control[0] - previous))), 0)
+
+    def test_local_red_lips_are_removed_by_original_pixels(self):
+        original = fixture()
+        previous = original.copy()
+        previous[54:76, 77:116] = [0.95, 0.08, 0.12]
+        previous = cv2.GaussianBlur(previous, (0, 0), 0.8)
+        prepared, info = reference.prepare_handoff(original, previous)
+        self.assertEqual(info["alignment"], "aligned_original")
+        before_red = np.mean(previous[54:76, 77:116, 0] - previous[54:76, 77:116, 1])
+        after_red = np.mean(prepared[54:76, 77:116, 0] - prepared[54:76, 77:116, 1])
+        self.assertLess(after_red, before_red * 0.45)
+        self.assertGreater(sharpness(prepared), sharpness(previous))
+
+    def test_repeated_handoff_processing_stays_bounded(self):
+        original = fixture()
+        previous = original.copy()
+        original_mean = original.mean(axis=(0, 1))
+        scores = []
+        for _ in range(20):
+            degraded = cv2.GaussianBlur(previous, (0, 0), 0.8)
+            previous, info = reference.prepare_handoff(original, degraded)
+            scores.append(sharpness(previous))
+            self.assertEqual(previous.shape, original.shape)
+            self.assertTrue(np.isfinite(previous).all())
+        np.testing.assert_allclose(previous.mean(axis=(0, 1)), original_mean, atol=2e-3)
+        self.assertGreater(min(scores), 0)
+        self.assertLess(max(scores), sharpness(original) * 2.5)
+
+    def test_repeated_photometric_drift_is_not_fed_back_forever(self):
+        original = fixture()
+        previous = original.copy()
+        uncorrected = original.copy()
+        gray_weights = np.array([0.299, 0.587, 0.114], dtype=np.float32)
+        for _ in range(16):
+            # Approximate the failure observed on a long Wan render: every
+            # native block raises exposure/contrast and removes some colour.
+            for image_name in ("previous", "uncorrected"):
+                image = previous if image_name == "previous" else uncorrected
+                gray = np.sum(image * gray_weights, axis=2, keepdims=True)
+                image = gray + (image - gray) * 0.94
+                image = np.clip((image - image.mean(axis=(0, 1), keepdims=True)) * 1.025
+                                + image.mean(axis=(0, 1), keepdims=True) + 0.012, 0, 1)
+                if image_name == "previous":
+                    previous, _ = reference.prepare_handoff(original, image)
+                else:
+                    uncorrected = image
+        corrected_error = np.mean(np.abs(previous.mean(axis=(0, 1)) - original.mean(axis=(0, 1))))
+        uncorrected_error = np.mean(np.abs(uncorrected.mean(axis=(0, 1)) - original.mean(axis=(0, 1))))
+        self.assertLess(corrected_error, 0.02)
+        self.assertLess(corrected_error, uncorrected_error * 0.25)
+        self.assertTrue(np.isfinite(previous).all())
+        self.assertGreaterEqual(float(previous.min()), 0)
+        self.assertLessEqual(float(previous.max()), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
