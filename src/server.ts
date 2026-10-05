@@ -3,6 +3,8 @@ import multer from "multer";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
@@ -39,6 +41,7 @@ const benchmarkOutputsDir = path.join(benchmarkRoot, "outputs");
 await fs.mkdir(benchmarkLogsDir, { recursive: true });
 await fs.mkdir(benchmarkOutputsDir, { recursive: true });
 const benchmarkRuns = new Map<string, BenchmarkRun>();
+const execFileAsync = promisify(execFile);
 
 const app = express();
 const port = Number(process.env.PORT || 3010);
@@ -116,6 +119,28 @@ async function copyAsset(source: string, target: string): Promise<void> {
 
 function s(value: unknown): string {
   return String(value ?? "").trim();
+}
+
+function safeFilenamePart(value: string): string {
+  const normalized = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._ -]+/g, "-")
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-. ]+|[-. ]+$/g, "")
+    .slice(0, 80);
+  return normalized || "generation";
+}
+
+function generationFilename(generation: AvatarGeneration, extension: string): string {
+  return `${safeFilenamePart(generation.name)}-${generation.id.slice(0, 8)}.${extension}`;
+}
+
+async function openFolderInExplorer(folder: string): Promise<void> {
+  const command = process.platform === "win32" ? "explorer.exe" : process.platform === "darwin" ? "open" : "xdg-open";
+  const args = process.platform === "darwin" ? [folder] : [folder];
+  await execFileAsync(command, args, { windowsHide: true });
 }
 
 function rawAvatarPrompt(body: Record<string, any>): string {
@@ -417,6 +442,20 @@ app.get("/project-files/:id/:folder/:filename", async (req, res) => {
   }
 });
 
+app.post("/api/project/:id/open-folder", async (req, res) => {
+  try {
+    const project = projectOrThrow(req.params.id);
+    const folder = String(req.body?.folder || "");
+    if (folder !== "voice" && folder !== "video") throw new Error("Dossier média invalide.");
+    const target = path.join(store.base(project), folder);
+    await fs.mkdir(target, { recursive: true });
+    await openFolderInExplorer(target);
+    res.json({ opened: true, folder });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : String(e) });
+  }
+});
+
 // Route dédiée pour l'aperçu avatar : évite les problèmes de cache ou de chemin
 // avec la route statique /projects. Le fichier est toujours celui du projet courant.
 app.get("/api/avatar/file/:id", async (req, res) => {
@@ -636,7 +675,7 @@ app.post("/api/voice/generate", async (req, res) => {
         });
         await updateProjectJob(project, { progress: 92, message: "Enregistrement de la voix…" });
         const base = await store.ensure(project);
-        const filename = generation ? `speech-${generation.id}.wav` : "speech.wav";
+        const filename = generation ? generationFilename(generation, "wav") : "speech.wav";
         const target = path.join(base, "voice", filename);
         await copyAsset(audio.path, target);
         const voice: VoiceAsset = {
@@ -798,7 +837,7 @@ app.post("/api/video/preview", async (req, res) => {
       try {
         await updateProjectJob(project, { status: "running", startedAt: Date.now(), progress: 10, message: "Création de la vidéo test avec FFmpeg…" });
         const base = await store.ensure(project);
-        const filename = generation ? `preview-${generation.id}.mp4` : "avatar-preview.mp4";
+        const filename = generation ? generationFilename(generation, "mp4") : "avatar-preview.mp4";
         const target = path.join(base, "video", filename);
         const duration = await createSegmentVideo(project.avatar!.path, voice.path, target, controller.signal);
         const video: VideoAsset = { name: filename, path: target, url: pub(project.id, "video", filename), duration, engine: "preview" };
@@ -1137,7 +1176,7 @@ app.post("/api/video/generate", async (req, res) => {
         const raw = path.join(workDir, "wan-extended-raw.mp4");
         await fs.writeFile(raw, bytes);
 
-        const filename = generation ? `video-${generation.id}.mp4` : "avatar-speaking-wan2.2-extend.mp4";
+        const filename = generation ? generationFilename(generation, "mp4") : "avatar-speaking-wan2.2-extend.mp4";
         const target = path.join(base, "video", filename);
         // Fusionne les mêmes instants des fenêtres voisines, puis remet le WAV
         // original. Le mode continu garde sa simple coupe de fin habituelle.
@@ -1224,7 +1263,7 @@ app.post("/api/short/generate", async (req, res) => {
           message: options.upscale ? "Preparation du Short avec upscale IA…" : "Preparation du Short YouTube…"
         });
         const base = await store.ensure(project);
-        const filename = `short-${generation.id}.mp4`;
+        const filename = `${safeFilenamePart(generation.name)}-${generation.id.slice(0, 8)}-short.mp4`;
         const target = path.join(base, "video", filename);
         const workingTarget = path.join(base, "video", `.short-${generation.id}-${randomUUID()}.mp4`);
         let updateChain = Promise.resolve();

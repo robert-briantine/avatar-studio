@@ -98,7 +98,19 @@ test("video API is Wan Extend only and regenerations create a new history entry"
     await stop();
     await start();
     assert.deepEqual((await getProject()).videoSettings, saved.videoSettings);
-    assert.equal((await generate({ continuity: "stable", stabilizationSeconds: 9 })).status, 202);
+    const finalAttempt = await generate({
+      generationId: created.generation.id, quality: "final", steps: 32, continuity: "stable", stabilizationSeconds: 9
+    });
+    assert.equal(finalAttempt.status, 202);
+    const finalProject = (await finalAttempt.json() as { project: AvatarProject }).project;
+    const finalGeneration = finalProject.generations?.find(item => item.id === created.generation.id);
+    assert.deepEqual({
+      quality: finalGeneration?.videoSettings?.quality,
+      width: finalGeneration?.videoSettings?.width,
+      height: finalGeneration?.videoSettings?.height,
+      steps: finalGeneration?.videoSettings?.steps,
+      cfg: finalGeneration?.videoSettings?.cfg
+    }, { quality: "final", width: 832, height: 480, steps: 32, cfg: 6 });
     const continuousOnly = await waitForFailure();
     assert.deepEqual(continuousOnly.videoSettings, { engine: "wan-s2v", upscale: false, continuity: "continuous" });
     assert.equal((await generate({ engine: "hybrid" })).status, 400);
