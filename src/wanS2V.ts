@@ -159,6 +159,8 @@ export function buildWanS2VExtendedWorkflow(args: {
   filenamePrefix?: string;
   chunkFrames?: number;
   stabilizationSeconds?: number;
+  /** Optional visual handoff while still rebuilding the latent graph. */
+  controlImageName?: string;
 }): { graph: PromptGraph; chunks: number; generatedFrames: number; windows?: WanVideoWindow[] } {
   const width = args.width ?? 768;
   const height = args.height ?? 432;
@@ -225,6 +227,11 @@ export function buildWanS2VExtendedWorkflow(args: {
       }
     }
   };
+
+  if (args.controlImageName) {
+    graph["13"] = { class_type: "LoadImage", inputs: { image: args.controlImageName } };
+    graph["11"].inputs.control_video = ["13", 0];
+  }
 
   // Le latent cumulé commence avec le premier chunk échantillonné.
   let fullLatentNode = "12";

@@ -1,0 +1,16 @@
+{
+  "frames": 86,
+  "expectedFrames": 86,
+  "flatFrames": [],
+  "junctions": [
+    {
+      "from": 1,
+      "to": 2,
+      "firstFrame": 28,
+      "nextBlockFrame": 43,
+      "startError": 1.0499719690393519,
+      "endError": 0.7166521990740741,
+      "maxInternalStep": 9.438243724681714
+    }
+  ]
+}

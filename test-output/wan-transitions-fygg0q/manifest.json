@@ -1,0 +1,44 @@
+{
+  "duration": 5.375,
+  "outputPath": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-fygg0q/test-deux-morceaux.mp4",
+  "plan": [
+    {
+      "startFrame": 0,
+      "frames": 43,
+      "keepFrames": 28,
+      "transitionFrames": 15
+    },
+    {
+      "startFrame": 43,
+      "frames": 43,
+      "keepFrames": 43,
+      "transitionFrames": 0
+    }
+  ],
+  "blocks": [
+    {
+      "visual": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-fygg0q/block-1.mp4",
+      "first": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-fygg0q/block-1-first.png",
+      "last": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-fygg0q/block-1-last.png",
+      "startImageName": "wan-test-frame-671d8a57-a1b0-4c8e-8029-1a53f95e9b68.png",
+      "endImageName": "wan-test-frame-9f4eba06-cda6-4b37-b1eb-9cfc24530b18.png"
+    },
+    {
+      "visual": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-fygg0q/block-2.mp4",
+      "first": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-fygg0q/block-2-first.png",
+      "last": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-fygg0q/block-2-last.png",
+      "startImageName": "wan-test-frame-49a67ba6-3d1a-4d23-a0f9-48e38fc76661.png",
+      "endImageName": "wan-test-frame-06852d91-0c3d-4797-a0f1-8b0cda6ae997.png"
+    }
+  ],
+  "transitions": [
+    {
+      "from": 0,
+      "to": 1,
+      "start": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-fygg0q/block-1-last.png",
+      "end": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-fygg0q/block-2-first.png",
+      "frames": 15,
+      "path": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-fygg0q/transition-1.mp4"
+    }
+  ]
+}

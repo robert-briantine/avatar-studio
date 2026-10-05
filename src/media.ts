@@ -131,29 +131,18 @@ export async function concatWavs(
     return probeDuration(outputPath, signal);
   }
 
-  const listPath = path.join(path.dirname(outputPath), `.concat-wav-${randomUUID()}.txt`);
-  await fs.writeFile(
-    listPath,
-    wavPaths.map(p => `file '${escapeConcatPath(path.resolve(p))}'`).join("\n")
-  );
-
-  try {
-    // Decode/re-encode as PCM only; no AAC boundary and no artificial gap.
-    await run(
-      "ffmpeg",
-      [
-        "-y",
-        "-f", "concat",
-        "-safe", "0",
-        "-i", listPath,
-        "-c:a", "pcm_s16le",
-        outputPath
-      ],
-      signal
-    );
-  } finally {
-    await fs.rm(listPath, { force: true });
-  }
+  // TTS may be mono while generated silence is stereo. A concat demuxer
+  // interprets the second stream with the first stream's layout and can double
+  // the pause. Normalize each decoded input before concatenation instead.
+  const args = ["-y"];
+  for (const wavPath of wavPaths) args.push("-i", wavPath);
+  const normalized = wavPaths.map((_, index) =>
+    `[${index}:a]aformat=sample_rates=48000:channel_layouts=mono,asetpts=PTS-STARTPTS[a${index}]`
+  ).join(";");
+  const inputs = wavPaths.map((_, index) => `[a${index}]`).join("");
+  args.push("-filter_complex", `${normalized};${inputs}concat=n=${wavPaths.length}:v=0:a=1[a]`,
+    "-map", "[a]", "-ar", "48000", "-ac", "1", "-c:a", "pcm_s16le", outputPath);
+  await run("ffmpeg", args, signal);
 
   return probeDuration(outputPath, signal);
 }
@@ -171,6 +160,63 @@ export async function createSegmentVideo(imagePath: string, audioPath: string, o
     "-r", String(config.video.fps), "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", outputPath
   ], signal);
   return duration;
+}
+
+export async function extractLastVideoFrame(inputPath: string, outputPath: string, signal?: AbortSignal): Promise<void> {
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.rm(outputPath, { force: true });
+  const frames = await probeVideoFrameCount(inputPath, signal);
+  // Decode by frame index, never by container duration (which includes audio).
+  await run("ffmpeg", [
+    "-y", "-i", inputPath, "-vf", `select=eq(n\\,${frames - 1}),format=rgb24`,
+    "-frames:v", "1", "-update", "1", outputPath
+  ], signal);
+  if (!(await fs.stat(outputPath)).size) throw new Error(`Dernière image vide : ${inputPath}`);
+}
+
+export async function probeVideoFrameCount(inputPath: string, signal?: AbortSignal): Promise<number> {
+  const { stdout } = await run("ffprobe", [
+    "-v", "error", "-select_streams", "v:0", "-count_frames",
+    "-show_entries", "stream=nb_read_frames", "-of", "csv=p=0", inputPath
+  ], signal);
+  const frames = Number(stdout.trim());
+  if (!Number.isInteger(frames) || frames < 1) throw new Error(`Aucune image vidéo : ${inputPath}`);
+  return frames;
+}
+
+/** Normalize every block to the same frame clock, without an AAC intermediate. */
+export async function trimVideoFrames(inputPath: string, outputPath: string, frames: number, signal?: AbortSignal): Promise<void> {
+  await run("ffmpeg", [
+    "-y", "-i", inputPath, "-an", "-vf",
+    `fps=${WAN_S2V_FPS},tpad=stop_mode=clone:stop_duration=${frames / WAN_S2V_FPS},trim=end_frame=${frames},setpts=N/(${WAN_S2V_FPS}*TB)`,
+    "-frames:v", String(frames), "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", outputPath
+  ], signal);
+}
+
+/** Keep the entire FLF trajectory, including its arrival frame, inside the pause. */
+export async function fitWanTransition(
+  inputPath: string, outputPath: string, frames: number, startImage: string, endImage: string, signal?: AbortSignal
+): Promise<void> {
+  if (frames < 3) throw new Error("Un raccord doit contenir au moins trois images.");
+  const sourceFrames = await probeVideoFrameCount(inputPath, signal);
+  if (sourceFrames < 2) throw new Error("Le raccord FLF2V ne contient pas assez d'images.");
+  const retime = `setpts=N*${frames - 1}/${sourceFrames - 1}/(${WAN_S2V_FPS}*TB),fps=${WAN_S2V_FPS}:round=near,tpad=stop_mode=clone:stop_duration=1,trim=end_frame=${frames},setpts=N/(${WAN_S2V_FPS}*TB)`;
+  // VAE reconstruction is approximate. Preserve the two exact boundary frames
+  // used by the neighbouring blocks so compression cannot introduce a flash.
+  const filters = `[0:v]${retime},format=yuv420p[base];[base][1:v]overlay=shortest=1:enable='lt(t,1/${WAN_S2V_FPS})'[start];[start][2:v]overlay=shortest=1:enable='gte(t,${frames - 1}/${WAN_S2V_FPS})'[v]`;
+  await run("ffmpeg", [
+    "-y", "-i", inputPath, "-loop", "1", "-framerate", String(WAN_S2V_FPS), "-i", startImage,
+    "-loop", "1", "-framerate", String(WAN_S2V_FPS), "-i", endImage,
+    "-filter_complex", filters, "-map", "[v]", "-an", "-r", String(WAN_S2V_FPS),
+    "-frames:v", String(frames), "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", outputPath
+  ], signal);
+}
+
+export async function extractFirstVideoFrame(inputPath: string, outputPath: string, signal?: AbortSignal): Promise<void> {
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.rm(outputPath, { force: true });
+  await run("ffmpeg", ["-y", "-i", inputPath, "-frames:v", "1", "-vf", "format=rgb24", "-f", "image2", "-vcodec", "png", outputPath], signal);
+  await fs.access(outputPath);
 }
 
 function escapeConcatPath(value: string): string { return value.replace(/'/g, "'\\''"); }
@@ -226,6 +272,17 @@ export async function concatVideos(segmentPaths: string[], outputPath: string, s
     await fs.rm(listPath, { force: true });
   }
 
+  return probeDuration(outputPath, signal);
+}
+
+export async function concatVideoOnly(segmentPaths: string[], outputPath: string, signal?: AbortSignal): Promise<number> {
+  if (!segmentPaths.length) throw new Error("Aucun segment vidéo à assembler");
+  const args = ["-y"];
+  for (const segment of segmentPaths) args.push("-i", segment);
+  const inputs = segmentPaths.map((_, index) => `[${index}:v]fps=${WAN_S2V_FPS},settb=AVTB,setpts=N/(${WAN_S2V_FPS}*TB)[v${index}]`).join(";");
+  const concatInputs = segmentPaths.map((_, index) => `[v${index}]`).join("");
+  args.push("-filter_complex", `${inputs};${concatInputs}concat=n=${segmentPaths.length}:v=1:a=0[joined];[joined]setpts=N/(${WAN_S2V_FPS}*TB)[v]`, "-map", "[v]", "-an", "-r", String(WAN_S2V_FPS), "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", outputPath);
+  await run("ffmpeg", args, signal);
   return probeDuration(outputPath, signal);
 }
 
@@ -621,6 +678,23 @@ export async function trimVideoDuration(
     "-c:a", "aac", "-b:a", "192k",
     "-movflags", "+faststart",
     outputPath
+  ], signal);
+  return probeDuration(outputPath, signal);
+}
+
+export async function muxVideoAudio(
+  videoPath: string,
+  audioPath: string,
+  outputPath: string,
+  durationSeconds: number,
+  signal?: AbortSignal
+): Promise<number> {
+  await run("ffmpeg", [
+    "-y", "-i", videoPath, "-i", audioPath,
+    "-map", "0:v:0", "-map", "1:a:0",
+    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
+    "-af", `atrim=duration=${durationSeconds.toFixed(6)},asetpts=PTS-STARTPTS`,
+    "-movflags", "+faststart", outputPath
   ], signal);
   return probeDuration(outputPath, signal);
 }

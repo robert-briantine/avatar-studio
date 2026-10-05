@@ -28,6 +28,16 @@ export type VoiceAsset = Asset & {
   presetId: string;
   voicePrompt: string;
   seed?: number;
+  /** Independent narration pieces used by the optional First/Last Frame pipeline. */
+  segments?: Array<{
+    name: string;
+    path: string;
+    url: string;
+    duration: number;
+    text: string;
+    speechDuration?: number;
+    tailSilenceSeconds?: number;
+  }>;
 };
 
 export type VideoAsset = Asset & {
@@ -181,7 +191,14 @@ export class AvatarStore {
         const abs = (asset: any, folder: "avatar" | "voice" | "video") => asset ? {
           ...asset,
           path: path.resolve(base, asset.path),
-          url: assetUrl(raw.id, folder, asset.name)
+          url: assetUrl(raw.id, folder, asset.name),
+          ...(folder === "voice" && Array.isArray(asset.segments) ? {
+            segments: asset.segments.map((segment: any) => ({
+              ...segment,
+              path: path.resolve(base, segment.path),
+              url: assetUrl(raw.id, "voice", segment.name)
+            }))
+          } : {})
         } : undefined;
 
         const project: AvatarProject = {
@@ -282,12 +299,18 @@ export class AvatarStore {
 
     const referenced = new Set<string>();
     const keep = (asset?: Asset) => { if (asset) referenced.add(path.resolve(asset.path)); };
+    const keepVoiceSegments = (voice?: VoiceAsset) => {
+      for (const segment of voice?.segments || []) referenced.add(path.resolve(segment.path));
+    };
     keep(p.avatar);
     keep(p.voiceFingerprint);
+    keepVoiceSegments(p.voiceFingerprint as VoiceAsset | undefined);
     keep(p.voice);
+    keepVoiceSegments(p.voice);
     keep(p.video);
     for (const generation of generations) {
       keep(generation.voice);
+      keepVoiceSegments(generation.voice);
       keep(generation.video);
       keep(generation.short);
     }
@@ -295,6 +318,7 @@ export class AvatarStore {
     for (const asset of [removed.voice, removed.video, removed.short]) {
       if (asset && !referenced.has(path.resolve(asset.path))) {
         await fs.rm(asset.path, { force: true }).catch(() => undefined);
+        for (const segment of (asset as any).segments || []) await fs.rm(segment.path, { force: true }).catch(() => undefined);
       }
     }
     await this.save(p);
@@ -327,12 +351,21 @@ export class AvatarStore {
         const rel = path.relative(oldBase, asset.path);
         asset.path = path.join(newBase, rel);
       };
+      const remapVoiceSegments = (voice?: VoiceAsset) => {
+        for (const segment of voice?.segments || []) {
+          const rel = path.relative(oldBase, segment.path);
+          segment.path = path.join(newBase, rel);
+        }
+      };
       remap(p.avatar);
       remap(p.voice);
       remap(p.video);
       remap(p.voiceFingerprint);
+      remapVoiceSegments(p.voice);
+      remapVoiceSegments(p.voiceFingerprint as VoiceAsset | undefined);
       for (const generation of p.generations || []) {
         remap(generation.voice);
+        remapVoiceSegments(generation.voice);
         remap(generation.video);
         remap(generation.short);
       }
@@ -357,7 +390,14 @@ export class AvatarStore {
     const normalize = (asset: any, folder: "avatar" | "voice" | "video") => asset ? {
       ...asset,
       url: assetUrl(p.id, folder, asset.name),
-      path: path.relative(base, asset.path)
+      path: path.relative(base, asset.path),
+      ...(folder === "voice" && Array.isArray(asset.segments) ? {
+        segments: asset.segments.map((segment: any) => ({
+          ...segment,
+          url: assetUrl(p.id, "voice", segment.name),
+          path: path.relative(base, segment.path)
+        }))
+      } : {})
     } : undefined;
     const serial: StoredProject = {
       ...p,
@@ -372,9 +412,16 @@ export class AvatarStore {
         short: normalize(generation.short, "video")
       }))
     };
-    const tmp = path.join(base, "project.json.tmp");
+    // Plusieurs mises à jour de progression peuvent arriver pendant une TTS
+    // par segments. Un nom temporaire fixe provoque alors une collision :
+    // l'un des rename() déplace le fichier de l'autre avant son propre rename.
+    const tmp = path.join(base, `.project.json.${randomUUID()}.tmp`);
     await fs.writeFile(tmp, JSON.stringify(serial, null, 2), "utf8");
-    await fs.rename(tmp, path.join(base, "project.json"));
+    try {
+      await fs.rename(tmp, path.join(base, "project.json"));
+    } finally {
+      await fs.rm(tmp, { force: true }).catch(() => undefined);
+    }
   }
 
   base(p: AvatarProject): string {

@@ -1,0 +1,44 @@
+{
+  "duration": 5.4,
+  "outputPath": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-8cVU7P/test-deux-morceaux.mp4",
+  "plan": [
+    {
+      "startFrame": 0,
+      "frames": 43,
+      "keepFrames": 28,
+      "transitionFrames": 15
+    },
+    {
+      "startFrame": 43,
+      "frames": 43,
+      "keepFrames": 43,
+      "transitionFrames": 0
+    }
+  ],
+  "blocks": [
+    {
+      "visual": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-8cVU7P/block-1.mp4",
+      "first": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-8cVU7P/block-1-first.png",
+      "last": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-8cVU7P/block-1-last.png",
+      "startImageName": "wan-test-frame-a4e99a9e-7773-47b0-9912-e876304f18fa.png",
+      "endImageName": "wan-test-frame-4b45f9ec-b79b-48c5-8968-d45843011a33.png"
+    },
+    {
+      "visual": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-8cVU7P/block-2.mp4",
+      "first": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-8cVU7P/block-2-first.png",
+      "last": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-8cVU7P/block-2-last.png",
+      "startImageName": "wan-test-frame-7ed7b04b-d69a-4faf-94f0-44ecdfa92008.png",
+      "endImageName": "wan-test-frame-99747b82-00f1-4532-bd65-b291d3f54a37.png"
+    }
+  ],
+  "transitions": [
+    {
+      "from": 0,
+      "to": 1,
+      "start": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-8cVU7P/block-1-last.png",
+      "end": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-8cVU7P/block-2-first.png",
+      "frames": 15,
+      "path": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-transitions-8cVU7P/transition-1.mp4"
+    }
+  ]
+}

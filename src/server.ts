@@ -11,13 +11,15 @@ import sharp from "sharp";
 import { config } from "./config.js";
 import { ComfyClient } from "./comfy.js";
 import { TtsClient } from "./tts.js";
-import { GeneratorService } from "./generation.js";
-import { assembleWanVideo, checkWanTransitions, createSegmentVideo, detectSilences, mediaHealth, probeDuration } from "./media.js";
+import { GeneratorService, type VoiceProgressEvent } from "./generation.js";
+import { assembleWanVideo, checkWanTransitions, concatWavs, createSegmentVideo, createSilence, detectSilences, mediaHealth, probeDuration } from "./media.js";
 import { voicePresets, getVoicePreset } from "./voicePresets.js";
 import { AvatarStore, type AvatarGeneration, type AvatarProject, type ProjectJob, type ShortAsset, type VoiceAsset, type VideoAsset } from "./avatarStore.js";
 import { BatchStore, type BatchRun, type BatchVideoSettings } from "./batchStore.js";
 import { createYouTubeShort, parseShortOptions, shortMakerHealth } from "./shortMaker.js";
 import { buildWanS2VExtendedWorkflow, buildWanS2VSilenceAwareWorkflow, buildWanS2VStabilizedWorkflow, parseWanStabilizationSeconds, planWanS2VSilenceWindows, planWanS2VWindows, WAN_S2V_MODELS, WAN_S2V_NODES, WAN_S2V_STABLE_NODES, WAN_S2V_CHUNK_FRAMES, WAN_S2V_FPS, WAN_S2V_STABILIZATION_SECONDS } from "./wanS2V.js";
+import { WAN_FLF_MODELS, WAN_FLF_NODES } from "./wanFLF.js";
+import { renderWanSegments } from "./wanSegments.js";
 import { availableBenchmarkWorkers, executeBenchmark, parseBenchmarkWorkers, type BenchmarkRun } from "./benchmark.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -648,36 +650,99 @@ app.post("/api/voice/generate", async (req, res) => {
     runDetached(async () => {
       try {
         await updateProjectJob(project, { status: "running", startedAt: Date.now(), progress: 5, message: "Génération Qwen3-TTS…" });
-        const audio = await generator.generateVoice({
-          voiceText: text,
-          voicePrompt,
-          voicePresetId: presetId,
-          voiceLanguage: String(req.body.language || "French"),
-          voiceSpeed: n(req.body.speed, 1),
-          voiceSeed: Math.floor(voiceSeedRaw),
-          voiceReference: generation ? {
-            id: `avatar-${project.id}`,
-            audioPath: project.voiceFingerprint!.path,
-            refText: project.voiceFingerprint!.refText,
-            presetId: project.voiceFingerprint!.presetId
-          } : undefined
-        }, {
+        const splitByLines = Boolean(req.body.splitByLines) && Boolean(generation && project.voiceFingerprint);
+        const tailSilenceSeconds = Math.max(0.2, Math.min(3, n(req.body.tailSilenceSeconds, 0.8)));
+        let audio: Awaited<ReturnType<GeneratorService["generateVoice"]>>;
+        let segmentAssets: NonNullable<VoiceAsset["segments"]> | undefined;
+        let progressLines: string[] | undefined;
+        const voiceContext = {
           signal: controller.signal,
-          onVoiceProgress: event => {
+          onVoiceProgress: (event: VoiceProgressEvent) => {
             const ratio = event.total > 0 ? event.completed / event.total : 0;
             void updateProjectJob(project, {
               progress: Math.max(5, Math.min(90, Math.round(10 + ratio * 80))),
               current: event.completed,
               total: event.total,
-              message: event.message
+              message: progressLines && event.sequenceIndex !== undefined
+                ? `${event.message} — « ${progressLines[event.sequenceIndex]?.slice(0, 72) || ""}${(progressLines[event.sequenceIndex]?.length || 0) > 72 ? "…" : ""} »`
+                : event.message
             });
           }
-        });
+        };
+        if (splitByLines) {
+          const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+          if (lines.length < 2) {
+            throw new Error("Le mode par lignes nécessite au moins deux lignes séparées par des retours à la ligne.");
+          }
+          progressLines = lines;
+          const reference = {
+            id: `avatar-${project.id}`,
+            audioPath: project.voiceFingerprint!.path,
+            refText: project.voiceFingerprint!.refText,
+            presetId: project.voiceFingerprint!.presetId
+          };
+          const generated = await generator.generateBatchVoices(lines.map((line, index) => ({
+            voiceText: line,
+            voicePrompt,
+            voicePresetId: presetId,
+            voiceLanguage: String(req.body.language || "French"),
+            voiceSpeed: n(req.body.speed, 1),
+            voiceSeed: Math.floor(voiceSeedRaw) + index,
+            voiceReference: reference
+          })), voiceContext);
+          const pieces = generated.audios.map((item, index) => {
+            if (!item) throw new Error(`La ligne ${index + 1} n'a produit aucun audio.`);
+            return item;
+          });
+          const base = await store.ensure(project);
+          const stem = generation ? generationFilename(generation, "wav").replace(/\.wav$/i, "") : `voice-${project.id}`;
+          const segmentPaths: string[] = [];
+          segmentAssets = [];
+          for (let index = 0; index < pieces.length; index++) {
+            const piece = pieces[index];
+            const segmentName = `${stem}-segment-${String(index + 1).padStart(2, "0")}.wav`;
+            const segmentPath = path.join(base, "voice", segmentName);
+            const silencePath = path.join(transientRoot, `tail-${randomUUID()}.wav`);
+            await createSilence(silencePath, tailSilenceSeconds, controller.signal);
+            await concatWavs([piece.path, silencePath], segmentPath, controller.signal);
+            await fs.rm(silencePath, { force: true });
+            const duration = await probeDuration(segmentPath, controller.signal);
+            segmentPaths.push(segmentPath);
+            segmentAssets.push({
+              name: segmentName,
+              path: segmentPath,
+              url: pub(project.id, "voice", segmentName),
+              duration,
+              speechDuration: piece.duration,
+              tailSilenceSeconds,
+              text: lines[index]
+            });
+          }
+          const combinedName = generation ? generationFilename(generation, "wav") : "speech.wav";
+          const combinedPath = path.join(base, "voice", combinedName);
+          const duration = await concatWavs(segmentPaths, combinedPath, controller.signal);
+          audio = { name: combinedName, path: combinedPath, url: pub(project.id, "voice", combinedName), duration };
+        } else {
+          audio = await generator.generateVoice({
+            voiceText: text,
+            voicePrompt,
+            voicePresetId: presetId,
+            voiceLanguage: String(req.body.language || "French"),
+            voiceSpeed: n(req.body.speed, 1),
+            voiceSeed: Math.floor(voiceSeedRaw),
+            voiceReference: generation ? {
+              id: `avatar-${project.id}`,
+              audioPath: project.voiceFingerprint!.path,
+              refText: project.voiceFingerprint!.refText,
+              presetId: project.voiceFingerprint!.presetId
+            } : undefined
+          }, voiceContext);
+        }
         await updateProjectJob(project, { progress: 92, message: "Enregistrement de la voix…" });
         const base = await store.ensure(project);
         const filename = generation ? generationFilename(generation, "wav") : "speech.wav";
         const target = path.join(base, "voice", filename);
-        await copyAsset(audio.path, target);
+        if (path.resolve(audio.path) !== path.resolve(target)) await copyAsset(audio.path, target);
         const voice: VoiceAsset = {
           name: filename,
           path: target,
@@ -686,7 +751,8 @@ app.post("/api/voice/generate", async (req, res) => {
           text,
           presetId,
           voicePrompt,
-          seed: Math.floor(voiceSeedRaw)
+          seed: Math.floor(voiceSeedRaw),
+          ...(segmentAssets ? { segments: segmentAssets } : {})
         };
         project.voice = voice;
         project.video = undefined;
@@ -960,6 +1026,10 @@ app.post("/api/video/generate", async (req, res) => {
         const sourceMode: VideoSourceMode = req.body.sourceMode === "creative" ? "creative" : "strict";
         const framing: VideoFramingMode =
           req.body.framing === "fit" || req.body.framing === "crop" ? req.body.framing : "original";
+        const userMotionPrompt = String(req.body.motionPrompt || "").trim();
+        const prompt = sourceMode === "strict"
+          ? "The same person with the exact original appearance from the reference image. Preserve the natural skin and beard texture, original lip color, lighting, contrast, clothing and background. Natural synchronized speech and a stable camera."
+          : (userMotionPrompt || "The subject speaks naturally with synchronized mouth movement while keeping the camera stable and preserving the original appearance and background.");
 
         const silences = resetOnSilence
           ? await detectSilences(voice.path, controller.signal, 0.20, -38)
@@ -1017,15 +1087,95 @@ app.post("/api/video/generate", async (req, res) => {
           framing
         );
 
+        // Une voix découpée demande un vrai reset ComfyUI par ligne. Ne pas
+        // réutiliser le latent Extend global : chaque morceau repart du graphe
+        // Wan initial, puis les vidéos sont recollées avec leurs silences.
+        if (voice.segments?.length) {
+          const flfNodeCheck = await comfy.hasNodes([...WAN_FLF_NODES]);
+          if (!flfNodeCheck.ok) throw new Error(`Node(s) FLF2V ComfyUI manquant(s) : ${flfNodeCheck.missing.join(", ")}.`);
+          const flfMissingModels = [
+            JSON.stringify(info.UNETLoader ?? {}).includes(`"${WAN_FLF_MODELS.high}"`) ? null : WAN_FLF_MODELS.high,
+            JSON.stringify(info.UNETLoader ?? {}).includes(`"${WAN_FLF_MODELS.low}"`) ? null : WAN_FLF_MODELS.low,
+            JSON.stringify(info.CLIPLoader ?? {}).includes(`"${WAN_FLF_MODELS.textEncoder}"`) ? null : WAN_FLF_MODELS.textEncoder,
+            JSON.stringify(info.VAELoader ?? {}).includes(`"${WAN_FLF_MODELS.vae}"`) ? null : WAN_FLF_MODELS.vae
+          ].filter(Boolean) as string[];
+          if (flfMissingModels.length) throw new Error(`Modèle(s) FLF2V manquant(s) : ${flfMissingModels.join(", ")}.`);
+          const filename = generation ? generationFilename(generation, "mp4") : "avatar-speaking-wan2.2-extend.mp4";
+          const target = path.join(base, "video", filename);
+          const { duration } = await renderWanSegments({
+            segments: voice.segments,
+            referenceImageName: imageName,
+            audioPath: voice.path,
+            outputPath: target,
+            workDir,
+            prompt,
+            strictIdentity: sourceMode === "strict",
+            seed, width: requestedWidth, height: requestedHeight, steps, cfg,
+            filenamePrefix: `dgx-avatar/wan-segments-${project.id}-${randomUUID()}`,
+            signal: controller.signal,
+            uploadAudio: async (localPath, index) => {
+              const name = `wan-audio-${project.id}-${index + 1}-${randomUUID()}.wav`;
+              const inputPath = path.join(comfyInputDir, name);
+              await fs.copyFile(localPath, inputPath);
+              tempFiles.push(inputPath);
+              return name;
+            },
+            uploadImage: async localPath => {
+              const name = `wan-frame-${project.id}-${randomUUID()}.png`;
+              const inputPath = path.join(comfyInputDir, name);
+              await fs.copyFile(localPath, inputPath);
+              tempFiles.push(inputPath);
+              return name;
+            },
+            render: async (graph, outputPath) => {
+              const tracked = await comfy.queueTracked(graph, () => undefined, controller.signal);
+              try {
+                const ref = await comfy.waitForFile(tracked.promptId, [".mp4", ".mkv", ".webm"], 0, controller.signal);
+                await fs.writeFile(outputPath, await comfy.downloadFile(ref, controller.signal));
+              } finally { tracked.close(); }
+            },
+            onProgress: async event => {
+              await updateProjectJob(project, {
+                progress: event.progress, current: event.index + 1, total: event.total,
+                totalSeconds: total, message: event.message
+              });
+            }
+          });
+          const video: VideoAsset = {
+            name: filename,
+            path: target,
+            url: pub(project.id, "video", filename),
+            duration,
+            engine: "wan-s2v",
+            continuity
+          };
+          project.video = video;
+          if (generation) {
+            const obsoleteShort = generation.short?.path;
+            generation.video = video;
+            generation.short = undefined;
+            generation.shortError = undefined;
+            generation.status = "done";
+            generation.error = undefined;
+            generation.updatedAt = Date.now();
+            if (obsoleteShort) await fs.rm(obsoleteShort, { force: true }).catch(() => undefined);
+          }
+          await finishProjectJob(project, {
+            message: `Vidéo Wan2.2 terminée avec ${voice.segments.length} réinitialisations de blocs.`,
+            progress: 100,
+            current: voice.segments.length,
+            total: voice.segments.length,
+            doneSeconds: duration,
+            totalSeconds: total,
+            etaSeconds: 0
+          });
+          return;
+        }
+
         // Un seul fichier WAV : le mode stabilisé en extrait les fenêtres dans
         // ComfyUI. Le WAV complet reste la piste audio finale dans les deux modes.
         const audioName = `wan-audio-full-${project.id}-${randomUUID()}.wav`;
         await fs.copyFile(voice.path, path.join(comfyInputDir, audioName));
-
-        const userMotionPrompt = String(req.body.motionPrompt || "").trim();
-        const prompt = sourceMode === "strict"
-          ? "The same person with the exact original appearance from the reference image. Preserve the natural skin and beard texture, original lip color, lighting, contrast, clothing and background. Natural synchronized speech and a stable camera."
-          : (userMotionPrompt || "The subject speaks naturally with synchronized mouth movement while keeping the camera stable and preserving the original appearance and background.");
 
         const workflowArgs = {
           imageName,
