@@ -27,8 +27,8 @@ export type BatchVideoSettings = {
   sourceMode: "strict" | "creative";
   framing: "original" | "fit" | "crop";
   motionPrompt: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
   steps: number;
   cfg: number;
   seed: number;

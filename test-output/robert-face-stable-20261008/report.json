@@ -1,0 +1,70 @@
+{
+  "status": "completed",
+  "project": "Robert briantine test",
+  "sources": {
+    "project": "Robert briantine test",
+    "sourceProject": "/home/blockapicoder/dgx-avatar-studio-data/projects/Robert-briantine-test--e69818d6",
+    "sourceImage": "avatar/avatar.png",
+    "sourceAudio": "voice/ia-et-humain-video-3-43e78891.wav",
+    "previousGeneration": "ia et humain — vidéo 6",
+    "width": 448,
+    "height": 448,
+    "faceIdentityPrompt": "The same bald man with the same dark beard and moustache, thick eyebrows, natural skin wrinkles, black facial markings around the eye and the same metallic temple implants as in the reference image. Preserve their exact placement, shape and texture.",
+    "renderFilename": "robert.mp4"
+  },
+  "experiment": "subject-validation-face",
+  "settings": {
+    "imageName": "wan-subject-0424444f-be32-485f-92f6-40457a4df117.png",
+    "audioName": "wan-subject-52e038b6-1b9a-41d2-b27e-ff96e4a03aeb.wav",
+    "durationSeconds": 89.5235,
+    "prompt": "The same subject from the reference image speaks with synchronized mouth movement. Preserve the exact identity, anatomy, shapes, surface materials, colors, clothing, lighting and background. Subtle natural motion, stable camera, continuous shot. Fixed locked camera for the entire clip, at exactly the same distance and angle as the reference image. Preserve the same head-and-shoulders crop, screen position, and subject size from the first frame to the last. No zoom in or zoom out, no dolly, no pan, no tilt, no camera movement, no reframing. Only the subject's face and mouth move subtly while speaking. Facial identity remains constant throughout the entire recording. Keep the reference head shape, facial proportions, eye size and spacing, nose shape, jawline and surface detail consistent from beginning to end. Small speech-driven mouth and jaw articulation, subtle blinking. Calm expression and minimal head rotation. The same bald man with the same dark beard and moustache, thick eyebrows, natural skin wrinkles, black facial markings around the eye and the same metallic temple implants as in the reference image. Preserve their exact placement, shape and texture.",
+    "strictIdentity": true,
+    "seed": 123456,
+    "width": 448,
+    "height": 448,
+    "steps": 20,
+    "cfg": 6,
+    "filenamePrefix": "dgx-avatar/robert-face-stable-20261008",
+    "shift": 8
+  },
+  "changedParameter": "positive-face-identity-prompt-only",
+  "models": {
+    "diffusion": "wan2.2_s2v_14B_bf16.safetensors",
+    "textEncoder": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "audioEncoder": "wav2vec2_large_english_fp16.safetensors",
+    "vae": "wan_2.1_vae.safetensors"
+  },
+  "durationSeconds": 89.5235,
+  "chunks": 19,
+  "generatedFrames": 1517,
+  "sourceAudioSnapshot": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/robert-face-stable-20261008/original-audio.wav",
+  "sourceImageSnapshot": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/robert-face-stable-20261008/original-image.png",
+  "sourceAudioSha256": "d1b28c0ff526ff260d87fad533135542fa9a324755abd49f190c99c7982a5ad5",
+  "sourceImageSha256": "ea81d67e67bf81f49a64fae0baa39c7919180a0aa04ee24ecb0e02c4ac5b37c6",
+  "productionActivated": true,
+  "splitAudio": false,
+  "independentResets": 0,
+  "visualValidation": "approved-by-user",
+  "output": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/robert-face-stable-20261008/robert.mp4",
+  "resolutionReason": "Ratio de l’image originale conservé ; aire proche de 196608 pixels.",
+  "recipeReference": "wan-context-step3-framing-2026-10-07T16-39-36-855Z",
+  "startedAt": "2026-10-08T11:04:46.652Z",
+  "promptId": "289d9e77-f5c3-41f0-838a-684cc82d9ce3",
+  "comfyOutput": {
+    "filename": "robert-face-stable-20261008_00001_.mp4",
+    "subfolder": "dgx-avatar",
+    "type": "output"
+  },
+  "finishedAt": "2026-10-08T14:09:10.828Z",
+  "actualDuration": 89.5625,
+  "actualFrames": 1433,
+  "verification": {
+    "nativeFrameHashesPreserved": true,
+    "sourceAudioHashPreserved": true,
+    "videoDuration": 89.5625,
+    "audioDuration": 89.523,
+    "fps": "16/1",
+    "dimensions": "448x448"
+  },
+  "userFeedback": "c’est parfait, tu peux finaliser la modification"
+}

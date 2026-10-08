@@ -108,6 +108,8 @@ export type AvatarProject = {
     source: "generated" | "uploaded";
     prompt?: string;
     builtPrompt?: string;
+    /** Visual identity details associated with this reference image. */
+    identityPrompt?: string;
     seed?: number;
     builder?: Record<string, unknown>;
     generation?: { quality?: string; steps?: number; width?: number; height?: number; strictReset?: boolean };

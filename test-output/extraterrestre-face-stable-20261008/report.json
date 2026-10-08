@@ -1,0 +1,69 @@
+{
+  "status": "completed",
+  "project": "extra-terrestre",
+  "sources": {
+    "project": "extra-terrestre",
+    "sourceProject": "/home/blockapicoder/dgx-avatar-studio-data/projects/extra-terrestre--3bbbe1df",
+    "sourceImage": "avatar/avatar.png",
+    "sourceAudio": "voice/speech.wav",
+    "previousGeneration": "Generation importee — vidéo 2",
+    "width": 384,
+    "height": 512,
+    "faceIdentityPrompt": "The same green alien with the same large round dark eyes and golden irises, two bulb-tipped antennae, pointed ears, small nose and fine green skin texture as in the reference image. Preserve its alien anatomy and exact proportions, colors and details throughout speaking.",
+    "renderFilename": "extraterrestre.mp4"
+  },
+  "experiment": "subject-validation-face",
+  "settings": {
+    "imageName": "wan-subject-2be699bd-8e71-40ed-8d05-a08f1c5d44ec.png",
+    "audioName": "wan-subject-78402a27-0d39-4d4b-8da8-585fc0a18fc9.wav",
+    "durationSeconds": 122.18,
+    "prompt": "The same subject from the reference image speaks with synchronized mouth movement. Preserve the exact identity, anatomy, shapes, surface materials, colors, clothing, lighting and background. Subtle natural motion, stable camera, continuous shot. Fixed locked camera for the entire clip, at exactly the same distance and angle as the reference image. Preserve the same head-and-shoulders crop, screen position, and subject size from the first frame to the last. No zoom in or zoom out, no dolly, no pan, no tilt, no camera movement, no reframing. Only the subject's face and mouth move subtly while speaking. Facial identity remains constant throughout the entire recording. Keep the reference head shape, facial proportions, eye size and spacing, nose shape, jawline and surface detail consistent from beginning to end. Small speech-driven mouth and jaw articulation, subtle blinking. Calm expression and minimal head rotation. The same green alien with the same large round dark eyes and golden irises, two bulb-tipped antennae, pointed ears, small nose and fine green skin texture as in the reference image. Preserve its alien anatomy and exact proportions, colors and details throughout speaking.",
+    "strictIdentity": true,
+    "seed": 123456,
+    "width": 384,
+    "height": 512,
+    "steps": 20,
+    "cfg": 6,
+    "filenamePrefix": "dgx-avatar/extraterrestre-face-stable-20261008",
+    "shift": 8
+  },
+  "changedParameter": "positive-face-identity-prompt-only",
+  "models": {
+    "diffusion": "wan2.2_s2v_14B_bf16.safetensors",
+    "textEncoder": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "audioEncoder": "wav2vec2_large_english_fp16.safetensors",
+    "vae": "wan_2.1_vae.safetensors"
+  },
+  "durationSeconds": 122.18,
+  "chunks": 26,
+  "generatedFrames": 2077,
+  "sourceAudioSnapshot": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/extraterrestre-face-stable-20261008/original-audio.wav",
+  "sourceImageSnapshot": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/extraterrestre-face-stable-20261008/original-image.png",
+  "sourceAudioSha256": "c2578edfe90dade0a78e4b4dddc372f63fc76192e4f7889ddb60e965d8376094",
+  "sourceImageSha256": "17fd3a6740147e1f05b22afcda016fb126ced11f2a9209ec7837951dc313ff5f",
+  "productionActivated": true,
+  "splitAudio": false,
+  "independentResets": 0,
+  "visualValidation": "awaiting-user-review",
+  "output": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/extraterrestre-face-stable-20261008/extraterrestre.mp4",
+  "resolutionReason": "Ratio de l’image originale conservé ; aire proche de 196608 pixels.",
+  "recipeReference": "wan-context-step3-framing-2026-10-07T16-39-36-855Z",
+  "startedAt": "2026-10-08T11:04:49.659Z",
+  "promptId": "e1e691ea-063f-4e90-8429-fdd34700c9da",
+  "comfyOutput": {
+    "filename": "extraterrestre-face-stable-20261008_00001_.mp4",
+    "subfolder": "dgx-avatar",
+    "type": "output"
+  },
+  "finishedAt": "2026-10-08T17:48:41.708Z",
+  "actualDuration": 122.1875,
+  "actualFrames": 1955,
+  "verification": {
+    "nativeFrameHashesPreserved": true,
+    "sourceAudioHashPreserved": true,
+    "videoDuration": 122.1875,
+    "audioDuration": 122.18,
+    "fps": "16/1",
+    "dimensions": "384x512"
+  }
+}

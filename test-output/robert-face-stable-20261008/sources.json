@@ -1,0 +1,11 @@
+{
+  "project": "Robert briantine test",
+  "sourceProject": "/home/blockapicoder/dgx-avatar-studio-data/projects/Robert-briantine-test--e69818d6",
+  "sourceImage": "avatar/avatar.png",
+  "sourceAudio": "voice/ia-et-humain-video-3-43e78891.wav",
+  "previousGeneration": "ia et humain — vidéo 6",
+  "width": 448,
+  "height": 448,
+  "faceIdentityPrompt": "The same bald man with the same dark beard and moustache, thick eyebrows, natural skin wrinkles, black facial markings around the eye and the same metallic temple implants as in the reference image. Preserve their exact placement, shape and texture.",
+  "renderFilename": "robert.mp4"
+}

@@ -1,0 +1,2591 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_s2v_14B_bf16.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "AudioEncoderLoader",
+    "inputs": {
+      "audio_encoder_name": "wav2vec2_large_english_fp16.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": "wan-subject-a2432f72-72a1-4344-beab-f19a2daf964d.wav"
+    }
+  },
+  "6": {
+    "class_type": "AudioEncoderEncode",
+    "inputs": {
+      "audio_encoder": [
+        "4",
+        0
+      ],
+      "audio": [
+        "5",
+        0
+      ]
+    }
+  },
+  "7": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "wan-subject-83b4d144-c6e6-4245-a540-0fd9fd02160e.png"
+    }
+  },
+  "8": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "text": "The same subject from the reference image speaks with synchronized mouth movement. Preserve the exact identity, anatomy, shapes, surface materials, colors, clothing, lighting and background. Subtle natural motion, stable camera, continuous shot. Fixed locked camera for the entire clip, at exactly the same distance and angle as the reference image. Preserve the same head-and-shoulders crop, screen position, and subject size from the first frame to the last. No zoom in or zoom out, no dolly, no pan, no tilt, no camera movement, no reframing. Only the subject's face and mouth move subtly while speaking."
+    }
+  },
+  "9": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "text": "identity change, different person, different face, face morphing, facial drift, changed facial proportions, changed eyes, changed nose, changed jaw, red lips, pink lips, lipstick, lip color change, red mouth glow, solid red mouth, oversaturated mouth, painted mouth, flat color patch, color blob, waxy skin, plastic skin, loss of skin texture, oversmoothed face, distorted mouth, deformed face, duplicate face, extra limbs, subtitles, text, watermark, low quality, blurry"
+    }
+  },
+  "10": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "shift": 8
+    }
+  },
+  "11": {
+    "class_type": "WanSoundImageToVideo",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "width": 448,
+      "height": 448,
+      "length": 77,
+      "batch_size": 1,
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "12": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "11",
+        0
+      ],
+      "negative": [
+        "11",
+        1
+      ],
+      "latent_image": [
+        "11",
+        2
+      ],
+      "seed": 123456,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "20": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "81",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "21": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "20",
+        0
+      ],
+      "negative": [
+        "20",
+        1
+      ],
+      "latent_image": [
+        "20",
+        2
+      ],
+      "seed": 123457,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "22": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "12",
+        0
+      ],
+      "samples2": [
+        "21",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "23": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "86",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "24": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "23",
+        0
+      ],
+      "negative": [
+        "23",
+        1
+      ],
+      "latent_image": [
+        "23",
+        2
+      ],
+      "seed": 123458,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "25": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "22",
+        0
+      ],
+      "samples2": [
+        "24",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "26": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "91",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "27": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "26",
+        0
+      ],
+      "negative": [
+        "26",
+        1
+      ],
+      "latent_image": [
+        "26",
+        2
+      ],
+      "seed": 123459,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "28": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "25",
+        0
+      ],
+      "samples2": [
+        "27",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "29": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "96",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "30": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "29",
+        0
+      ],
+      "negative": [
+        "29",
+        1
+      ],
+      "latent_image": [
+        "29",
+        2
+      ],
+      "seed": 123460,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "31": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "28",
+        0
+      ],
+      "samples2": [
+        "30",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "32": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "101",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "33": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "32",
+        0
+      ],
+      "negative": [
+        "32",
+        1
+      ],
+      "latent_image": [
+        "32",
+        2
+      ],
+      "seed": 123461,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "34": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "31",
+        0
+      ],
+      "samples2": [
+        "33",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "35": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "106",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "36": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "35",
+        0
+      ],
+      "negative": [
+        "35",
+        1
+      ],
+      "latent_image": [
+        "35",
+        2
+      ],
+      "seed": 123462,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "37": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "34",
+        0
+      ],
+      "samples2": [
+        "36",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "38": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "111",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "39": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "38",
+        0
+      ],
+      "negative": [
+        "38",
+        1
+      ],
+      "latent_image": [
+        "38",
+        2
+      ],
+      "seed": 123463,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "40": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "37",
+        0
+      ],
+      "samples2": [
+        "39",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "41": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "116",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "42": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "41",
+        0
+      ],
+      "negative": [
+        "41",
+        1
+      ],
+      "latent_image": [
+        "41",
+        2
+      ],
+      "seed": 123464,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "43": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "40",
+        0
+      ],
+      "samples2": [
+        "42",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "44": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "121",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "45": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "44",
+        0
+      ],
+      "negative": [
+        "44",
+        1
+      ],
+      "latent_image": [
+        "44",
+        2
+      ],
+      "seed": 123465,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "46": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "43",
+        0
+      ],
+      "samples2": [
+        "45",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "47": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "126",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "48": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "47",
+        0
+      ],
+      "negative": [
+        "47",
+        1
+      ],
+      "latent_image": [
+        "47",
+        2
+      ],
+      "seed": 123466,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "49": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "46",
+        0
+      ],
+      "samples2": [
+        "48",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "50": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "131",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "51": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "50",
+        0
+      ],
+      "negative": [
+        "50",
+        1
+      ],
+      "latent_image": [
+        "50",
+        2
+      ],
+      "seed": 123467,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "52": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "49",
+        0
+      ],
+      "samples2": [
+        "51",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "53": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "136",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "54": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "53",
+        0
+      ],
+      "negative": [
+        "53",
+        1
+      ],
+      "latent_image": [
+        "53",
+        2
+      ],
+      "seed": 123468,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "55": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "52",
+        0
+      ],
+      "samples2": [
+        "54",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "56": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "141",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "57": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "56",
+        0
+      ],
+      "negative": [
+        "56",
+        1
+      ],
+      "latent_image": [
+        "56",
+        2
+      ],
+      "seed": 123469,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "58": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "55",
+        0
+      ],
+      "samples2": [
+        "57",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "59": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "146",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "60": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "59",
+        0
+      ],
+      "negative": [
+        "59",
+        1
+      ],
+      "latent_image": [
+        "59",
+        2
+      ],
+      "seed": 123470,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "61": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "58",
+        0
+      ],
+      "samples2": [
+        "60",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "62": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "151",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "63": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "62",
+        0
+      ],
+      "negative": [
+        "62",
+        1
+      ],
+      "latent_image": [
+        "62",
+        2
+      ],
+      "seed": 123471,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "64": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "61",
+        0
+      ],
+      "samples2": [
+        "63",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "65": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "156",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "66": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "65",
+        0
+      ],
+      "negative": [
+        "65",
+        1
+      ],
+      "latent_image": [
+        "65",
+        2
+      ],
+      "seed": 123472,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "67": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "64",
+        0
+      ],
+      "samples2": [
+        "66",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "68": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "161",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "69": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "68",
+        0
+      ],
+      "negative": [
+        "68",
+        1
+      ],
+      "latent_image": [
+        "68",
+        2
+      ],
+      "seed": 123473,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "70": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "67",
+        0
+      ],
+      "samples2": [
+        "69",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "71": {
+    "class_type": "WanSoundImageToVideoExtend",
+    "inputs": {
+      "positive": [
+        "8",
+        0
+      ],
+      "negative": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "length": 77,
+      "video_latent": [
+        "166",
+        0
+      ],
+      "audio_encoder_output": [
+        "6",
+        0
+      ],
+      "ref_image": [
+        "7",
+        0
+      ]
+    }
+  },
+  "72": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "71",
+        0
+      ],
+      "negative": [
+        "71",
+        1
+      ],
+      "latent_image": [
+        "71",
+        2
+      ],
+      "seed": 123474,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "73": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "70",
+        0
+      ],
+      "samples2": [
+        "72",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "74": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "73",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "75": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "74",
+        0
+      ],
+      "fps": 16,
+      "audio": [
+        "5",
+        0
+      ]
+    }
+  },
+  "76": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "75",
+        0
+      ],
+      "filename_prefix": "dgx-avatar/robert-fixed-framing-20261008",
+      "format": "mp4",
+      "codec": "h264"
+    }
+  },
+  "77": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "12",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "78": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "77",
+        0
+      ],
+      "batch_index": 4,
+      "length": 73
+    }
+  },
+  "79": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "78",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "80": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "12",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 1
+    }
+  },
+  "81": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "80",
+        0
+      ],
+      "samples2": [
+        "79",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "82": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "22",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "83": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "82",
+        0
+      ],
+      "batch_index": 84,
+      "length": 73
+    }
+  },
+  "84": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "83",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "85": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "22",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 21
+    }
+  },
+  "86": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "85",
+        0
+      ],
+      "samples2": [
+        "84",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "87": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "25",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "88": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "87",
+        0
+      ],
+      "batch_index": 164,
+      "length": 73
+    }
+  },
+  "89": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "88",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "90": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "25",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 41
+    }
+  },
+  "91": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "90",
+        0
+      ],
+      "samples2": [
+        "89",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "92": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "28",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "93": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "92",
+        0
+      ],
+      "batch_index": 244,
+      "length": 73
+    }
+  },
+  "94": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "93",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "95": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "28",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 61
+    }
+  },
+  "96": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "95",
+        0
+      ],
+      "samples2": [
+        "94",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "97": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "31",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "98": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "97",
+        0
+      ],
+      "batch_index": 324,
+      "length": 73
+    }
+  },
+  "99": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "98",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "100": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "31",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 81
+    }
+  },
+  "101": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "100",
+        0
+      ],
+      "samples2": [
+        "99",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "102": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "34",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "103": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "102",
+        0
+      ],
+      "batch_index": 404,
+      "length": 73
+    }
+  },
+  "104": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "103",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "105": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "34",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 101
+    }
+  },
+  "106": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "105",
+        0
+      ],
+      "samples2": [
+        "104",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "107": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "37",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "108": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "107",
+        0
+      ],
+      "batch_index": 484,
+      "length": 73
+    }
+  },
+  "109": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "108",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "110": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "37",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 121
+    }
+  },
+  "111": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "110",
+        0
+      ],
+      "samples2": [
+        "109",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "112": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "40",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "113": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "112",
+        0
+      ],
+      "batch_index": 564,
+      "length": 73
+    }
+  },
+  "114": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "113",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "115": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "40",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 141
+    }
+  },
+  "116": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "115",
+        0
+      ],
+      "samples2": [
+        "114",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "117": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "43",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "118": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "117",
+        0
+      ],
+      "batch_index": 644,
+      "length": 73
+    }
+  },
+  "119": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "118",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "120": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "43",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 161
+    }
+  },
+  "121": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "120",
+        0
+      ],
+      "samples2": [
+        "119",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "122": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "46",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "123": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "122",
+        0
+      ],
+      "batch_index": 724,
+      "length": 73
+    }
+  },
+  "124": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "123",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "125": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "46",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 181
+    }
+  },
+  "126": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "125",
+        0
+      ],
+      "samples2": [
+        "124",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "127": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "49",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "128": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "127",
+        0
+      ],
+      "batch_index": 804,
+      "length": 73
+    }
+  },
+  "129": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "128",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "130": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "49",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 201
+    }
+  },
+  "131": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "130",
+        0
+      ],
+      "samples2": [
+        "129",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "132": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "52",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "133": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "132",
+        0
+      ],
+      "batch_index": 884,
+      "length": 73
+    }
+  },
+  "134": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "133",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "135": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "52",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 221
+    }
+  },
+  "136": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "135",
+        0
+      ],
+      "samples2": [
+        "134",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "137": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "55",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "138": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "137",
+        0
+      ],
+      "batch_index": 964,
+      "length": 73
+    }
+  },
+  "139": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "138",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "140": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "55",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 241
+    }
+  },
+  "141": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "140",
+        0
+      ],
+      "samples2": [
+        "139",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "142": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "58",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "143": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "142",
+        0
+      ],
+      "batch_index": 1044,
+      "length": 73
+    }
+  },
+  "144": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "143",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "145": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "58",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 261
+    }
+  },
+  "146": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "145",
+        0
+      ],
+      "samples2": [
+        "144",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "147": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "61",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "148": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "147",
+        0
+      ],
+      "batch_index": 1124,
+      "length": 73
+    }
+  },
+  "149": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "148",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "150": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "61",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 281
+    }
+  },
+  "151": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "150",
+        0
+      ],
+      "samples2": [
+        "149",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "152": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "64",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "153": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "152",
+        0
+      ],
+      "batch_index": 1204,
+      "length": 73
+    }
+  },
+  "154": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "153",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "155": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "64",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 301
+    }
+  },
+  "156": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "155",
+        0
+      ],
+      "samples2": [
+        "154",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "157": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "67",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "158": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "157",
+        0
+      ],
+      "batch_index": 1284,
+      "length": 73
+    }
+  },
+  "159": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "158",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "160": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "67",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 321
+    }
+  },
+  "161": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "160",
+        0
+      ],
+      "samples2": [
+        "159",
+        0
+      ],
+      "dim": "t"
+    }
+  },
+  "162": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "70",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "163": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "162",
+        0
+      ],
+      "batch_index": 1364,
+      "length": 73
+    }
+  },
+  "164": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "163",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "165": {
+    "class_type": "LatentCut",
+    "inputs": {
+      "samples": [
+        "70",
+        0
+      ],
+      "dim": "t",
+      "index": 0,
+      "amount": 341
+    }
+  },
+  "166": {
+    "class_type": "LatentConcat",
+    "inputs": {
+      "samples1": [
+        "165",
+        0
+      ],
+      "samples2": [
+        "164",
+        0
+      ],
+      "dim": "t"
+    }
+  }
+}

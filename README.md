@@ -2,6 +2,32 @@
 
 Application locale DGX Spark : image Qwen, voix Qwen3-TTS et vidéo Wan2.2-S2V.
 
+## Stabilisation du visage validée — 8 octobre 2026
+
+Les nouvelles générations en **Image stricte** renforcent la conservation des
+proportions et détails du visage, avec une expression calme et une rotation de
+tête limitée. La bouche et la mâchoire restent animées pour la parole. Le workflow
+conserve BF16, le contexte visuel réencodé, les graines progressives et la caméra
+fixe. Le mode créatif conserve son prompt de mouvement.
+
+Le profil par défaut **Visage stable** et les nouveaux batchs utilisent 20 étapes,
+CFG 6 et shift 8. En cadrage Original, la résolution suit le format de l’avatar,
+à une aire proche de 196608 pixels : 448 × 448 pour Robert, 384 × 512 pour
+l’extraterrestre. Les dimensions explicites et les profils Rapide/Qualité restent
+respectés. Les batchs déjà enregistrés conservent leurs paramètres.
+
+Les descriptions propres au visage sont conservées dans `avatar.identityPrompt`
+et changent avec l’image d’avatar. Les références Robert et extraterrestre ont
+reçu les descriptions exactes des tests. Les autres avatars utilisent la consigne
+générique, sans imposer de traits humains aux robots ou extraterrestres.
+
+Robert : 89,523 s de son, rendu validé par l’utilisateur. Extraterrestre :
+122,18 s de son, rendu GPU terminé et vérifié ; validation humaine distincte
+encore attendue. Les deux vidéos sont ajoutées à leur historique. Les workflows
+de production ont été comparés aux workflows testés : ils sont identiques pour
+les mêmes entrées. Vérifications : 51 tests automatisés et compilation TypeScript.
+La stabilité du visage n’est pas garantie pour tous les avatars ou toutes les durées.
+
 ## Génération vidéo
 
 Les nouveaux rendus utilisent **Wan2.2-S2V + Extend** avec le checkpoint BF16

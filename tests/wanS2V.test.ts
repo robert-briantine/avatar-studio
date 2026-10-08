@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildWanS2VFixedFramingWorkflow, buildWanS2VReencodedMotionWorkflow, buildWanS2VExtendedWorkflow, buildWanS2VSilenceAwareWorkflow, buildWanS2VStabilizedWorkflow, planWanS2VSilenceWindows, planWanS2VWindows, parseWanStabilizationSeconds, WAN_S2V_FIXED_FRAMING_PROMPT, WAN_S2V_NODES, WAN_S2V_STABLE_NODES, WAN_S2V_STABILIZATION_SECONDS } from "../src/wanS2V.js";
+import { buildWanS2VFaceStableWorkflow, wanS2VReferenceSize, WAN_S2V_FACE_STABILITY_PROMPT, buildWanS2VFixedFramingWorkflow, buildWanS2VReencodedMotionWorkflow, buildWanS2VExtendedWorkflow, buildWanS2VSilenceAwareWorkflow, buildWanS2VStabilizedWorkflow, planWanS2VSilenceWindows, planWanS2VWindows, parseWanStabilizationSeconds, WAN_S2V_FIXED_FRAMING_PROMPT, WAN_S2V_NODES, WAN_S2V_STABLE_NODES, WAN_S2V_STABILIZATION_SECONDS } from "../src/wanS2V.js";
 import type { PromptGraph } from "../src/workflows.js";
 
 const input = {
@@ -427,4 +427,25 @@ test("production recipe combines re-encoded context, progressive seeds and fixed
   });
   assert.ok(!Object.values(graph).some(node => ["TrimAudioDuration", "DGXPrepareWanHandoff"].includes(node.class_type)));
   assertAcyclic(graph);
+});
+
+
+test("face stability changes only identity instructions and respects creative mode", () => {
+  const args = { ...input, durationSeconds: 89.5235, width: 448, height: 448,
+    steps: 20, cfg: 6, faceIdentityPrompt: "Preserve the reference facial markings." };
+  const baseline = buildWanS2VFixedFramingWorkflow(args);
+  const stable = buildWanS2VFaceStableWorkflow(args);
+  assert.equal(stable.graph["8"].inputs.text,
+    `${baseline.graph["8"].inputs.text} ${WAN_S2V_FACE_STABILITY_PROMPT} ${args.faceIdentityPrompt}`);
+  stable.graph["8"].inputs.text = baseline.graph["8"].inputs.text;
+  assert.deepEqual(stable, baseline, "audio, sampling, reference and temporal context must remain identical");
+  assert.deepEqual(buildWanS2VFaceStableWorkflow({ ...args, strictIdentity: false }),
+    buildWanS2VFixedFramingWorkflow({ ...args, strictIdentity: false }));
+});
+
+test("reference format matches the validated square and portrait sizes", () => {
+  assert.deepEqual(wanS2VReferenceSize(600, 600), { width: 448, height: 448 });
+  assert.deepEqual(wanS2VReferenceSize(1104, 1472), { width: 384, height: 512 });
+  assert.deepEqual(wanS2VReferenceSize(1472, 1104), { width: 512, height: 384 });
+  assert.throws(() => wanS2VReferenceSize(0, 600), /invalides/);
 });

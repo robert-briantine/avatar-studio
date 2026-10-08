@@ -17,7 +17,7 @@ import { voicePresets, getVoicePreset } from "./voicePresets.js";
 import { AvatarStore, type AvatarGeneration, type AvatarProject, type ProjectJob, type ShortAsset, type VoiceAsset, type VideoAsset } from "./avatarStore.js";
 import { BatchStore, type BatchRun, type BatchVideoSettings } from "./batchStore.js";
 import { createYouTubeShort, parseShortOptions, shortMakerHealth } from "./shortMaker.js";
-import { buildWanS2VFixedFramingWorkflow, wanS2VPrompt, WAN_S2V_MODELS, WAN_S2V_NODES, WAN_S2V_CHUNK_FRAMES, WAN_S2V_FPS, WAN_S2V_STABILIZATION_SECONDS } from "./wanS2V.js";
+import { buildWanS2VFaceStableWorkflow, wanS2VReferenceSize, wanS2VPrompt, WAN_S2V_MODELS, WAN_S2V_NODES, WAN_S2V_CHUNK_FRAMES, WAN_S2V_FPS, WAN_S2V_STABILIZATION_SECONDS } from "./wanS2V.js";
 import { parseWanTransitionStyle } from "./wanTransitions.js";
 import { availableBenchmarkWorkers, executeBenchmark, parseBenchmarkWorkers, type BenchmarkRun } from "./benchmark.js";
 
@@ -881,6 +881,11 @@ app.post("/api/video/generate", async (req, res) => {
     if (!project.avatar) throw new Error("Génère ou charge d'abord un avatar.");
     if (!voice) throw new Error("Génère d'abord la voix.");
 
+    const videoQuality = videoQualitySettings(req.body.quality);
+    let referenceSize = { width: videoQuality.width, height: videoQuality.height };
+    let requestedWidth = Math.floor(n(req.body.width, referenceSize.width));
+    let requestedHeight = Math.floor(n(req.body.height, referenceSize.height));
+
     // Accept the legacy field for older clients, without applying transitions.
     if (req.body.transitionStyle !== undefined) parseWanTransitionStyle(req.body.transitionStyle);
     // A video already in history is immutable: re-render into a fresh entry
@@ -910,8 +915,8 @@ app.post("/api/video/generate", async (req, res) => {
         sourceMode: req.body.sourceMode === "creative" ? "creative" : "strict",
         framing: req.body.framing === "fit" || req.body.framing === "crop" ? req.body.framing : "original",
         motionPrompt: s(req.body.motionPrompt),
-        width: Math.floor(n(req.body.width, videoQualitySettings(req.body.quality).width)),
-        height: Math.floor(n(req.body.height, videoQualitySettings(req.body.quality).height)),
+        width: requestedWidth,
+        height: requestedHeight,
         steps: Math.max(4, Math.min(60, Math.floor(n(req.body.steps, videoQualitySettings(req.body.quality).steps)))),
         cfg: n(req.body.cfg, videoQualitySettings(req.body.quality).cfg),
         seed: Math.floor(n(req.body.seed, 123456))
@@ -951,10 +956,19 @@ app.post("/api/video/generate", async (req, res) => {
         if (!comfyInputDir) throw new Error("COMFY_INPUT_DIR n'est pas configuré dans .env.");
         await fs.mkdir(comfyInputDir, { recursive: true });
 
-        const videoQuality = videoQualitySettings(req.body.quality);
         const total = await probeDuration(voice.path, controller.signal);
-        const requestedWidth = Math.floor(n(req.body.width, videoQuality.width));
-        const requestedHeight = Math.floor(n(req.body.height, videoQuality.height));
+        if (videoQuality.profile === "normal" && (!req.body.framing || req.body.framing === "original")
+            && (req.body.width === undefined || req.body.height === undefined)) {
+          const metadata = await sharp(project.avatar!.path).metadata();
+          referenceSize = wanS2VReferenceSize(metadata.width!, metadata.height!);
+          requestedWidth = Math.floor(n(req.body.width, referenceSize.width));
+          requestedHeight = Math.floor(n(req.body.height, referenceSize.height));
+          if (generation?.videoSettings) {
+            generation.videoSettings.width = requestedWidth;
+            generation.videoSettings.height = requestedHeight;
+          }
+        }
+
         const steps = Math.max(4, Math.min(60, Math.floor(n(req.body.steps, videoQuality.steps))));
         const cfg = n(req.body.cfg, videoQuality.cfg);
         const seed = Math.floor(n(req.body.seed, 123456));
@@ -1006,6 +1020,7 @@ app.post("/api/video/generate", async (req, res) => {
           audioName,
           prompt,
           strictIdentity: sourceMode === "strict",
+          faceIdentityPrompt: project.avatar!.identityPrompt,
           seed,
           width: requestedWidth,
           height: requestedHeight,
@@ -1015,7 +1030,7 @@ app.post("/api/video/generate", async (req, res) => {
           filenamePrefix: `dgx-avatar/wan-extend-${project.id}`,
           chunkFrames: WAN_S2V_CHUNK_FRAMES
         };
-        const { graph, generatedFrames } = buildWanS2VFixedFramingWorkflow(workflowArgs);
+        const { graph, generatedFrames } = buildWanS2VFaceStableWorkflow(workflowArgs);
 
         // Évite de vider les poids et le cache à chaque nouvelle vidéo.
         // ComfyUI libère lui-même de la mémoire lorsque le workflow en a besoin.
@@ -1309,8 +1324,8 @@ function parseBatchVideoSettings(value: any): BatchVideoSettings {
     sourceMode: value?.sourceMode === "creative" ? "creative" : "strict",
     framing: value?.framing === "fit" || value?.framing === "crop" ? value.framing : "original",
     motionPrompt: s(value?.motionPrompt),
-    width: Math.floor(n(value?.width, quality.width)),
-    height: Math.floor(n(value?.height, quality.height)),
+    width: value?.width === undefined ? undefined : Math.floor(n(value.width, quality.width)),
+    height: value?.height === undefined ? undefined : Math.floor(n(value.height, quality.height)),
     steps: Math.max(4, Math.min(60, Math.floor(n(value?.steps, quality.steps)))),
     cfg: n(value?.cfg, quality.cfg),
     seed: Math.floor(n(value?.seed, 123456)),

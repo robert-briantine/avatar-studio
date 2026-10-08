@@ -11,7 +11,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
 import sharp from "sharp";
 import { AvatarStore, type AvatarProject } from "../src/avatarStore.js";
-import { WAN_S2V_FIXED_FRAMING_PROMPT, WAN_S2V_MODELS, WAN_S2V_NODES } from "../src/wanS2V.js";
+import { WAN_S2V_FACE_STABILITY_PROMPT, WAN_S2V_FIXED_FRAMING_PROMPT, WAN_S2V_MODELS, WAN_S2V_NODES } from "../src/wanS2V.js";
 import type { PromptGraph } from "../src/workflows.js";
 
 const exec = promisify(execFile);
@@ -28,7 +28,7 @@ test("legacy audio segments still submit one full-WAV native Extend graph and pr
   await sharp({ create: { width: 64, height: 64, channels: 3, background: "#727a83" } }).png().toFile(image);
   await exec("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=880:duration=61.5", audio]);
   await exec("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=64x64:rate=16:duration=65", "-c:v", "libx264", "-preset", "veryfast", raw]);
-  project.avatar = { name: "avatar.png", path: image, url: "", source: "uploaded" };
+  project.avatar = { name: "avatar.png", path: image, url: "", source: "uploaded", identityPrompt: "Preserve the reference blue optical sensors." };
   project.voice = { name: "source.wav", path: audio, url: "", duration: 12, text: "Bonjour\nJe suis un robot", presetId: "robot", voicePrompt: "",
     segments: [{ name: "obsolete.wav", path: path.join(directory, "must-not-be-opened.wav"), url: "", duration: 61.5 }] };
   await store.save(project);
@@ -108,6 +108,8 @@ test("legacy audio segments still submit one full-WAV native Extend graph and pr
     assert.equal(nodes.filter(n => n.class_type === "VAEDecode").length, 13, "12 motion-context decodes plus the single final output decode");
     assert.equal(nodes.filter(n => n.class_type === "VAEEncode").length, 12);
     assert.ok(String(graph!["8"].inputs.text).includes(WAN_S2V_FIXED_FRAMING_PROMPT));
+    assert.ok(String(graph!["8"].inputs.text).includes(WAN_S2V_FACE_STABILITY_PROMPT));
+    assert.ok(String(graph!["8"].inputs.text).includes(project.avatar!.identityPrompt!));
     const samplerSeeds = Object.entries(graph!).filter(([, node]) => node.class_type === "KSampler")
       .sort(([a], [b]) => Number(a) - Number(b)).map(([, node]) => node.inputs.seed);
     assert.deepEqual(samplerSeeds, samplerSeeds.map((_, index) => 123456 + index));

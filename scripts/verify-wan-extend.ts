@@ -16,7 +16,7 @@ const reportPath = path.join(directory, "report.json");
 const report = JSON.parse(await fs.readFile(reportPath, "utf8"));
 if (report.status !== "completed") throw new Error("Le rendu GPU n’est pas encore terminé.");
 const raw = path.join(directory, "native-raw.mp4");
-const target = path.join(directory, "robot-extend-67s.mp4");
+const target = report.output || path.join(directory, "robot-extend-67s.mp4");
 const temporary = path.join(directory, "verified-native.mp4");
 const snapshot = path.join(directory, "original-audio.wav");
 const snapshotExists = await fs.access(snapshot).then(() => true, () => false);

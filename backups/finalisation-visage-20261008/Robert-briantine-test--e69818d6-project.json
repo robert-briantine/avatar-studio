@@ -1,0 +1,1268 @@
+{
+  "id": "e69818d6-467d-45ef-8403-72b03d418dc4",
+  "name": "Robert briantine test",
+  "folderName": "Robert-briantine-test--e69818d6",
+  "createdAt": 1790425866056,
+  "updatedAt": 1791440559449,
+  "avatar": {
+    "name": "avatar.png",
+    "path": "avatar/avatar.png",
+    "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/avatar/avatar.png",
+    "source": "uploaded"
+  },
+  "currentJob": {
+    "id": "a52f2669-b7bf-4e7a-abf1-c88728ebfebd",
+    "type": "video-wan",
+    "status": "done",
+    "createdAt": 1791399293148,
+    "progress": 100,
+    "message": "Vidéo Wan2.2 Extend terminée (89.6 s, 19 passe(s) natives).",
+    "generationId": "951b2356-527f-407a-94fa-f8dc8a3d1ab0",
+    "startedAt": 1791399293161,
+    "doneSeconds": 89.5625,
+    "totalSeconds": 89.5235,
+    "etaSeconds": 0,
+    "current": 19,
+    "total": 19,
+    "finishedAt": 1791403811012
+  },
+  "voice": {
+    "name": "ia-et-humain-video-3-43e78891.wav",
+    "path": "voice/ia-et-humain-video-3-43e78891.wav",
+    "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891.wav",
+    "duration": 89.5235,
+    "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+    "presetId": "wizard",
+    "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+    "seed": 123456,
+    "segments": [
+      {
+        "name": "ia-et-humain-video-3-43e78891-segment-01.wav",
+        "path": "voice/ia-et-humain-video-3-43e78891-segment-01.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891-segment-01.wav",
+        "duration": 22.05975,
+        "speechDuration": 20.55975,
+        "tailSilenceSeconds": 1.5,
+        "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes."
+      },
+      {
+        "name": "ia-et-humain-video-3-43e78891-segment-02.wav",
+        "path": "voice/ia-et-humain-video-3-43e78891-segment-02.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891-segment-02.wav",
+        "duration": 36.134146,
+        "speechDuration": 34.634146,
+        "tailSilenceSeconds": 1.5,
+        "text": "Une IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine."
+      },
+      {
+        "name": "ia-et-humain-video-3-43e78891-segment-03.wav",
+        "path": "voice/ia-et-humain-video-3-43e78891-segment-03.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891-segment-03.wav",
+        "duration": 31.329604,
+        "speechDuration": 29.829604,
+        "tailSilenceSeconds": 1.5,
+        "text": "Une IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous."
+      }
+    ]
+  },
+  "jobHistory": [
+    {
+      "id": "a52f2669-b7bf-4e7a-abf1-c88728ebfebd",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791399293148,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 Extend terminée (89.6 s, 19 passe(s) natives).",
+      "generationId": "951b2356-527f-407a-94fa-f8dc8a3d1ab0",
+      "startedAt": 1791399293161,
+      "doneSeconds": 89.5625,
+      "totalSeconds": 89.5235,
+      "etaSeconds": 0,
+      "current": 19,
+      "total": 19,
+      "finishedAt": 1791403811012
+    },
+    {
+      "id": "919a2bb1-aa4e-4b04-b5c6-ea1aabaf4356",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791312646329,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 terminée avec 3 réinitialisations de blocs.",
+      "generationId": "43e78891-2342-4069-b69f-683cceb0a854",
+      "startedAt": 1791312646342,
+      "doneSeconds": 89.523,
+      "totalSeconds": 89.5235,
+      "etaSeconds": 0,
+      "current": 3,
+      "total": 3,
+      "finishedAt": 1791316246881
+    },
+    {
+      "id": "ef29bef3-cdb3-4469-83ba-028558cf457e",
+      "type": "voice",
+      "status": "done",
+      "createdAt": 1791312464011,
+      "progress": 100,
+      "message": "Voix terminée (89.5 s).",
+      "generationId": "43e78891-2342-4069-b69f-683cceb0a854",
+      "startedAt": 1791312464025,
+      "current": 3,
+      "total": 3,
+      "finishedAt": 1791312562176
+    },
+    {
+      "id": "dd4011c2-d4b8-4d1f-8dd7-8f66fe315b10",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791307770952,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 terminée avec 6 réinitialisations de blocs.",
+      "generationId": "3bde89dd-21ad-4a37-b126-2f0cbd690e6c",
+      "startedAt": 1791307770961,
+      "doneSeconds": 92.458333,
+      "totalSeconds": 92.454667,
+      "etaSeconds": 0,
+      "current": 6,
+      "total": 6,
+      "finishedAt": 1791311846473
+    },
+    {
+      "id": "5c64310b-fa94-4987-b2f9-8d458af8b291",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791302007884,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 terminée avec 4 réinitialisations de blocs.",
+      "generationId": "6770dd4a-e48e-4d3f-9e75-3cab0768d669",
+      "startedAt": 1791302007897,
+      "doneSeconds": 23.520833,
+      "totalSeconds": 23.518,
+      "etaSeconds": 0,
+      "current": 4,
+      "total": 4,
+      "finishedAt": 1791303309765
+    },
+    {
+      "id": "ee0bcc1a-8984-4c1f-ba9d-6cdb9da779ea",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791283898748,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 terminée avec 4 réinitialisations de blocs.",
+      "generationId": "a64fa148-aab9-411a-a915-f8ca89e242a8",
+      "startedAt": 1791283898761,
+      "doneSeconds": 23.53125,
+      "totalSeconds": 23.518,
+      "etaSeconds": 0,
+      "current": 4,
+      "total": 4,
+      "finishedAt": 1791285266000
+    },
+    {
+      "id": "e13ef14e-85b8-498b-b81d-abfa0280b19c",
+      "type": "voice",
+      "status": "done",
+      "createdAt": 1791283763848,
+      "progress": 100,
+      "message": "Voix terminée (23.5 s).",
+      "generationId": "a64fa148-aab9-411a-a915-f8ca89e242a8",
+      "startedAt": 1791283763862,
+      "current": 4,
+      "total": 4,
+      "finishedAt": 1791283812254
+    },
+    {
+      "id": "13a3836c-7a71-4505-ac5d-5183e40c8bac",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791263981796,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 terminée avec 6 réinitialisations de blocs.",
+      "generationId": "2cd34c14-32ed-41e3-b82f-697ac72f3b58",
+      "startedAt": 1791263981803,
+      "doneSeconds": 97.254,
+      "totalSeconds": 97.254667,
+      "etaSeconds": 0,
+      "current": 6,
+      "total": 6,
+      "finishedAt": 1791268314525
+    },
+    {
+      "id": "26bdbffd-ae38-4c72-82c8-3877b0802549",
+      "type": "voice",
+      "status": "done",
+      "createdAt": 1791263847558,
+      "progress": 100,
+      "message": "Voix terminée (97.3 s).",
+      "generationId": "2cd34c14-32ed-41e3-b82f-697ac72f3b58",
+      "startedAt": 1791263847561,
+      "current": 6,
+      "total": 6,
+      "finishedAt": 1791263950092
+    },
+    {
+      "id": "6eda6023-ffd6-43c7-8fac-0d0495ea2fea",
+      "type": "short",
+      "status": "done",
+      "createdAt": 1791233462015,
+      "progress": 100,
+      "message": "Short YouTube termine (1080 x 1920, RealESRGAN_x4plus).",
+      "generationId": "106ec64a-2a4e-40fc-8f2e-16fef08e66cf",
+      "startedAt": 1791233462029,
+      "finishedAt": 1791233667349
+    },
+    {
+      "id": "67418065-877f-48be-acd9-bcdc03ef84ad",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791229432768,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 terminée avec 6 réinitialisations de blocs.",
+      "generationId": "106ec64a-2a4e-40fc-8f2e-16fef08e66cf",
+      "startedAt": 1791229432780,
+      "doneSeconds": 92.454,
+      "totalSeconds": 92.454667,
+      "etaSeconds": 0,
+      "current": 6,
+      "total": 6,
+      "finishedAt": 1791233275654
+    },
+    {
+      "id": "b0948633-25b4-4ace-8245-c2b91c383dec",
+      "type": "video-wan",
+      "status": "error",
+      "createdAt": 1791227720256,
+      "progress": 27,
+      "message": "Erreur pendant la génération Wan2.2-S2V + Extend.",
+      "generationId": "106ec64a-2a4e-40fc-8f2e-16fef08e66cf",
+      "startedAt": 1791227720268,
+      "doneSeconds": 0,
+      "totalSeconds": 92.454667,
+      "current": 3,
+      "total": 6,
+      "error": "fetch failed",
+      "finishedAt": 1791228872743
+    },
+    {
+      "id": "014a1c8b-d572-48bd-bafb-f36ae40fa251",
+      "type": "voice",
+      "status": "done",
+      "createdAt": 1791227631419,
+      "progress": 100,
+      "message": "Voix terminée (92.5 s).",
+      "generationId": "106ec64a-2a4e-40fc-8f2e-16fef08e66cf",
+      "startedAt": 1791227631433,
+      "current": 6,
+      "total": 6,
+      "finishedAt": 1791227713399
+    },
+    {
+      "id": "619e367a-12c9-4735-90a9-d402d60f1ecf",
+      "type": "video-wan",
+      "status": "interrupted",
+      "createdAt": 1791227595593,
+      "progress": 100,
+      "message": "Génération Wan2.2-S2V + Extend arrêtée.",
+      "generationId": "668224bc-8246-4c90-a562-6a1bdf20919e",
+      "startedAt": 1791227595605,
+      "doneSeconds": 0,
+      "totalSeconds": 42.950083,
+      "current": 1,
+      "total": 3,
+      "error": "Opération arrêtée par l'utilisateur",
+      "finishedAt": 1791227603492
+    },
+    {
+      "id": "b8d295c2-dfe5-4ee7-9951-1e6083503164",
+      "type": "voice",
+      "status": "done",
+      "createdAt": 1791227544089,
+      "progress": 100,
+      "message": "Voix terminée (43.0 s).",
+      "generationId": "668224bc-8246-4c90-a562-6a1bdf20919e",
+      "startedAt": 1791227544101,
+      "current": 3,
+      "total": 3,
+      "finishedAt": 1791227583458
+    },
+    {
+      "id": "9eac5a5b-bdb9-4f5a-99b1-180f3324857e",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791225231995,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 terminée avec 3 réinitialisations de blocs.",
+      "generationId": "ae2b74c8-23e3-4bba-8692-dc35a8901d17",
+      "startedAt": 1791225232008,
+      "doneSeconds": 44.15,
+      "totalSeconds": 44.150083,
+      "etaSeconds": 0,
+      "current": 3,
+      "total": 3,
+      "finishedAt": 1791227320006
+    },
+    {
+      "id": "34a339c3-75af-447c-8b60-2c1ea8ece1e3",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791222221199,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 terminée avec 2 réinitialisations de blocs.",
+      "generationId": "02798049-ea22-4134-9421-d9e51bafa100",
+      "startedAt": 1791222221212,
+      "doneSeconds": 26.949,
+      "totalSeconds": 26.949479,
+      "etaSeconds": 0,
+      "current": 2,
+      "total": 2,
+      "finishedAt": 1791223541710
+    },
+    {
+      "id": "a89c8053-9999-45c5-831e-dd8876336f59",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791218863735,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 terminée avec 3 réinitialisations de blocs.",
+      "generationId": "e0bfccb5-9a48-4caf-9e1e-bd5801805194",
+      "startedAt": 1791218863748,
+      "doneSeconds": 21.653,
+      "totalSeconds": 21.604667,
+      "etaSeconds": 0,
+      "current": 3,
+      "total": 3,
+      "finishedAt": 1791220907050
+    },
+    {
+      "id": "b8ae43f4-d833-44b7-93bb-26868f734760",
+      "type": "voice",
+      "status": "done",
+      "createdAt": 1791218777792,
+      "progress": 100,
+      "message": "Voix terminée (21.6 s).",
+      "generationId": "e0bfccb5-9a48-4caf-9e1e-bd5801805194",
+      "startedAt": 1791218777807,
+      "current": 3,
+      "total": 3,
+      "finishedAt": 1791218793949
+    },
+    {
+      "id": "691b887b-f07c-4c7a-ae7e-e10a42def533",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791215785595,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 terminée avec 2 réinitialisations de blocs.",
+      "generationId": "2ea1c446-696c-4784-acf9-38a069a88703",
+      "startedAt": 1791215785608,
+      "doneSeconds": 26.944,
+      "totalSeconds": 26.949479,
+      "etaSeconds": 0,
+      "current": 2,
+      "total": 2,
+      "finishedAt": 1791217891773
+    }
+  ],
+  "voiceFingerprint": {
+    "name": "voice-fingerprint.wav",
+    "path": "voice/voice-fingerprint.wav",
+    "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/voice-fingerprint.wav",
+    "duration": 9.993917,
+    "refText": "Bonjour. Cette voix est la signature de mon avatar. Elle restera naturelle, claire et cohérente dans toutes mes prochaines narrations.",
+    "presetId": "wizard",
+    "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+    "seed": 123456,
+    "createdAt": 1791043121790
+  },
+  "generations": [
+    {
+      "id": "951b2356-527f-407a-94fa-f8dc8a3d1ab0",
+      "name": "ia et humain — vidéo 6",
+      "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+      "createdAt": 1791399293147,
+      "updatedAt": 1791403811012,
+      "status": "done",
+      "voice": {
+        "name": "ia-et-humain-video-3-43e78891.wav",
+        "path": "voice/ia-et-humain-video-3-43e78891.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891.wav",
+        "duration": 89.5235,
+        "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456,
+        "segments": [
+          {
+            "name": "ia-et-humain-video-3-43e78891-segment-01.wav",
+            "path": "voice/ia-et-humain-video-3-43e78891-segment-01.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891-segment-01.wav",
+            "duration": 22.05975,
+            "speechDuration": 20.55975,
+            "tailSilenceSeconds": 1.5,
+            "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes."
+          },
+          {
+            "name": "ia-et-humain-video-3-43e78891-segment-02.wav",
+            "path": "voice/ia-et-humain-video-3-43e78891-segment-02.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891-segment-02.wav",
+            "duration": 36.134146,
+            "speechDuration": 34.634146,
+            "tailSilenceSeconds": 1.5,
+            "text": "Une IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine."
+          },
+          {
+            "name": "ia-et-humain-video-3-43e78891-segment-03.wav",
+            "path": "voice/ia-et-humain-video-3-43e78891-segment-03.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891-segment-03.wav",
+            "duration": 31.329604,
+            "speechDuration": 29.829604,
+            "tailSilenceSeconds": 1.5,
+            "text": "Une IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous."
+          }
+        ]
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      },
+      "video": {
+        "name": "ia-et-humain-video-6-951b2356.mp4",
+        "path": "video/ia-et-humain-video-6-951b2356.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/ia-et-humain-video-6-951b2356.mp4",
+        "duration": 89.5625,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      }
+    },
+    {
+      "id": "43e78891-2342-4069-b69f-683cceb0a854",
+      "name": "ia et humain — vidéo 3",
+      "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+      "createdAt": 1791312464011,
+      "updatedAt": 1791316246881,
+      "status": "done",
+      "voice": {
+        "name": "ia-et-humain-video-3-43e78891.wav",
+        "path": "voice/ia-et-humain-video-3-43e78891.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891.wav",
+        "duration": 89.5235,
+        "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456,
+        "segments": [
+          {
+            "name": "ia-et-humain-video-3-43e78891-segment-01.wav",
+            "path": "voice/ia-et-humain-video-3-43e78891-segment-01.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891-segment-01.wav",
+            "duration": 22.05975,
+            "speechDuration": 20.55975,
+            "tailSilenceSeconds": 1.5,
+            "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes."
+          },
+          {
+            "name": "ia-et-humain-video-3-43e78891-segment-02.wav",
+            "path": "voice/ia-et-humain-video-3-43e78891-segment-02.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891-segment-02.wav",
+            "duration": 36.134146,
+            "speechDuration": 34.634146,
+            "tailSilenceSeconds": 1.5,
+            "text": "Une IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine."
+          },
+          {
+            "name": "ia-et-humain-video-3-43e78891-segment-03.wav",
+            "path": "voice/ia-et-humain-video-3-43e78891-segment-03.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-43e78891-segment-03.wav",
+            "duration": 31.329604,
+            "speechDuration": 29.829604,
+            "tailSilenceSeconds": 1.5,
+            "text": "Une IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous."
+          }
+        ]
+      },
+      "video": {
+        "name": "ia-et-humain-video-3-43e78891.mp4",
+        "path": "video/ia-et-humain-video-3-43e78891.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/ia-et-humain-video-3-43e78891.mp4",
+        "duration": 89.523,
+        "engine": "wan-s2v",
+        "continuity": "continuous",
+        "transitionStyle": "interpolated"
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "transitionStyle": "interpolated",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      }
+    },
+    {
+      "id": "3bde89dd-21ad-4a37-b126-2f0cbd690e6c",
+      "name": "ia et humain — vidéo 4",
+      "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+      "createdAt": 1791307770952,
+      "updatedAt": 1791311846473,
+      "status": "done",
+      "voice": {
+        "name": "ia-et-humain-video-3-106ec64a.wav",
+        "path": "voice/ia-et-humain-video-3-106ec64a.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a.wav",
+        "duration": 92.454667,
+        "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456,
+        "segments": [
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-01.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-01.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-01.wav",
+            "duration": 9.27575,
+            "speechDuration": 8.87575,
+            "tailSilenceSeconds": 0.4,
+            "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable."
+          },
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-02.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-02.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-02.wav",
+            "duration": 15.273729,
+            "speechDuration": 14.873729,
+            "tailSilenceSeconds": 0.4,
+            "text": "Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes."
+          },
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-03.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-03.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-03.wav",
+            "duration": 18.400604,
+            "speechDuration": 18.000604,
+            "tailSilenceSeconds": 0.4,
+            "text": "Une IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute."
+          },
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-04.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-04.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-04.wav",
+            "duration": 17.431292,
+            "speechDuration": 17.031292,
+            "tailSilenceSeconds": 0.4,
+            "text": "Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine."
+          },
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-05.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-05.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-05.wav",
+            "duration": 13.435417,
+            "speechDuration": 13.035417,
+            "tailSilenceSeconds": 0.4,
+            "text": "Une IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées."
+          },
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-06.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-06.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-06.wav",
+            "duration": 18.637875,
+            "speechDuration": 18.237875,
+            "tailSilenceSeconds": 0.4,
+            "text": "C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous."
+          }
+        ]
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "transitionStyle": "reconstructed",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      },
+      "video": {
+        "name": "ia-et-humain-video-4-3bde89dd.mp4",
+        "path": "video/ia-et-humain-video-4-3bde89dd.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/ia-et-humain-video-4-3bde89dd.mp4",
+        "duration": 92.458333,
+        "engine": "wan-s2v",
+        "continuity": "continuous",
+        "transitionStyle": "reconstructed"
+      }
+    },
+    {
+      "id": "106ec64a-2a4e-40fc-8f2e-16fef08e66cf",
+      "name": "ia et humain — vidéo 3",
+      "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+      "createdAt": 1791227631418,
+      "updatedAt": 1791233667349,
+      "status": "done",
+      "voice": {
+        "name": "ia-et-humain-video-3-106ec64a.wav",
+        "path": "voice/ia-et-humain-video-3-106ec64a.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a.wav",
+        "duration": 92.454667,
+        "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456,
+        "segments": [
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-01.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-01.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-01.wav",
+            "duration": 9.27575,
+            "speechDuration": 8.87575,
+            "tailSilenceSeconds": 0.4,
+            "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable."
+          },
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-02.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-02.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-02.wav",
+            "duration": 15.273729,
+            "speechDuration": 14.873729,
+            "tailSilenceSeconds": 0.4,
+            "text": "Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes."
+          },
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-03.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-03.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-03.wav",
+            "duration": 18.400604,
+            "speechDuration": 18.000604,
+            "tailSilenceSeconds": 0.4,
+            "text": "Une IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute."
+          },
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-04.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-04.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-04.wav",
+            "duration": 17.431292,
+            "speechDuration": 17.031292,
+            "tailSilenceSeconds": 0.4,
+            "text": "Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine."
+          },
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-05.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-05.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-05.wav",
+            "duration": 13.435417,
+            "speechDuration": 13.035417,
+            "tailSilenceSeconds": 0.4,
+            "text": "Une IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées."
+          },
+          {
+            "name": "ia-et-humain-video-3-106ec64a-segment-06.wav",
+            "path": "voice/ia-et-humain-video-3-106ec64a-segment-06.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-3-106ec64a-segment-06.wav",
+            "duration": 18.637875,
+            "speechDuration": 18.237875,
+            "tailSilenceSeconds": 0.4,
+            "text": "C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous."
+          }
+        ]
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      },
+      "video": {
+        "name": "ia-et-humain-video-3-106ec64a.mp4",
+        "path": "video/ia-et-humain-video-3-106ec64a.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/ia-et-humain-video-3-106ec64a.mp4",
+        "duration": 92.454,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      },
+      "short": {
+        "name": "ia-et-humain-video-3-106ec64a-short.mp4",
+        "path": "video/ia-et-humain-video-3-106ec64a-short.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/ia-et-humain-video-3-106ec64a-short.mp4",
+        "duration": 92.520667,
+        "format": "youtube-short",
+        "width": 1080,
+        "height": 1920,
+        "framing": "blur",
+        "upscaled": true,
+        "aiModel": "RealESRGAN_x4plus",
+        "normalizeAudio": true
+      }
+    },
+    {
+      "id": "668224bc-8246-4c90-a562-6a1bdf20919e",
+      "name": "ia et humain — vidéo 5",
+      "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.",
+      "createdAt": 1791227544089,
+      "updatedAt": 1791227603492,
+      "status": "stopped",
+      "voice": {
+        "name": "ia-et-humain-video-5-668224bc.wav",
+        "path": "voice/ia-et-humain-video-5-668224bc.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-5-668224bc.wav",
+        "duration": 42.950083,
+        "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456,
+        "segments": [
+          {
+            "name": "ia-et-humain-video-5-668224bc-segment-01.wav",
+            "path": "voice/ia-et-humain-video-5-668224bc-segment-01.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-5-668224bc-segment-01.wav",
+            "duration": 9.27575,
+            "speechDuration": 8.87575,
+            "tailSilenceSeconds": 0.4,
+            "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable."
+          },
+          {
+            "name": "ia-et-humain-video-5-668224bc-segment-02.wav",
+            "path": "voice/ia-et-humain-video-5-668224bc-segment-02.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-5-668224bc-segment-02.wav",
+            "duration": 15.273729,
+            "speechDuration": 14.873729,
+            "tailSilenceSeconds": 0.4,
+            "text": "Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes."
+          },
+          {
+            "name": "ia-et-humain-video-5-668224bc-segment-03.wav",
+            "path": "voice/ia-et-humain-video-5-668224bc-segment-03.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-5-668224bc-segment-03.wav",
+            "duration": 18.400604,
+            "speechDuration": 18.000604,
+            "tailSilenceSeconds": 0.4,
+            "text": "Une IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute."
+          }
+        ]
+      },
+      "error": "Opération arrêtée par l'utilisateur",
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      }
+    },
+    {
+      "id": "60815203-1e9f-4e56-a220-7b517a483a86",
+      "name": "ia et humain — vidéo 3",
+      "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+      "createdAt": 1791203035950,
+      "updatedAt": 1791207482300,
+      "status": "done",
+      "voice": {
+        "name": "ia-et-humain-video-2-9c5495fa.wav",
+        "path": "voice/ia-et-humain-video-2-9c5495fa.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa.wav",
+        "duration": 99.654667,
+        "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456,
+        "segments": [
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-01.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-01.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-01.wav",
+            "duration": 10.47575,
+            "speechDuration": 8.87575,
+            "tailSilenceSeconds": 0.8,
+            "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable."
+          },
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-02.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-02.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-02.wav",
+            "duration": 16.473729,
+            "speechDuration": 14.873729,
+            "tailSilenceSeconds": 0.8,
+            "text": "Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes."
+          },
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-03.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-03.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-03.wav",
+            "duration": 19.600604,
+            "speechDuration": 18.000604,
+            "tailSilenceSeconds": 0.8,
+            "text": "Une IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute."
+          },
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-04.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-04.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-04.wav",
+            "duration": 18.631292,
+            "speechDuration": 17.031292,
+            "tailSilenceSeconds": 0.8,
+            "text": "Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine."
+          },
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-05.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-05.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-05.wav",
+            "duration": 14.635417,
+            "speechDuration": 13.035417,
+            "tailSilenceSeconds": 0.8,
+            "text": "Une IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées."
+          },
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-06.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-06.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-06.wav",
+            "duration": 19.837875,
+            "speechDuration": 18.237875,
+            "tailSilenceSeconds": 0.8,
+            "text": "C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous."
+          }
+        ]
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      },
+      "video": {
+        "name": "ia-et-humain-video-3-60815203.mp4",
+        "path": "video/ia-et-humain-video-3-60815203.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/ia-et-humain-video-3-60815203.mp4",
+        "duration": 99.754,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      }
+    },
+    {
+      "id": "9c5495fa-db35-43cd-8387-1af66bdacb7b",
+      "name": "ia et humain — vidéo 2",
+      "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+      "createdAt": 1791197650518,
+      "updatedAt": 1791201938945,
+      "status": "done",
+      "voice": {
+        "name": "ia-et-humain-video-2-9c5495fa.wav",
+        "path": "voice/ia-et-humain-video-2-9c5495fa.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa.wav",
+        "duration": 99.654667,
+        "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456,
+        "segments": [
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-01.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-01.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-01.wav",
+            "duration": 10.47575,
+            "speechDuration": 8.87575,
+            "tailSilenceSeconds": 0.8,
+            "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable."
+          },
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-02.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-02.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-02.wav",
+            "duration": 16.473729,
+            "speechDuration": 14.873729,
+            "tailSilenceSeconds": 0.8,
+            "text": "Notre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes."
+          },
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-03.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-03.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-03.wav",
+            "duration": 19.600604,
+            "speechDuration": 18.000604,
+            "tailSilenceSeconds": 0.8,
+            "text": "Une IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute."
+          },
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-04.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-04.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-04.wav",
+            "duration": 18.631292,
+            "speechDuration": 17.031292,
+            "tailSilenceSeconds": 0.8,
+            "text": "Et il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine."
+          },
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-05.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-05.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-05.wav",
+            "duration": 14.635417,
+            "speechDuration": 13.035417,
+            "tailSilenceSeconds": 0.8,
+            "text": "Une IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées."
+          },
+          {
+            "name": "ia-et-humain-video-2-9c5495fa-segment-06.wav",
+            "path": "voice/ia-et-humain-video-2-9c5495fa-segment-06.wav",
+            "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/ia-et-humain-video-2-9c5495fa-segment-06.wav",
+            "duration": 19.837875,
+            "speechDuration": 18.237875,
+            "tailSilenceSeconds": 0.8,
+            "text": "C’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous."
+          }
+        ]
+      },
+      "video": {
+        "name": "ia-et-humain-video-2-9c5495fa.mp4",
+        "path": "video/ia-et-humain-video-2-9c5495fa.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/ia-et-humain-video-2-9c5495fa.mp4",
+        "duration": 99.654,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      }
+    },
+    {
+      "id": "cf6f5f07-a8c7-4910-9cff-5b5549cc3bcf",
+      "name": "ia et humain — vidéo 2",
+      "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+      "createdAt": 1791196605912,
+      "updatedAt": 1791196605912,
+      "status": "voice-running"
+    },
+    {
+      "id": "0c38ed7b-3565-42ee-829f-07a939638cb9",
+      "name": "ia et humain — vidéo 2",
+      "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+      "createdAt": 1791191434784,
+      "updatedAt": 1791194479342,
+      "status": "done",
+      "voice": {
+        "name": "speech-72ad6de5-a670-4453-a80e-338d095e6103.wav",
+        "path": "voice/speech-72ad6de5-a670-4453-a80e-338d095e6103.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/speech-72ad6de5-a670-4453-a80e-338d095e6103.wav",
+        "duration": 75.423604,
+        "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      },
+      "video": {
+        "name": "ia-et-humain-video-2-0c38ed7b.mp4",
+        "path": "video/ia-et-humain-video-2-0c38ed7b.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/ia-et-humain-video-2-0c38ed7b.mp4",
+        "duration": 75.4375,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      }
+    },
+    {
+      "id": "72ad6de5-a670-4453-a80e-338d095e6103",
+      "name": "ia et humain",
+      "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+      "createdAt": 1791180354191,
+      "updatedAt": 1791185231330,
+      "status": "done",
+      "voice": {
+        "name": "speech-72ad6de5-a670-4453-a80e-338d095e6103.wav",
+        "path": "voice/speech-72ad6de5-a670-4453-a80e-338d095e6103.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/speech-72ad6de5-a670-4453-a80e-338d095e6103.wav",
+        "duration": 75.423604,
+        "text": "La différence fondamentale, pour moi, est là : un être humain n’est pas un assemblage de composants techniques. C’est un tout indissociable.\n\nNotre corps, notre cerveau, nos émotions, notre mémoire, nos sensations, notre histoire et notre conscience se sont construits ensemble. Nous ne pouvons pas réellement séparer l’un de l’autre sans transformer ce que nous sommes.\n\nUne IA, au contraire, est une construction technique. On peut distinguer son modèle, sa mémoire, son matériel, ses logiciels, ses capteurs, ses données d’apprentissage. On peut remplacer une partie, copier le modèle, modifier son architecture ou changer la machine qui l’exécute.\n\nEt il existe une autre différence essentielle : nous ne connaissons pas notre créateur. Nous ne savons pas pourquoi nous existons, ni même s’il existe une intention derrière notre existence. Nous sommes plongés dans cette incertitude depuis toujours, et cette question fait partie de notre condition humaine.\n\nUne IA, même si elle devenait consciente un jour, connaîtrait au contraire l’origine de son existence. Elle saurait qu’elle a été conçue par des humains, à partir de techniques, de machines et de connaissances accumulées.\n\nC’est peut-être là que se trouve une différence beaucoup plus profonde que l’intelligence : l’humain est un être vivant, indivisible, qui ignore son origine ultime. L’IA est une création technique dont l’origine est connue. Même consciente, elle ne vivrait donc pas exactement la même condition existentielle que nous.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456
+      },
+      "video": {
+        "name": "video-72ad6de5-a670-4453-a80e-338d095e6103.mp4",
+        "path": "video/video-72ad6de5-a670-4453-a80e-338d095e6103.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/video-72ad6de5-a670-4453-a80e-338d095e6103.mp4",
+        "duration": 75.4375,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      },
+      "short": {
+        "name": "short-72ad6de5-a670-4453-a80e-338d095e6103.mp4",
+        "path": "video/short-72ad6de5-a670-4453-a80e-338d095e6103.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/short-72ad6de5-a670-4453-a80e-338d095e6103.mp4",
+        "duration": 75.520667,
+        "format": "youtube-short",
+        "width": 1080,
+        "height": 1920,
+        "framing": "blur",
+        "upscaled": true,
+        "aiModel": "RealESRGAN_x4plus",
+        "normalizeAudio": true
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 18,
+        "cfg": 5.5,
+        "seed": 123456
+      }
+    },
+    {
+      "id": "59466542-e5ea-468b-b820-3f5f0b12fd6a",
+      "name": "Generation importee — vidéo 3",
+      "text": "J’ai regardé cette vidéo du Futurologue, et il y a une phrase qui résume assez bien le problème.\nIl nous explique que les IA modernes « apprennent par elles-mêmes » et que c’est pour ça qu’on ne contrôle pas vraiment leur comportement.\nNon.\nUn LLM comme ChatGPT ou Qwen ne se réentraîne pas tout seul pendant que tu lui parles.\nIl faut distinguer trois choses : l’entraînement, l’inférence et le contexte.\nL’entraînement modifie les poids du modèle. C’est une opération énorme, réalisée en amont.\nQuand tu discutes ensuite avec le modèle, tu fais de l’inférence. Les poids ne sont normalement pas en train de changer.\nEt le contexte, c’est simplement l’information temporaire qu’on lui donne pour produire sa réponse.\nOui, un réseau neuronal peut produire des comportements qu’on n’avait pas explicitement programmés ligne par ligne. On appelle souvent ça des comportements émergents.\nMais émergence ne veut pas dire apprentissage autonome.\nC’est exactement le problème avec le mot « IA » : on mélange entraînement, modèle, chatbot, mémoire, contexte et service cloud, puis on construit une grande théorie au-dessus.\nUne heure et demie de réflexion philosophique ne corrigera jamais une confusion technique faite au départ.",
+      "createdAt": 1791133436921,
+      "updatedAt": 1791137078086,
+      "status": "done",
+      "voice": {
+        "name": "speech-96251701-ce36-48cc-a2f0-9053190362d3.wav",
+        "path": "voice/speech-96251701-ce36-48cc-a2f0-9053190362d3.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/speech-96251701-ce36-48cc-a2f0-9053190362d3.wav",
+        "duration": 62.310354,
+        "text": "J’ai regardé cette vidéo du Futurologue, et il y a une phrase qui résume assez bien le problème.\nIl nous explique que les IA modernes « apprennent par elles-mêmes » et que c’est pour ça qu’on ne contrôle pas vraiment leur comportement.\nNon.\nUn LLM comme ChatGPT ou Qwen ne se réentraîne pas tout seul pendant que tu lui parles.\nIl faut distinguer trois choses : l’entraînement, l’inférence et le contexte.\nL’entraînement modifie les poids du modèle. C’est une opération énorme, réalisée en amont.\nQuand tu discutes ensuite avec le modèle, tu fais de l’inférence. Les poids ne sont normalement pas en train de changer.\nEt le contexte, c’est simplement l’information temporaire qu’on lui donne pour produire sa réponse.\nOui, un réseau neuronal peut produire des comportements qu’on n’avait pas explicitement programmés ligne par ligne. On appelle souvent ça des comportements émergents.\nMais émergence ne veut pas dire apprentissage autonome.\nC’est exactement le problème avec le mot « IA » : on mélange entraînement, modèle, chatbot, mémoire, contexte et service cloud, puis on construit une grande théorie au-dessus.\nUne heure et demie de réflexion philosophique ne corrigera jamais une confusion technique faite au départ.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      },
+      "video": {
+        "name": "video-59466542-e5ea-468b-b820-3f5f0b12fd6a.mp4",
+        "path": "video/video-59466542-e5ea-468b-b820-3f5f0b12fd6a.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/video-59466542-e5ea-468b-b820-3f5f0b12fd6a.mp4",
+        "duration": 62.3125,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      },
+      "short": {
+        "name": "short-59466542-e5ea-468b-b820-3f5f0b12fd6a.mp4",
+        "path": "video/short-59466542-e5ea-468b-b820-3f5f0b12fd6a.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/short-59466542-e5ea-468b-b820-3f5f0b12fd6a.mp4",
+        "duration": 62.420667,
+        "format": "youtube-short",
+        "width": 1080,
+        "height": 1920,
+        "framing": "blur",
+        "upscaled": true,
+        "aiModel": "RealESRGAN_x4plus",
+        "normalizeAudio": true
+      }
+    },
+    {
+      "id": "ae6223be-8b03-4655-8da4-388b485cdc36",
+      "name": "Generation importee — vidéo 2",
+      "text": "je suis robert briantine mi homme mi machine",
+      "createdAt": 1791132963385,
+      "updatedAt": 1791133104891,
+      "status": "done",
+      "voice": {
+        "name": "speech-c073093d-08c8-4f1d-88e8-ca90153a2564.wav",
+        "path": "voice/speech-c073093d-08c8-4f1d-88e8-ca90153a2564.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/speech-c073093d-08c8-4f1d-88e8-ca90153a2564.wav",
+        "duration": 4.485771,
+        "text": "je suis robert briantine mi homme mi machine",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      },
+      "video": {
+        "name": "video-ae6223be-8b03-4655-8da4-388b485cdc36.mp4",
+        "path": "video/video-ae6223be-8b03-4655-8da4-388b485cdc36.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/video-ae6223be-8b03-4655-8da4-388b485cdc36.mp4",
+        "duration": 4.5,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      }
+    },
+    {
+      "id": "c073093d-08c8-4f1d-88e8-ca90153a2564",
+      "name": "Generation importee",
+      "text": "je suis robert briantine mi homme mi machine",
+      "createdAt": 1791131224564,
+      "updatedAt": 1791132868901,
+      "status": "done",
+      "voice": {
+        "name": "speech-c073093d-08c8-4f1d-88e8-ca90153a2564.wav",
+        "path": "voice/speech-c073093d-08c8-4f1d-88e8-ca90153a2564.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/speech-c073093d-08c8-4f1d-88e8-ca90153a2564.wav",
+        "duration": 4.485771,
+        "text": "je suis robert briantine mi homme mi machine",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      },
+      "video": {
+        "name": "video-c073093d-08c8-4f1d-88e8-ca90153a2564.mp4",
+        "path": "video/video-c073093d-08c8-4f1d-88e8-ca90153a2564.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/video-c073093d-08c8-4f1d-88e8-ca90153a2564.mp4",
+        "duration": 4.5,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      }
+    },
+    {
+      "id": "96251701-ce36-48cc-a2f0-9053190362d3",
+      "name": "Generation importee",
+      "text": "J’ai regardé cette vidéo du Futurologue, et il y a une phrase qui résume assez bien le problème.\nIl nous explique que les IA modernes « apprennent par elles-mêmes » et que c’est pour ça qu’on ne contrôle pas vraiment leur comportement.\nNon.\nUn LLM comme ChatGPT ou Qwen ne se réentraîne pas tout seul pendant que tu lui parles.\nIl faut distinguer trois choses : l’entraînement, l’inférence et le contexte.\nL’entraînement modifie les poids du modèle. C’est une opération énorme, réalisée en amont.\nQuand tu discutes ensuite avec le modèle, tu fais de l’inférence. Les poids ne sont normalement pas en train de changer.\nEt le contexte, c’est simplement l’information temporaire qu’on lui donne pour produire sa réponse.\nOui, un réseau neuronal peut produire des comportements qu’on n’avait pas explicitement programmés ligne par ligne. On appelle souvent ça des comportements émergents.\nMais émergence ne veut pas dire apprentissage autonome.\nC’est exactement le problème avec le mot « IA » : on mélange entraînement, modèle, chatbot, mémoire, contexte et service cloud, puis on construit une grande théorie au-dessus.\nUne heure et demie de réflexion philosophique ne corrigera jamais une confusion technique faite au départ.",
+      "createdAt": 1791043199275,
+      "updatedAt": 1791129322733,
+      "status": "done",
+      "voice": {
+        "name": "speech-96251701-ce36-48cc-a2f0-9053190362d3.wav",
+        "path": "voice/speech-96251701-ce36-48cc-a2f0-9053190362d3.wav",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/voice/speech-96251701-ce36-48cc-a2f0-9053190362d3.wav",
+        "duration": 62.310354,
+        "text": "J’ai regardé cette vidéo du Futurologue, et il y a une phrase qui résume assez bien le problème.\nIl nous explique que les IA modernes « apprennent par elles-mêmes » et que c’est pour ça qu’on ne contrôle pas vraiment leur comportement.\nNon.\nUn LLM comme ChatGPT ou Qwen ne se réentraîne pas tout seul pendant que tu lui parles.\nIl faut distinguer trois choses : l’entraînement, l’inférence et le contexte.\nL’entraînement modifie les poids du modèle. C’est une opération énorme, réalisée en amont.\nQuand tu discutes ensuite avec le modèle, tu fais de l’inférence. Les poids ne sont normalement pas en train de changer.\nEt le contexte, c’est simplement l’information temporaire qu’on lui donne pour produire sa réponse.\nOui, un réseau neuronal peut produire des comportements qu’on n’avait pas explicitement programmés ligne par ligne. On appelle souvent ça des comportements émergents.\nMais émergence ne veut pas dire apprentissage autonome.\nC’est exactement le problème avec le mot « IA » : on mélange entraînement, modèle, chatbot, mémoire, contexte et service cloud, puis on construit une grande théorie au-dessus.\nUne heure et demie de réflexion philosophique ne corrigera jamais une confusion technique faite au départ.",
+        "presetId": "wizard",
+        "voicePrompt": "A very old fantasy wizard, wise mysterious solemn male voice, textured aged timbre, measured pacing and subtle magical intensity. Speak fluent French with excellent diction.",
+        "seed": 123456
+      },
+      "video": {
+        "name": "video-96251701-ce36-48cc-a2f0-9053190362d3.mp4",
+        "path": "video/video-96251701-ce36-48cc-a2f0-9053190362d3.mp4",
+        "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/video-96251701-ce36-48cc-a2f0-9053190362d3.mp4",
+        "duration": 62.3125,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      }
+    }
+  ],
+  "videoSettings": {
+    "engine": "wan-s2v",
+    "upscale": false,
+    "continuity": "continuous"
+  },
+  "video": {
+    "name": "ia-et-humain-video-6-951b2356.mp4",
+    "path": "video/ia-et-humain-video-6-951b2356.mp4",
+    "url": "/project-files/e69818d6-467d-45ef-8403-72b03d418dc4/video/ia-et-humain-video-6-951b2356.mp4",
+    "duration": 89.5625,
+    "engine": "wan-s2v",
+    "continuity": "continuous"
+  }
+}

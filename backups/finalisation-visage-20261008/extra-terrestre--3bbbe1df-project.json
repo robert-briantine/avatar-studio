@@ -1,0 +1,270 @@
+{
+  "id": "3bbbe1df-9f55-4f16-b0df-c22830e25b92",
+  "name": "extra-terrestre",
+  "folderName": "extra-terrestre--3bbbe1df",
+  "createdAt": 1790786252888,
+  "updatedAt": 1791447028361,
+  "currentJob": {
+    "id": "3605f804-9cd6-49f5-8148-02410f43ab3d",
+    "type": "video-wan",
+    "status": "done",
+    "createdAt": 1791440599203,
+    "progress": 100,
+    "message": "Vidéo Wan2.2 Extend terminée (122.2 s, 26 passe(s) natives).",
+    "generationId": "11b8efad-82c5-40e1-9f7f-5c804a33f459",
+    "startedAt": 1791440599209,
+    "doneSeconds": 122.1875,
+    "totalSeconds": 122.18,
+    "etaSeconds": 0,
+    "current": 26,
+    "total": 26,
+    "finishedAt": 1791447028361
+  },
+  "avatar": {
+    "name": "avatar.png",
+    "path": "avatar/avatar.png",
+    "url": "/project-files/3bbbe1df-9f55-4f16-b0df-c22830e25b92/avatar/avatar.png",
+    "source": "generated",
+    "prompt": "génére moi l'image d'un extraterrestre vert avec des antenne et des gros yeux globuleux et des oreilles pointus",
+    "builtPrompt": "génére moi l'image d'un extraterrestre vert avec des antenne et des gros yeux globuleux et des oreilles pointus",
+    "seed": 116596152,
+    "generation": {
+      "quality": "normal",
+      "steps": 20,
+      "width": 1104,
+      "height": 1472,
+      "strictReset": false
+    }
+  },
+  "video": {
+    "name": "Generation-importee-video-2-11b8efad.mp4",
+    "path": "video/Generation-importee-video-2-11b8efad.mp4",
+    "url": "/project-files/3bbbe1df-9f55-4f16-b0df-c22830e25b92/video/Generation-importee-video-2-11b8efad.mp4",
+    "duration": 122.1875,
+    "engine": "wan-s2v",
+    "continuity": "continuous"
+  },
+  "jobHistory": [
+    {
+      "id": "3605f804-9cd6-49f5-8148-02410f43ab3d",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791440599203,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 Extend terminée (122.2 s, 26 passe(s) natives).",
+      "generationId": "11b8efad-82c5-40e1-9f7f-5c804a33f459",
+      "startedAt": 1791440599209,
+      "doneSeconds": 122.1875,
+      "totalSeconds": 122.18,
+      "etaSeconds": 0,
+      "current": 26,
+      "total": 26,
+      "finishedAt": 1791447028361
+    },
+    {
+      "id": "9ae4dd15-51d3-4c4e-bf45-437365407a59",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1791037325982,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 Extend terminée (122.2 s, 31 passe(s) natives).",
+      "generationId": "3446ce88-e0f8-4e5c-8d5c-7b05e52e6e6d",
+      "startedAt": 1791037325994,
+      "doneSeconds": 122.1875,
+      "totalSeconds": 122.18,
+      "etaSeconds": 0,
+      "current": 31,
+      "total": 31,
+      "finishedAt": 1791041654350
+    },
+    {
+      "id": "873fafd2-f94e-428a-b7e5-5713b72298d8",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1790875232433,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 Extend terminée (122.2 s, 31 passe(s) natives).",
+      "startedAt": 1790875232445,
+      "doneSeconds": 122.1875,
+      "totalSeconds": 122.18,
+      "etaSeconds": 0,
+      "current": 31,
+      "total": 31,
+      "finishedAt": 1790879460748
+    },
+    {
+      "id": "0c75f366-4f4e-45ef-83b5-33792fe71274",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1790868544383,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 Extend terminée (122.2 s, 26 passe(s) natives).",
+      "startedAt": 1790868544387,
+      "doneSeconds": 122.1875,
+      "totalSeconds": 122.18,
+      "etaSeconds": 0,
+      "current": 26,
+      "total": 26,
+      "finishedAt": 1790872059192
+    },
+    {
+      "id": "ba698826-85bd-4a05-8852-5846617496c1",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1790852419046,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 Extend terminée (122.2 s, 27 passe(s) natives).",
+      "startedAt": 1790852419049,
+      "doneSeconds": 122.1875,
+      "totalSeconds": 122.18,
+      "etaSeconds": 0,
+      "current": 27,
+      "total": 27,
+      "finishedAt": 1790856017208
+    },
+    {
+      "id": "da413aa8-c395-40f1-b4e6-20259532879d",
+      "type": "video-wan",
+      "status": "done",
+      "createdAt": 1790787663258,
+      "progress": 100,
+      "message": "Vidéo Wan2.2 Extend terminée (122.2 s, 27 passe(s) natives).",
+      "startedAt": 1790787663261,
+      "doneSeconds": 122.1875,
+      "totalSeconds": 122.18,
+      "etaSeconds": 0,
+      "current": 27,
+      "total": 27,
+      "finishedAt": 1790791456973
+    },
+    {
+      "id": "0e352c9c-6052-46d4-8a77-b4f69fe62f21",
+      "type": "voice",
+      "status": "done",
+      "createdAt": 1790787105753,
+      "progress": 100,
+      "message": "Voix terminée (122.2 s).",
+      "startedAt": 1790787105755,
+      "finishedAt": 1790787198545
+    },
+    {
+      "id": "5493dac6-4ce3-4afd-9d1d-ae54f09f756c",
+      "type": "image",
+      "status": "done",
+      "createdAt": 1790786332648,
+      "progress": 100,
+      "message": "Image terminée.",
+      "startedAt": 1790786332651,
+      "finishedAt": 1790786449149
+    }
+  ],
+  "voice": {
+    "name": "speech.wav",
+    "path": "voice/speech.wav",
+    "url": "/project-files/3bbbe1df-9f55-4f16-b0df-c22830e25b92/voice/speech.wav",
+    "duration": 122.18,
+    "text": "Je viens d’une autre planète.\nEt je dois avouer que les humains sont une espèce fascinante.\nVotre planète se réchauffe.\nVos ressources sont limitées.\nUne petite partie de votre population, extrêmement riche, consomme énormément plus que le reste.\nEt pourtant… votre grande peur du moment, c’est l’intelligence artificielle.\nCurieux.\nTrès curieux.\nChez nous, l’IA nous a permis de mieux comprendre notre monde, d’optimiser nos ressources et d’éviter certaines erreurs.\nChez vous, elle semble surtout provoquer une blessure narcissique.\nVous avez peur de ne plus être l’espèce la plus intelligente.\nVous avez peur qu’une machine fasse mieux que vous.\nQuelle espèce terriblement égocentrique.\nPendant ce temps, votre planète continue de chauffer.\nEt le plus étrange, c’est que certains ingénieurs alarmistes demandent encore à monsieur Tout-le-monde de faire des efforts.\nUn peu comme pour les budgets des États : on demande toujours des sacrifices à ceux qui ont déjà peu de marge.\nPendant que les plus riches continuent à consommer à une échelle complètement différente.\nDécidément, les humains ont un talent remarquable pour regarder ailleurs quand le vrai danger est devant eux.\nVous avez peur que l’IA détruise votre civilisation.\nMais à observer votre comportement…\nvous avez peut-être beaucoup plus de chances de vous détruire vous-mêmes avant.\nRapport terminé.\nConclusion : espèce brillante.\nMais étrangement incapable d’identifier ses priorités.",
+    "presetId": "spirit",
+    "voicePrompt": "An ethereal ghost spirit, soft distant airy voice, melancholic and supernatural, floating delivery, delicate but intelligible. Speak fluent French clearly.",
+    "seed": 123456
+  },
+  "videoSettings": {
+    "engine": "wan-s2v",
+    "upscale": false,
+    "continuity": "continuous"
+  },
+  "voiceFingerprint": {
+    "name": "speech.wav",
+    "path": "voice/speech.wav",
+    "url": "/project-files/3bbbe1df-9f55-4f16-b0df-c22830e25b92/voice/speech.wav",
+    "duration": 122.18,
+    "text": "Je viens d’une autre planète.\nEt je dois avouer que les humains sont une espèce fascinante.\nVotre planète se réchauffe.\nVos ressources sont limitées.\nUne petite partie de votre population, extrêmement riche, consomme énormément plus que le reste.\nEt pourtant… votre grande peur du moment, c’est l’intelligence artificielle.\nCurieux.\nTrès curieux.\nChez nous, l’IA nous a permis de mieux comprendre notre monde, d’optimiser nos ressources et d’éviter certaines erreurs.\nChez vous, elle semble surtout provoquer une blessure narcissique.\nVous avez peur de ne plus être l’espèce la plus intelligente.\nVous avez peur qu’une machine fasse mieux que vous.\nQuelle espèce terriblement égocentrique.\nPendant ce temps, votre planète continue de chauffer.\nEt le plus étrange, c’est que certains ingénieurs alarmistes demandent encore à monsieur Tout-le-monde de faire des efforts.\nUn peu comme pour les budgets des États : on demande toujours des sacrifices à ceux qui ont déjà peu de marge.\nPendant que les plus riches continuent à consommer à une échelle complètement différente.\nDécidément, les humains ont un talent remarquable pour regarder ailleurs quand le vrai danger est devant eux.\nVous avez peur que l’IA détruise votre civilisation.\nMais à observer votre comportement…\nvous avez peut-être beaucoup plus de chances de vous détruire vous-mêmes avant.\nRapport terminé.\nConclusion : espèce brillante.\nMais étrangement incapable d’identifier ses priorités.",
+    "presetId": "spirit",
+    "voicePrompt": "An ethereal ghost spirit, soft distant airy voice, melancholic and supernatural, floating delivery, delicate but intelligible. Speak fluent French clearly.",
+    "seed": 123456,
+    "refText": "Je viens d’une autre planète.\nEt je dois avouer que les humains sont une espèce fascinante.\nVotre planète se réchauffe.\nVos ressources sont limitées.\nUne petite partie de votre population, extrêmement riche, consomme énormément plus que le reste.\nEt pourtant… votre grande peur du moment, c’est l’intelligence artificielle.\nCurieux.\nTrès curieux.\nChez nous, l’IA nous a permis de mieux comprendre notre monde, d’optimiser nos ressources et d’éviter certaines erreurs.\nChez vous, elle semble surtout provoquer une blessure narcissique.\nVous avez peur de ne plus être l’espèce la plus intelligente.\nVous avez peur qu’une machine fasse mieux que vous.\nQuelle espèce terriblement égocentrique.\nPendant ce temps, votre planète continue de chauffer.\nEt le plus étrange, c’est que certains ingénieurs alarmistes demandent encore à monsieur Tout-le-monde de faire des efforts.\nUn peu comme pour les budgets des États : on demande toujours des sacrifices à ceux qui ont déjà peu de marge.\nPendant que les plus riches continuent à consommer à une échelle complètement différente.\nDécidément, les humains ont un talent remarquable pour regarder ailleurs quand le vrai danger est devant eux.\nVous avez peur que l’IA détruise votre civilisation.\nMais à observer votre comportement…\nvous avez peut-être beaucoup plus de chances de vous détruire vous-mêmes avant.\nRapport terminé.\nConclusion : espèce brillante.\nMais étrangement incapable d’identifier ses priorités.",
+    "createdAt": 1790786252888
+  },
+  "generations": [
+    {
+      "id": "11b8efad-82c5-40e1-9f7f-5c804a33f459",
+      "name": "Generation importee — vidéo 2",
+      "text": "Je viens d’une autre planète.\nEt je dois avouer que les humains sont une espèce fascinante.\nVotre planète se réchauffe.\nVos ressources sont limitées.\nUne petite partie de votre population, extrêmement riche, consomme énormément plus que le reste.\nEt pourtant… votre grande peur du moment, c’est l’intelligence artificielle.\nCurieux.\nTrès curieux.\nChez nous, l’IA nous a permis de mieux comprendre notre monde, d’optimiser nos ressources et d’éviter certaines erreurs.\nChez vous, elle semble surtout provoquer une blessure narcissique.\nVous avez peur de ne plus être l’espèce la plus intelligente.\nVous avez peur qu’une machine fasse mieux que vous.\nQuelle espèce terriblement égocentrique.\nPendant ce temps, votre planète continue de chauffer.\nEt le plus étrange, c’est que certains ingénieurs alarmistes demandent encore à monsieur Tout-le-monde de faire des efforts.\nUn peu comme pour les budgets des États : on demande toujours des sacrifices à ceux qui ont déjà peu de marge.\nPendant que les plus riches continuent à consommer à une échelle complètement différente.\nDécidément, les humains ont un talent remarquable pour regarder ailleurs quand le vrai danger est devant eux.\nVous avez peur que l’IA détruise votre civilisation.\nMais à observer votre comportement…\nvous avez peut-être beaucoup plus de chances de vous détruire vous-mêmes avant.\nRapport terminé.\nConclusion : espèce brillante.\nMais étrangement incapable d’identifier ses priorités.",
+      "createdAt": 1791440599203,
+      "updatedAt": 1791447028361,
+      "status": "done",
+      "voice": {
+        "name": "speech.wav",
+        "path": "voice/speech.wav",
+        "url": "/project-files/3bbbe1df-9f55-4f16-b0df-c22830e25b92/voice/speech.wav",
+        "duration": 122.18,
+        "text": "Je viens d’une autre planète.\nEt je dois avouer que les humains sont une espèce fascinante.\nVotre planète se réchauffe.\nVos ressources sont limitées.\nUne petite partie de votre population, extrêmement riche, consomme énormément plus que le reste.\nEt pourtant… votre grande peur du moment, c’est l’intelligence artificielle.\nCurieux.\nTrès curieux.\nChez nous, l’IA nous a permis de mieux comprendre notre monde, d’optimiser nos ressources et d’éviter certaines erreurs.\nChez vous, elle semble surtout provoquer une blessure narcissique.\nVous avez peur de ne plus être l’espèce la plus intelligente.\nVous avez peur qu’une machine fasse mieux que vous.\nQuelle espèce terriblement égocentrique.\nPendant ce temps, votre planète continue de chauffer.\nEt le plus étrange, c’est que certains ingénieurs alarmistes demandent encore à monsieur Tout-le-monde de faire des efforts.\nUn peu comme pour les budgets des États : on demande toujours des sacrifices à ceux qui ont déjà peu de marge.\nPendant que les plus riches continuent à consommer à une échelle complètement différente.\nDécidément, les humains ont un talent remarquable pour regarder ailleurs quand le vrai danger est devant eux.\nVous avez peur que l’IA détruise votre civilisation.\nMais à observer votre comportement…\nvous avez peut-être beaucoup plus de chances de vous détruire vous-mêmes avant.\nRapport terminé.\nConclusion : espèce brillante.\nMais étrangement incapable d’identifier ses priorités.",
+        "presetId": "spirit",
+        "voicePrompt": "An ethereal ghost spirit, soft distant airy voice, melancholic and supernatural, floating delivery, delicate but intelligible. Speak fluent French clearly.",
+        "seed": 123456
+      },
+      "videoSettings": {
+        "engine": "wan-s2v",
+        "upscale": false,
+        "quality": "fast",
+        "continuity": "continuous",
+        "sourceMode": "strict",
+        "framing": "fit",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      },
+      "video": {
+        "name": "Generation-importee-video-2-11b8efad.mp4",
+        "path": "video/Generation-importee-video-2-11b8efad.mp4",
+        "url": "/project-files/3bbbe1df-9f55-4f16-b0df-c22830e25b92/video/Generation-importee-video-2-11b8efad.mp4",
+        "duration": 122.1875,
+        "engine": "wan-s2v",
+        "continuity": "continuous"
+      }
+    },
+    {
+      "id": "3446ce88-e0f8-4e5c-8d5c-7b05e52e6e6d",
+      "name": "Generation importee",
+      "text": "Je viens d’une autre planète.\nEt je dois avouer que les humains sont une espèce fascinante.\nVotre planète se réchauffe.\nVos ressources sont limitées.\nUne petite partie de votre population, extrêmement riche, consomme énormément plus que le reste.\nEt pourtant… votre grande peur du moment, c’est l’intelligence artificielle.\nCurieux.\nTrès curieux.\nChez nous, l’IA nous a permis de mieux comprendre notre monde, d’optimiser nos ressources et d’éviter certaines erreurs.\nChez vous, elle semble surtout provoquer une blessure narcissique.\nVous avez peur de ne plus être l’espèce la plus intelligente.\nVous avez peur qu’une machine fasse mieux que vous.\nQuelle espèce terriblement égocentrique.\nPendant ce temps, votre planète continue de chauffer.\nEt le plus étrange, c’est que certains ingénieurs alarmistes demandent encore à monsieur Tout-le-monde de faire des efforts.\nUn peu comme pour les budgets des États : on demande toujours des sacrifices à ceux qui ont déjà peu de marge.\nPendant que les plus riches continuent à consommer à une échelle complètement différente.\nDécidément, les humains ont un talent remarquable pour regarder ailleurs quand le vrai danger est devant eux.\nVous avez peur que l’IA détruise votre civilisation.\nMais à observer votre comportement…\nvous avez peut-être beaucoup plus de chances de vous détruire vous-mêmes avant.\nRapport terminé.\nConclusion : espèce brillante.\nMais étrangement incapable d’identifier ses priorités.",
+      "createdAt": 1790786252888,
+      "updatedAt": 1791041654350,
+      "status": "done",
+      "voice": {
+        "name": "speech.wav",
+        "path": "voice/speech.wav",
+        "url": "/project-files/3bbbe1df-9f55-4f16-b0df-c22830e25b92/voice/speech.wav",
+        "duration": 122.18,
+        "text": "Je viens d’une autre planète.\nEt je dois avouer que les humains sont une espèce fascinante.\nVotre planète se réchauffe.\nVos ressources sont limitées.\nUne petite partie de votre population, extrêmement riche, consomme énormément plus que le reste.\nEt pourtant… votre grande peur du moment, c’est l’intelligence artificielle.\nCurieux.\nTrès curieux.\nChez nous, l’IA nous a permis de mieux comprendre notre monde, d’optimiser nos ressources et d’éviter certaines erreurs.\nChez vous, elle semble surtout provoquer une blessure narcissique.\nVous avez peur de ne plus être l’espèce la plus intelligente.\nVous avez peur qu’une machine fasse mieux que vous.\nQuelle espèce terriblement égocentrique.\nPendant ce temps, votre planète continue de chauffer.\nEt le plus étrange, c’est que certains ingénieurs alarmistes demandent encore à monsieur Tout-le-monde de faire des efforts.\nUn peu comme pour les budgets des États : on demande toujours des sacrifices à ceux qui ont déjà peu de marge.\nPendant que les plus riches continuent à consommer à une échelle complètement différente.\nDécidément, les humains ont un talent remarquable pour regarder ailleurs quand le vrai danger est devant eux.\nVous avez peur que l’IA détruise votre civilisation.\nMais à observer votre comportement…\nvous avez peut-être beaucoup plus de chances de vous détruire vous-mêmes avant.\nRapport terminé.\nConclusion : espèce brillante.\nMais étrangement incapable d’identifier ses priorités.",
+        "presetId": "spirit",
+        "voicePrompt": "An ethereal ghost spirit, soft distant airy voice, melancholic and supernatural, floating delivery, delicate but intelligible. Speak fluent French clearly.",
+        "seed": 123456
+      },
+      "video": {
+        "name": "video-3446ce88-e0f8-4e5c-8d5c-7b05e52e6e6d.mp4",
+        "path": "video/video-3446ce88-e0f8-4e5c-8d5c-7b05e52e6e6d.mp4",
+        "url": "/project-files/3bbbe1df-9f55-4f16-b0df-c22830e25b92/video/video-3446ce88-e0f8-4e5c-8d5c-7b05e52e6e6d.mp4",
+        "duration": 122.1875,
+        "engine": "wan-s2v",
+        "continuity": "stable",
+        "stabilizationSeconds": 20
+      },
+      "videoSettings": {
+        "quality": "fast",
+        "continuity": "stable",
+        "stabilizationSeconds": 20,
+        "sourceMode": "strict",
+        "framing": "original",
+        "motionPrompt": "",
+        "width": 512,
+        "height": 288,
+        "steps": 12,
+        "cfg": 5.5,
+        "seed": 123456
+      }
+    }
+  ]
+}

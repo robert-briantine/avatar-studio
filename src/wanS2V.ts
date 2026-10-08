@@ -372,6 +372,29 @@ export function buildWanS2VFixedFramingWorkflow(
   return result;
 }
 
+/** Face instructions validated on Robert, independent of human/alien materials. */
+export const WAN_S2V_FACE_STABILITY_PROMPT =
+  "Facial identity remains constant throughout the entire recording. Keep the reference head shape, facial proportions, eye size and spacing, nose shape, jawline and surface detail consistent from beginning to end. Small speech-driven mouth and jaw articulation, subtle blinking. Calm expression and minimal head rotation.";
+
+export function buildWanS2VFaceStableWorkflow(
+  args: Parameters<typeof buildWanS2VExtendedWorkflow>[0] & { faceIdentityPrompt?: string }
+): ReturnType<typeof buildWanS2VExtendedWorkflow> {
+  const result = buildWanS2VFixedFramingWorkflow(args);
+  if (args.strictIdentity !== false) {
+    result.graph["8"].inputs.text += ` ${WAN_S2V_FACE_STABILITY_PROMPT}${args.faceIdentityPrompt?.trim() ? ` ${args.faceIdentityPrompt.trim()}` : ""}`;
+  }
+  return result;
+}
+
+export function wanS2VReferenceSize(width: number, height: number): { width: number; height: number } {
+  if (!(width > 0 && height > 0)) throw new RangeError("Dimensions de référence invalides.");
+  const ratio = width / height;
+  return {
+    width: Math.max(64, Math.round(Math.sqrt(196608 * ratio) / 64) * 64),
+    height: Math.max(64, Math.round(Math.sqrt(196608 / ratio) / 64) * 64)
+  };
+}
+
 /**
  * Réinitialise l'historique latent au délai choisi. Le premier bloc part de
  * l'image source exacte. Chaque bloc suivant reçoit directement la dernière
