@@ -105,9 +105,9 @@ class TransitionsTest(unittest.TestCase):
                 "-pix_fmt", "rgb24", "pipe:1",
             ], check=True, capture_output=True).stdout
             brightness = np.frombuffer(decoded, dtype=np.uint8).reshape(32, 64, 64, 3).mean(axis=(1, 2, 3))
-            # Extend exposure drift is compensated while keeping the clip's
-            # early-frame exposure as its reference.
-            self.assertLess(float(np.percentile(brightness, 95) - np.percentile(brightness, 5)), 42)
+            # Assembly preserves the model's lighting, including a gradual
+            # exposure change. No automatic luminance correction is applied.
+            np.testing.assert_allclose(brightness, np.arange(32) * 2, atol=3)
             padded = root / "padded-final.mp4"
             # A native 77-frame chunk can contain padding past the audio end.
             # The requested window must be assembled and the tail discarded.

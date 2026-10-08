@@ -135,6 +135,12 @@ export const WAN_S2V_MODELS = {
   vae: "wan_2.1_vae.safetensors"
 } as const;
 
+/** Keep prompts independent of the subject's species and materials. */
+export function wanS2VPrompt(strictIdentity: boolean, motionPrompt = ""): string {
+  if (!strictIdentity && motionPrompt.trim()) return motionPrompt.trim();
+  return "The same subject from the reference image speaks with synchronized mouth movement. Preserve the exact identity, anatomy, shapes, surface materials, colors, clothing, lighting and background. Subtle natural motion, stable camera, continuous shot.";
+}
+
 /**
  * Workflow longue durée Wan2.2-S2V basé sur le mécanisme natif Extend de ComfyUI.
  *
@@ -167,7 +173,8 @@ export function buildWanS2VExtendedWorkflow(args: {
   const chunkFrames = args.chunkFrames ?? WAN_S2V_CHUNK_FRAMES;
   const requestedFrames = Math.max(1, Math.ceil(args.durationSeconds * WAN_S2V_FPS));
   const chunks = Math.max(1, Math.ceil(requestedFrames / chunkFrames));
-  const generatedFrames = chunks * chunkFrames;
+  // Wan VAE decodes 4*T-3 frames, not 77 per concatenated latent block.
+  const generatedFrames = chunks * (Math.floor((chunkFrames - 1) / 4) + 1) * 4 - 3;
   const steps = args.steps ?? 20;
   const cfg = args.cfg ?? 6;
 
@@ -204,11 +211,9 @@ export function buildWanS2VExtendedWorkflow(args: {
         // suivants sont ajoutés sur l'axe temporel par LatentConcat.
         batch_size: 1,
         audio_encoder_output: ["6", 0],
-        ref_image: ["7", 0],
-        // `ref_image` décrit l'identité mais ne verrouille pas les pixels de
-        // départ. La même image est donc aussi encodée comme première image de
-        // contrôle : le tout premier bloc commence réellement sur l'avatar.
-        control_video: ["7", 0]
+        // The official image + audio workflow uses ref_image only. control_video
+        // is an additional conditioning branch, not a first-frame pixel lock.
+        ref_image: ["7", 0]
       }
     },
     "12": {
@@ -301,6 +306,70 @@ export function buildWanS2VExtendedWorkflow(args: {
   };
 
   return { graph, chunks, generatedFrames };
+}
+
+/**
+ * Experimental step 1: refresh only the motion context through the VAE.
+ * Sampling settings, audio offsets and the accumulated output latent stay the
+ * same as native Extend. The context proxy has the same temporal length so the
+ * native node still selects the correct interval of the complete WAV.
+ *
+ * VAE-decoded images are never compressed or mixed with the source image. The
+ * proxy is used only by Extend; final concatenation keeps the original samples.
+ */
+export function buildWanS2VReencodedMotionWorkflow(
+  args: Parameters<typeof buildWanS2VExtendedWorkflow>[0]
+): ReturnType<typeof buildWanS2VExtendedWorkflow> {
+  const chunkFrames = args.chunkFrames ?? WAN_S2V_CHUNK_FRAMES;
+  if (chunkFrames !== WAN_S2V_CHUNK_FRAMES) {
+    throw new RangeError("Le test de contexte réencodé utilise les blocs natifs de 77 images.");
+  }
+  const result = buildWanS2VExtendedWorkflow(args);
+  const graph = result.graph;
+  const extensions = Object.values(graph).filter(node => node.class_type === "WanSoundImageToVideoExtend");
+  let nextId = Math.max(...Object.keys(graph).map(Number)) + 1;
+  for (const [index, extension] of extensions.entries()) {
+    const history = extension.inputs.video_latent as [string, number];
+    const latentFrames = (index + 1) * 20;
+    const decodedFrames = latentFrames * 4 - 3;
+    const decodeId = String(nextId++);
+    const cropId = String(nextId++);
+    const encodeId = String(nextId++);
+    const prefixId = String(nextId++);
+    const proxyId = String(nextId++);
+    graph[decodeId] = { class_type: "VAEDecode", inputs: { samples: history, vae: ["3", 0] } };
+    graph[cropId] = {
+      class_type: "ImageFromBatch",
+      inputs: { image: [decodeId, 0], batch_index: decodedFrames - WAN_S2V_MOTION_FRAMES, length: WAN_S2V_MOTION_FRAMES }
+    };
+    graph[encodeId] = { class_type: "VAEEncode", inputs: { pixels: [cropId, 0], vae: ["3", 0] } };
+    graph[prefixId] = {
+      class_type: "LatentCut", inputs: { samples: history, dim: "t", index: 0, amount: latentFrames - 19 }
+    };
+    graph[proxyId] = {
+      class_type: "LatentConcat", inputs: { samples1: [prefixId, 0], samples2: [encodeId, 0], dim: "t" }
+    };
+    extension.inputs.video_latent = [proxyId, 0];
+  }
+  return result;
+}
+
+/** Camera/framing instruction used by the UI-validated long-form recipe. */
+export const WAN_S2V_FIXED_FRAMING_PROMPT =
+  "Fixed locked camera for the entire clip, at exactly the same distance and angle as the reference image. Preserve the same head-and-shoulders crop, screen position, and subject size from the first frame to the last. No zoom in or zoom out, no dolly, no pan, no tilt, no camera movement, no reframing. Only the subject's face and mouth move subtly while speaking.";
+
+/** Production recipe validated for long-form Extend: refreshed motion context,
+ * progressive sampler seeds, and a fixed-camera prompt. */
+export function buildWanS2VFixedFramingWorkflow(
+  args: Parameters<typeof buildWanS2VExtendedWorkflow>[0]
+): ReturnType<typeof buildWanS2VExtendedWorkflow> {
+  const prompt = `${args.prompt.trim()} ${WAN_S2V_FIXED_FRAMING_PROMPT}`;
+  const result = buildWanS2VReencodedMotionWorkflow({ ...args, prompt });
+  const samplers = Object.entries(result.graph)
+    .filter(([, node]) => node.class_type === "KSampler")
+    .sort(([a], [b]) => Number(a) - Number(b));
+  samplers.forEach(([, node], index) => { node.inputs.seed = args.seed + index; });
+  return result;
 }
 
 /**

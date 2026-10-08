@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import type { WanTransitionStyle } from "./wanTransitions.js";
 
 export type BatchItemStatus = "pending" | "voice" | "video" | "short" | "done" | "error" | "stopped";
 
@@ -31,6 +32,7 @@ export type BatchVideoSettings = {
   steps: number;
   cfg: number;
   seed: number;
+  transitionStyle?: WanTransitionStyle;
   short?: {
     enabled: boolean;
     framing: "blur" | "crop" | "fit";

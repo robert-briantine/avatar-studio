@@ -8,6 +8,8 @@ if (!directory) throw new Error("Indique le dossier du test.");
 const manifest = JSON.parse(await fs.readFile(path.join(directory, "manifest.json"), "utf8"));
 const { stdout: metadata } = await exec("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,avg_frame_rate", "-of", "json", manifest.outputPath]);
 const stream = JSON.parse(metadata).streams[0];
+const fps = manifest.fps ?? 16;
+if (stream.avg_frame_rate !== `${fps}/1`) throw new Error(`Cadence incorrecte : ${stream.avg_frame_rate}, attendu ${fps}/1.`);
 const { stdout: video } = await exec("ffmpeg", ["-v", "error", "-i", manifest.outputPath, "-an", "-pix_fmt", "rgb24", "-f", "rawvideo", "pipe:1"], { encoding: "buffer", maxBuffer: 256 * 1024 * 1024 });
 const bytes = stream.width * stream.height * 3;
 const count = video.length / bytes;
@@ -38,7 +40,7 @@ const junctions = manifest.transitions.map((transition: any) => {
     startError: difference(first - 1, first), endError: difference(end - 1, end),
     maxInternalStep: Math.max(...internal) };
 });
-const result = { frames: count, expectedFrames: manifest.plan.reduce((sum: number, block: any) => sum + block.frames, 0), flatFrames, junctions };
+const result = { fps, frames: count, expectedFrames: manifest.plan.reduce((sum: number, block: any) => sum + block.frames, 0), flatFrames, junctions };
 await fs.writeFile(path.join(directory, "verification.json"), JSON.stringify(result, null, 2));
 console.log(JSON.stringify(result, null, 2));
 if (count !== result.expectedFrames || flatFrames.length || junctions.some((junction: any) => junction.startError > 5 || junction.endError > 5)) {

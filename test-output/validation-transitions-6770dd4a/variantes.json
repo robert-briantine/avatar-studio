@@ -1,0 +1,50 @@
+{
+  "source": "/home/blockapicoder/dgx-avatar-studio-data/projects/Robert-briantine-test--e69818d6/video/ia-et-humain-transition-video-2-6770dd4a.mp4",
+  "junctions": [
+    4.5,
+    9.666666666666666,
+    12.916666666666666
+  ],
+  "variants": [
+    {
+      "number": 1,
+      "file": "01-fondu-court.mp4",
+      "title": "Fondu court",
+      "description": "Fondu de 0,20 s au début du morceau suivant ; lumière progressive autour de la reprise.",
+      "frames": 1129,
+      "fps": 48,
+      "duration": "23.520833",
+      "audioIdentical": true
+    },
+    {
+      "number": 2,
+      "file": "02-fondu-doux.mp4",
+      "title": "Fondu doux",
+      "description": "Fondu de 0,40 s ; reprise plus progressive, avec un risque de dédoublement pendant le fondu.",
+      "frames": 1129,
+      "fps": 48,
+      "duration": "23.520833",
+      "audioIdentical": true
+    },
+    {
+      "number": 3,
+      "file": "03-mouvement-interpole.mp4",
+      "title": "Mouvement interpolé",
+      "description": "Interpolation du mouvement à 48 images/s pendant la reprise, puis morphing de pose sur 0,30 s.",
+      "frames": 1129,
+      "fps": 48,
+      "duration": "23.520833",
+      "audioIdentical": true
+    },
+    {
+      "number": 4,
+      "file": "04-reprise-reconstruite.mp4",
+      "title": "Reprise reconstruite",
+      "description": "Reconstruit la fin de pause et les premières 0,375 s du morceau suivant entre deux poses réelles ; évite les images instables du départ, mais peut décaler les premiers mouvements de bouche.",
+      "frames": 1129,
+      "fps": 48,
+      "duration": "23.520833",
+      "audioIdentical": true
+    }
+  ]
+}

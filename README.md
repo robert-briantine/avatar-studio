@@ -5,11 +5,52 @@ Application locale DGX Spark : image Qwen, voix Qwen3-TTS et vidéo Wan2.2-S2V.
 ## Génération vidéo
 
 Les nouveaux rendus utilisent **Wan2.2-S2V + Extend** avec le checkpoint BF16
-pour privilégier la qualité. La luminosité est stabilisée pendant l’assemblage
-pour limiter la dérive entre extensions. Les anciennes vidéos MuseTalk/LongCat
+pour privilégier la qualité. L’assemblage conserve l’éclairage généré : le
+correctif global automatique de luminosité a été retiré. Les anciennes vidéos MuseTalk/LongCat
 restent visibles dans l’historique, mais ces moteurs ne sont plus proposés pour
 les nouvelles générations. Pour revenir au checkpoint FP8 moins gourmand en
 mémoire, définissez `WAN_S2V_DIFFUSION_MODEL=wan2.2_s2v_14B_fp8_scaled.safetensors`.
+
+La génération utilise toujours **un seul WAV complet**, y compris pour les anciennes
+voix qui possèdent des métadonnées de découpage. Un bloc initial est prolongé par
+`WanSoundImageToVideoExtend` avec le latent cumulé, la même image de référence et
+le même encodage audio. Aucun redémarrage par ligne, interpolation de raccord,
+reconstruction de bouche ou correctif de couleur n’est appliqué.
+
+L’image est uniquement envoyée à `ref_image` : `control_video` est une branche de
+conditionnement supplémentaire, pas un verrou des pixels de la première image.
+Le prompt de fidélité décrit le sujet, ses formes et ses matériaux sans imposer
+une peau ou une barbe aux robots. Le montage final conserve les images natives
+et remplace la piste audio par le WAV original, en coupant seulement la fin.
+La vidéo est copiée directement lorsque le H.264 le permet ; si ses B-frames
+dépassent la durée voulue, la coupe utilise du H.264 sans perte pour conserver
+exactement les pixels natifs.
+
+Références : [workflow ComfyUI officiel](https://github.com/Comfy-Org/workflow_templates/blob/main/templates/video_wan2_2_14B_s2v.json),
+[implémentation native Extend](https://github.com/Comfy-Org/ComfyUI/blob/master/comfy_extras/nodes_wan.py),
+[configuration Wan S2V](https://github.com/Wan-Video/Wan2.2/blob/main/wan/configs/wan_s2v_14B.py).
+Extend garantit la continuité du graphe mais ne garantit pas l’absence de dérive
+visuelle sur une longue durée ; le résultat doit être vérifié au-delà de 45 s.
+
+Test GPU reproductible, sur un WAV complet d’au moins 60 secondes :
+
+```bash
+node --import tsx scripts/test-wan-extend.ts /chemin/du/projet
+```
+
+Le test conserve la vidéo, le workflow, l’empreinte SHA-256 du WAV, le rapport de
+vérification et des captures à 0, 10, 30, 45, 50 et 60 secondes dans `test-output/`.
+Validation GPU du 7 octobre 2026 sur « robot qui parle » : **67,382 s** de WAV
+intact, 15 passes natives, BF16, 20 étapes, CFG 6, 384 × 512. Les 1 079 images
+finales à 16 fps sont identiques aux images décodées du MP4 natif (comparaison
+`framemd5`). La piste audio dure 67,382 s ; la vidéo dure 67,4375 s, soit un écart
+inférieur à une image. **Une dérive visuelle persiste vers 55–60 s**, avec une
+texture métallique et un fond altérés. Le fonctionnement technique d’Extend est
+vérifié, mais la stabilité visuelle longue durée n’est pas validée. Le rendu et
+les captures sont conservés dans
+`test-output/wan-extend-2026-10-07T09-03-12-917Z/` pour validation humaine.
+
+Les sections plus anciennes ci-dessous décrivent les versions précédentes.
 
 ## Shorts YouTube et upscale — octobre 2026
 

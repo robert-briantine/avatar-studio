@@ -1,0 +1,37 @@
+{
+  "comparisonAudioIdentical": true,
+  "files": [
+    {
+      "file": "comparaison-4-variantes.mp4",
+      "streams": [
+        {
+          "codec_type": "video",
+          "width": 1024,
+          "height": 648,
+          "avg_frame_rate": "48/1",
+          "duration": "23.520833",
+          "nb_read_frames": "1129"
+        },
+        {
+          "codec_type": "audio",
+          "avg_frame_rate": "0/0",
+          "duration": "23.518000",
+          "nb_read_frames": "1103"
+        }
+      ]
+    },
+    {
+      "file": "comparaison-raccord-2-ralenti.mp4",
+      "streams": [
+        {
+          "codec_type": "video",
+          "width": 1024,
+          "height": 648,
+          "avg_frame_rate": "48/1",
+          "duration": "3.583333",
+          "nb_read_frames": "172"
+        }
+      ]
+    }
+  ]
+}

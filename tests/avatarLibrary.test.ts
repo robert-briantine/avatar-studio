@@ -28,7 +28,7 @@ test("an avatar keeps its voice fingerprint and named generation history after r
       },
       video: {
         name: "video-generation-1.mp4", path: path.join(base, "video/video-generation-1.mp4"), url: "",
-        duration: 2, engine: "wan-s2v", continuity: "stable", stabilizationSeconds: 20
+        duration: 2, engine: "wan-s2v", continuity: "stable", stabilizationSeconds: 20, transitionStyle: "reconstructed"
       },
       short: {
         name: "short-generation-1.mp4", path: path.join(base, "video/short-generation-1.mp4"), url: "",
@@ -49,6 +49,7 @@ test("an avatar keeps its voice fingerprint and named generation history after r
     assert.match(avatar.generations?.[0].short?.url || "", /short-generation-1\.mp4$/);
     assert.equal(avatar.generations?.[0].short?.width, 1080);
     assert.ok(path.isAbsolute(avatar.generations?.[0].video?.path || ""));
+    assert.equal(avatar.generations?.[0].video?.transitionStyle, "reconstructed");
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -72,7 +73,7 @@ test("a running batch becomes safely resumable after a server restart", async ()
       videoSettings: {
         engine: "wan-s2v", upscale: false,
         quality: "normal", continuity: "stable", stabilizationSeconds: 20, sourceMode: "strict",
-        framing: "original", motionPrompt: "", width: 768, height: 432, steps: 20, cfg: 6, seed: 123456
+        framing: "original", motionPrompt: "", width: 768, height: 432, steps: 20, cfg: 6, seed: 123456, transitionStyle: "reconstructed"
       }
     });
 
@@ -82,6 +83,7 @@ test("a running batch becomes safely resumable after a server restart", async ()
     assert.equal(restored.status, "stopped");
     assert.equal(restored.items[0].status, "stopped");
     assert.match(restored.message, /repris/i);
+    assert.equal(restored.videoSettings.transitionStyle, "reconstructed");
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

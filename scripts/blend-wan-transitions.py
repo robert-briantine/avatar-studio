@@ -149,8 +149,6 @@ def assemble(input_path, audio_path, output_path, windows, duration, fps, refere
     repaired_frames = 0
     repaired_pixels = 0
     last_clean_frame = None
-    luminance_reference = None
-    luminance_average = None
     reference = protected_red = None
     if reference_path:
         loaded = cv2.imread(reference_path, cv2.IMREAD_COLOR)
@@ -180,7 +178,6 @@ def assemble(input_path, audio_path, output_path, windows, duration, fps, refere
 
             def write_frame(frame):
                 nonlocal written, repaired_frames, repaired_pixels, last_clean_frame
-                nonlocal luminance_reference, luminance_average
                 if reference is not None:
                     frame, pixels = repair_unexpected_red(
                         frame, reference, protected_red, last_clean_frame
@@ -193,21 +190,6 @@ def assemble(input_path, audio_path, output_path, windows, duration, fps, refere
                         # with repaired frames would recursively freeze softened
                         # or partly contaminated texture into later images.
                         last_clean_frame = frame.copy()
-                # Long native Extend chains can slowly change exposure from
-                # block to block. Track robust frame luminance with a ~2.5 s
-                # low-pass filter and compensate in Y only (not chroma).
-                ycc = cv2.cvtColor(frame, cv2.COLOR_RGB2YCrCb)
-                frame_luma = float(np.median(ycc[:, :, 0]))
-                if luminance_reference is None:
-                    luminance_reference = frame_luma
-                    luminance_average = frame_luma
-                else:
-                    smoothing = 1.0 - math.exp(-1.0 / (fps * 2.5))
-                    luminance_average += smoothing * (frame_luma - luminance_average)
-                correction = float(np.clip(luminance_reference - luminance_average, -48, 48))
-                if abs(correction) >= 0.25:
-                    ycc[:, :, 0] = np.clip(ycc[:, :, 0].astype(np.float32) + correction, 0, 255).astype(np.uint8)
-                    frame = cv2.cvtColor(ycc, cv2.COLOR_YCrCb2RGB)
                 encoder.stdin.write(frame.tobytes())
                 written += 1
 

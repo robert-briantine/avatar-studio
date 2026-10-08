@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
 import { WAN_S2V_FPS, type WanVideoWindow } from "./wanS2V.js";
+import { parseWanTransitionStyle, type WanTransitionBoundary, type WanTransitionStyle } from "./wanTransitions.js";
 
 function abortError(): Error {
   const error = new Error("Opération arrêtée par l'utilisateur");
@@ -168,11 +169,16 @@ export async function extractLastVideoFrame(inputPath: string, outputPath: strin
   const frames = await probeVideoFrameCount(inputPath, signal);
   // Decode by frame index, never by container duration (which includes audio).
   await run("ffmpeg", [
-    "-y", "-i", inputPath, "-vf", `select=eq(n\\,${frames - 1}),format=rgb24`,
+    "-y", "-i", inputPath, "-vf", `select=eq(n\\,${frames - 1}),${wanBoundaryRgbFilter}`,
     "-frames:v", "1", "-update", "1", outputPath
   ], signal);
   if (!(await fs.stat(outputPath)).size) throw new Error(`Dernière image vide : ${inputPath}`);
 }
+
+// Match the full RGB values used by Wan's lighting pass, avoiding a darker
+// boundary image from the fast YUV conversion at every successive handoff.
+const wanColourFlags = "accurate_rnd+full_chroma_int+full_chroma_inp";
+const wanBoundaryRgbFilter = `scale=out_range=pc:flags=${wanColourFlags},format=rgb24`;
 
 export async function probeVideoFrameCount(inputPath: string, signal?: AbortSignal): Promise<number> {
   const { stdout } = await run("ffprobe", [
@@ -185,37 +191,108 @@ export async function probeVideoFrameCount(inputPath: string, signal?: AbortSign
 }
 
 /** Normalize every block to the same frame clock, without an AAC intermediate. */
-export async function trimVideoFrames(inputPath: string, outputPath: string, frames: number, signal?: AbortSignal): Promise<void> {
+export async function trimVideoFrames(
+  inputPath: string, outputPath: string, frames: number, signal?: AbortSignal, fps = WAN_S2V_FPS
+): Promise<void> {
   await run("ffmpeg", [
     "-y", "-i", inputPath, "-an", "-vf",
-    `fps=${WAN_S2V_FPS},tpad=stop_mode=clone:stop_duration=${frames / WAN_S2V_FPS},trim=end_frame=${frames},setpts=N/(${WAN_S2V_FPS}*TB)`,
+    `fps=${fps},tpad=stop_mode=clone:stop_duration=${frames / fps},trim=end_frame=${frames},setpts=N/(${fps}*TB)`,
     "-frames:v", String(frames), "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", outputPath
   ], signal);
 }
 
-/** Keep the entire FLF trajectory, including its arrival frame, inside the pause. */
+const wanLightingScript = fileURLToPath(new URL("../scripts/match-wan-lighting.py", import.meta.url));
+const wanRefinementScript = fileURLToPath(new URL("../scripts/refine-wan-transitions.py", import.meta.url));
+
+export async function refineWanTransitions(
+  inputPath: string, outputPath: string, boundaries: WanTransitionBoundary[],
+  style: WanTransitionStyle, signal?: AbortSignal
+): Promise<void> {
+  const selected = parseWanTransitionStyle(style);
+  signal?.throwIfAborted();
+  const temporary = path.join(path.dirname(outputPath), `.wan-refined-${randomUUID()}.mp4`);
+  try {
+    await run(config.video.transitionPython, [wanRefinementScript,
+      "--input", inputPath, "--output", temporary, "--boundaries", JSON.stringify(boundaries), "--style", selected
+    ], signal);
+    await fs.rename(temporary, outputPath);
+  } finally {
+    await fs.rm(temporary, { force: true }).catch(() => undefined);
+  }
+}
+
+/** Interpolate the real S2V pause, with neighbouring frames as motion context. */
+export async function extractWanPause(
+  inputPath: string, outputPath: string, startFrame: number, frames: number,
+  signal?: AbortSignal, fps = WAN_S2V_FPS * 3
+): Promise<void> {
+  if (!Number.isInteger(startFrame) || startFrame < 0 || !Number.isInteger(frames) || frames < 3) {
+    throw new Error("Position ou durée de pause vidéo invalide.");
+  }
+  const sourceStart = Math.max(0, Math.floor(startFrame / fps * WAN_S2V_FPS) - 2);
+  const sourceEnd = Math.ceil((startFrame + frames) / fps * WAN_S2V_FPS) + 2;
+  const padding = 2 / WAN_S2V_FPS;
+  const offset = Math.round((startFrame / fps - sourceStart / WAN_S2V_FPS + padding) * fps);
+  const filters = `trim=start_frame=${sourceStart}:end_frame=${sourceEnd},setpts=PTS-STARTPTS,`
+    + `tpad=start_mode=clone:start_duration=${padding}:stop_mode=clone:stop_duration=${2 * padding},`
+    + `minterpolate=fps=${fps}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1:scd=none,`
+    + `trim=start_frame=${offset}:end_frame=${offset + frames},setpts=N/(${fps}*TB)`;
+  await run("ffmpeg", [
+    "-y", "-i", inputPath, "-an", "-vf", filters, "-r", String(fps), "-frames:v", String(frames),
+    "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", outputPath
+  ], signal);
+}
+
+/** Restore the reference lighting only during a handoff or a short FLF bridge. */
+export async function matchWanLighting(
+  inputPath: string, outputPath: string, startImage: string, endImage?: string, signal?: AbortSignal
+): Promise<void> {
+  const temporary = path.join(path.dirname(outputPath), `.wan-lighting-${randomUUID()}.mp4`);
+  try {
+    const args = [wanLightingScript, "--input", inputPath, "--output", temporary, "--start", startImage];
+    if (endImage) args.push("--end", endImage);
+    await run(config.video.transitionPython, args, signal);
+    await fs.rename(temporary, outputPath);
+  } finally {
+    await fs.rm(temporary, { force: true }).catch(() => undefined);
+  }
+}
+
+/** Fit the pause's full motion trajectory, keeping its exact boundary images. */
 export async function fitWanTransition(
-  inputPath: string, outputPath: string, frames: number, startImage: string, endImage: string, signal?: AbortSignal
+  inputPath: string, outputPath: string, frames: number, startImage: string, endImage: string,
+  signal?: AbortSignal, fps = WAN_S2V_FPS
 ): Promise<void> {
   if (frames < 3) throw new Error("Un raccord doit contenir au moins trois images.");
   const sourceFrames = await probeVideoFrameCount(inputPath, signal);
-  if (sourceFrames < 2) throw new Error("Le raccord FLF2V ne contient pas assez d'images.");
-  const retime = `setpts=N*${frames - 1}/${sourceFrames - 1}/(${WAN_S2V_FPS}*TB),fps=${WAN_S2V_FPS}:round=near,tpad=stop_mode=clone:stop_duration=1,trim=end_frame=${frames},setpts=N/(${WAN_S2V_FPS}*TB)`;
+  if (sourceFrames < 2) throw new Error("La pause vidéo ne contient pas assez d'images.");
+  const matched = path.join(path.dirname(outputPath), `.wan-matched-${randomUUID()}.mp4`);
+  const retime = `setpts=N*${frames - 1}/${sourceFrames - 1}/(${fps}*TB),fps=${fps}:round=near,tpad=stop_mode=clone:stop_duration=1,trim=end_frame=${frames},setpts=N/(${fps}*TB)`;
   // VAE reconstruction is approximate. Preserve the two exact boundary frames
-  // used by the neighbouring blocks so compression cannot introduce a flash.
-  const filters = `[0:v]${retime},format=yuv420p[base];[base][1:v]overlay=shortest=1:enable='lt(t,1/${WAN_S2V_FPS})'[start];[start][2:v]overlay=shortest=1:enable='gte(t,${frames - 1}/${WAN_S2V_FPS})'[v]`;
-  await run("ffmpeg", [
-    "-y", "-i", inputPath, "-loop", "1", "-framerate", String(WAN_S2V_FPS), "-i", startImage,
-    "-loop", "1", "-framerate", String(WAN_S2V_FPS), "-i", endImage,
-    "-filter_complex", filters, "-map", "[v]", "-an", "-r", String(WAN_S2V_FPS),
-    "-frames:v", String(frames), "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", outputPath
-  ], signal);
+  // used by the neighbouring blocks. Ease their reconstruction differences over
+  // 125 ms instead of snapping between the exact anchor and the VAE output.
+  const edgeFrames = Math.max(1, Math.min(Math.round(fps / 8), Math.floor((frames - 1) / 2)));
+  const filters = `sws_flags=${wanColourFlags};[0:v]${retime},format=yuv420p[base];`
+    + `[1:v]format=yuva420p,fade=t=out:start_frame=0:nb_frames=${edgeFrames}:alpha=1[startref];`
+    + `[2:v]format=yuva420p,fade=t=in:start_frame=${frames - 1 - edgeFrames}:nb_frames=${edgeFrames}:alpha=1[endref];`
+    + "[base][startref]overlay=shortest=1[start];[start][endref]overlay=shortest=1[v]";
+  try {
+    await matchWanLighting(inputPath, matched, startImage, endImage, signal);
+    await run("ffmpeg", [
+      "-y", "-i", matched, "-loop", "1", "-framerate", String(fps), "-i", startImage,
+      "-loop", "1", "-framerate", String(fps), "-i", endImage,
+      "-filter_complex", filters, "-map", "[v]", "-an", "-r", String(fps),
+      "-frames:v", String(frames), "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", outputPath
+    ], signal);
+  } finally {
+    await fs.rm(matched, { force: true }).catch(() => undefined);
+  }
 }
 
 export async function extractFirstVideoFrame(inputPath: string, outputPath: string, signal?: AbortSignal): Promise<void> {
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.rm(outputPath, { force: true });
-  await run("ffmpeg", ["-y", "-i", inputPath, "-frames:v", "1", "-vf", "format=rgb24", "-f", "image2", "-vcodec", "png", outputPath], signal);
+  await run("ffmpeg", ["-y", "-i", inputPath, "-frames:v", "1", "-vf", wanBoundaryRgbFilter, "-f", "image2", "-vcodec", "png", outputPath], signal);
   await fs.access(outputPath);
 }
 
@@ -275,13 +352,15 @@ export async function concatVideos(segmentPaths: string[], outputPath: string, s
   return probeDuration(outputPath, signal);
 }
 
-export async function concatVideoOnly(segmentPaths: string[], outputPath: string, signal?: AbortSignal): Promise<number> {
+export async function concatVideoOnly(
+  segmentPaths: string[], outputPath: string, signal?: AbortSignal, fps = WAN_S2V_FPS
+): Promise<number> {
   if (!segmentPaths.length) throw new Error("Aucun segment vidéo à assembler");
   const args = ["-y"];
   for (const segment of segmentPaths) args.push("-i", segment);
-  const inputs = segmentPaths.map((_, index) => `[${index}:v]fps=${WAN_S2V_FPS},settb=AVTB,setpts=N/(${WAN_S2V_FPS}*TB)[v${index}]`).join(";");
+  const inputs = segmentPaths.map((_, index) => `[${index}:v]fps=${fps},settb=AVTB,setpts=N/(${fps}*TB)[v${index}]`).join(";");
   const concatInputs = segmentPaths.map((_, index) => `[v${index}]`).join("");
-  args.push("-filter_complex", `${inputs};${concatInputs}concat=n=${segmentPaths.length}:v=1:a=0[joined];[joined]setpts=N/(${WAN_S2V_FPS}*TB)[v]`, "-map", "[v]", "-an", "-r", String(WAN_S2V_FPS), "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", outputPath);
+  args.push("-filter_complex", `${inputs};${concatInputs}concat=n=${segmentPaths.length}:v=1:a=0[joined];[joined]setpts=N/(${fps}*TB)[v]`, "-map", "[v]", "-an", "-r", String(fps), "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", outputPath);
   await run("ffmpeg", args, signal);
   return probeDuration(outputPath, signal);
 }
@@ -714,7 +793,20 @@ export async function assembleWanVideo(
   windows?: WanVideoWindow[], referencePath?: string, signal?: AbortSignal
 ): Promise<number> {
   if (!referencePath && !windows?.length) {
-    return trimVideoDuration(inputPath, outputPath, durationSeconds, signal);
+    const audioOptions = ["-c:a", "aac", "-b:a", "192k", "-ar", "48000"];
+    const inputs = ["-y", "-i", inputPath, "-i", audioPath,
+      "-map", "0:v:0", "-map", "1:a:0", "-t", durationSeconds.toFixed(6)];
+    await run("ffmpeg", [...inputs, "-c:v", "copy", ...audioOptions,
+      "-movflags", "+faststart", outputPath], signal);
+    // Copying H.264 packets may retain a future P-frame needed by B-frames.
+    // If that extends the timeline, cut decoded frames with lossless H.264:
+    // native pixels stay identical, without a second lossy video generation.
+    const frames = await probeVideoFrameCount(outputPath, signal);
+    if (frames > Math.ceil(durationSeconds * WAN_S2V_FPS)) {
+      await run("ffmpeg", [...inputs, "-c:v", "libx264", "-preset", "fast", "-crf", "0",
+        ...audioOptions, "-movflags", "+faststart", outputPath], signal);
+    }
+    return probeDuration(outputPath, signal);
   }
   const assemblyWindows = windows?.length
     ? windows

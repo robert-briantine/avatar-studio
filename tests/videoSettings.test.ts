@@ -82,6 +82,9 @@ test("video API is Wan Extend only and regenerations create a new history entry"
       }
       assert.fail(`Detached preflight did not finish: ${output}`);
     };
+    const invalidResponse = await generate({ generationId: "previous", transitionStyle: "unknown" });
+    assert.equal(invalidResponse.status, 400);
+    assert.equal((await getProject()).generations?.length, 1, "an invalid transition must not create a new history revision");
     const firstResponse = await generate({ generationId: "previous", stabilizationSeconds: 120 });
     assert.equal(firstResponse.status, 202);
     const created = await firstResponse.json() as { generation: { id: string; name: string }; project: AvatarProject };
@@ -92,14 +95,16 @@ test("video API is Wan Extend only and regenerations create a new history entry"
     assert.equal(created.project.generations?.[0].voice?.name, "voice.wav");
     const saved = await waitForFailure();
     assert.deepEqual(saved.videoSettings, { engine: "wan-s2v", upscale: false, continuity: "continuous" });
+    assert.equal(saved.generations?.[0].videoSettings?.transitionStyle, undefined);
     assert.equal(saved.video?.name, "existing.mp4");
     assert.equal(saved.video?.continuity, "continuous");
 
     await stop();
     await start();
     assert.deepEqual((await getProject()).videoSettings, saved.videoSettings);
+    assert.equal((await getProject()).generations?.[0].videoSettings?.transitionStyle, undefined);
     const finalAttempt = await generate({
-      generationId: created.generation.id, quality: "final", steps: 32, continuity: "stable", stabilizationSeconds: 9
+      generationId: created.generation.id, quality: "final", steps: 32, continuity: "stable", stabilizationSeconds: 9, transitionStyle: "interpolated"
     });
     assert.equal(finalAttempt.status, 202);
     const finalProject = (await finalAttempt.json() as { project: AvatarProject }).project;

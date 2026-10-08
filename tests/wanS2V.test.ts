@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildWanS2VExtendedWorkflow, buildWanS2VSilenceAwareWorkflow, buildWanS2VStabilizedWorkflow, planWanS2VSilenceWindows, planWanS2VWindows, parseWanStabilizationSeconds, WAN_S2V_NODES, WAN_S2V_STABLE_NODES, WAN_S2V_STABILIZATION_SECONDS } from "../src/wanS2V.js";
+import { buildWanS2VFixedFramingWorkflow, buildWanS2VReencodedMotionWorkflow, buildWanS2VExtendedWorkflow, buildWanS2VSilenceAwareWorkflow, buildWanS2VStabilizedWorkflow, planWanS2VSilenceWindows, planWanS2VWindows, parseWanStabilizationSeconds, WAN_S2V_FIXED_FRAMING_PROMPT, WAN_S2V_NODES, WAN_S2V_STABLE_NODES, WAN_S2V_STABILIZATION_SECONDS } from "../src/wanS2V.js";
 import type { PromptGraph } from "../src/workflows.js";
 
 const input = {
@@ -50,7 +50,7 @@ for (const [durationSeconds, expectedBlocks] of [[1, 1], [77 / 16, 1], [78 / 16,
     const nodes = Object.values(graph);
     assert.equal(chunks, expectedBlocks);
     assert.ok(generatedFrames >= Math.ceil(durationSeconds * 16));
-    assert.ok(generatedFrames - Math.ceil(durationSeconds * 16) < 77);
+    assert.ok(generatedFrames === expectedBlocks * 80 - 3);
     const decoders = nodes.filter(node => node.class_type === "VAEDecode");
     assert.equal(decoders.length, 1);
     const latentId = (decoders[0].inputs.samples as [string, number])[0];
@@ -186,8 +186,8 @@ for (const chunkFrames of [77, 41]) {
     assert.equal(nodes.filter(node => node.class_type === "ImageSharpen").length, 0);
     assert.equal(nodes.filter(node => node.class_type === "RepeatImageBatch").length, windows.length - 1);
     assert.equal(starts[0].inputs.ref_motion, undefined);
-    assert.deepEqual(starts[0].inputs.control_video, starts[0].inputs.ref_image,
-      "the first window must start from the exact original image");
+    assert.equal(starts[0].inputs.control_video, undefined,
+      "an image reference must not be sent to the control-video branch");
     for (let i = 1; i < starts.length; i++) {
       const motion = graph[(starts[i].inputs.ref_motion as [string, number])[0]];
       assert.equal(motion.class_type, "RepeatImageBatch");
@@ -286,7 +286,7 @@ test("silence-aware Wan blocks restart from the source image at pauses and retai
   assert.equal(starts[0].inputs.ref_motion, undefined);
   assert.ok(starts[1].inputs.ref_motion, "fixed-deadline fallback should preserve the clean previous handoff");
   assert.equal(starts[2].inputs.ref_motion, undefined, "pause reset should discard prior motion and start from the source");
-  assert.deepEqual(starts[2].inputs.control_video, ["7", 0]);
+  assert.equal(starts[2].inputs.control_video, undefined);
   assert.ok(starts[3].inputs.ref_motion, "handoffs should resume after the silence reset");
   assert.equal(starts[4].inputs.ref_motion, undefined, "a later silence should create another source-image reset");
   assert.equal(Object.values(graph).filter(node => node.class_type === "DGXPrepareWanHandoff").length, 2);
@@ -335,4 +335,96 @@ test("invalid delays are rejected and valid delays align to video frames", () =>
 test("continuous rendering ignores stabilization settings", () => {
   const args = { ...input, durationSeconds: 60 };
   assert.deepEqual(buildWanS2VExtendedWorkflow({ ...args, stabilizationSeconds: 5 }), buildWanS2VExtendedWorkflow(args));
+});
+
+test("long native Extend keeps cumulative motion context, original identity and the complete audio", () => {
+  const { graph, chunks, generatedFrames } = buildWanS2VExtendedWorkflow({ ...input, durationSeconds: 67.382 });
+  assert.equal(chunks, 15);
+  assert.equal(generatedFrames, 1197, "native VAE output is 4*T-3 after temporal concatenation");
+  const extensions = Object.values(graph).filter(node => node.class_type === "WanSoundImageToVideoExtend");
+  extensions.forEach((node, index) => {
+    const previous = (node.inputs.video_latent as [string, number])[0];
+    assert.equal(latentShape(graph, previous).blocks, index + 1, "every extension must see all previous chunks");
+    assert.deepEqual(node.inputs.audio_encoder_output, ["6", 0]);
+    assert.deepEqual(node.inputs.ref_image, ["7", 0]);
+    assert.deepEqual(node.inputs.positive, ["8", 0], "do not append previous image references to text conditioning");
+    assert.deepEqual(node.inputs.negative, ["9", 0]);
+    assert.equal(node.inputs.control_video, undefined);
+  });
+  assert.equal(graph["11"].inputs.control_video, undefined);
+  assertAcyclic(graph);
+});
+
+test("step 1 changes only the motion context while preserving full audio offsets and native output samples", () => {
+  const args = { ...input, durationSeconds: 67.382, width: 384, height: 512, steps: 20, cfg: 6 };
+  const baseline = buildWanS2VExtendedWorkflow(args);
+  const candidate = buildWanS2VReencodedMotionWorkflow(args);
+  assert.equal(candidate.chunks, baseline.chunks);
+  assert.equal(candidate.generatedFrames, baseline.generatedFrames);
+  const nodes = Object.values(candidate.graph);
+  assert.equal(nodes.filter(node => node.class_type === "VAEEncode").length, baseline.chunks - 1);
+  assert.equal(nodes.filter(node => node.class_type === "LoadAudio").length, 1);
+  assert.equal(nodes.filter(node => node.class_type === "AudioEncoderEncode").length, 1);
+  assert.ok(!nodes.some(node => ["TrimAudioDuration", "DGXPrepareWanHandoff", "RepeatImageBatch"].includes(node.class_type)));
+  let index = 0;
+  for (const [id, node] of Object.entries(baseline.graph)) {
+    const changed = candidate.graph[id];
+    if (node.class_type !== "WanSoundImageToVideoExtend") {
+      assert.deepEqual(changed, node, `step 1 must preserve ${id} ${node.class_type}, including output concatenation`);
+      continue;
+    }
+    assert.deepEqual({ ...changed.inputs, video_latent: node.inputs.video_latent }, node.inputs);
+    const proxy = candidate.graph[(changed.inputs.video_latent as [string, number])[0]];
+    assert.equal(proxy.class_type, "LatentConcat");
+    const prefix = candidate.graph[(proxy.inputs.samples1 as [string, number])[0]];
+    const encoded = candidate.graph[(proxy.inputs.samples2 as [string, number])[0]];
+    assert.equal(prefix.class_type, "LatentCut");
+    assert.equal(prefix.inputs.index, 0);
+    assert.equal(prefix.inputs.dim, "t");
+    assert.deepEqual(prefix.inputs.samples, node.inputs.video_latent);
+    assert.equal(encoded.class_type, "VAEEncode");
+    const crop = candidate.graph[(encoded.inputs.pixels as [string, number])[0]];
+    assert.equal(crop.inputs.length, 73);
+    const motionLatentFrames = Math.floor((Number(crop.inputs.length) - 1) / 4) + 1;
+    assert.equal(Number(prefix.inputs.amount) + motionLatentFrames, (index + 1) * 20,
+      "the proxy must retain the original temporal length so Extend cannot shift or repeat speech");
+    assert.equal(crop.inputs.batch_index, (index + 1) * 80 - 3 - 73);
+    const decoded = candidate.graph[(crop.inputs.image as [string, number])[0]];
+    assert.deepEqual(decoded.inputs.samples, node.inputs.video_latent);
+    assert.deepEqual(decoded.inputs.vae, encoded.inputs.vae);
+    index++;
+  }
+  assertAcyclic(candidate.graph);
+  assert.deepEqual(buildWanS2VExtendedWorkflow(args), baseline, "experimental construction must not modify the production builder");
+});
+
+test("step 1 leaves short single-pass videos untouched and rejects unsupported chunk sizes", () => {
+  const args = { ...input, durationSeconds: 4 };
+  assert.deepEqual(buildWanS2VReencodedMotionWorkflow(args), buildWanS2VExtendedWorkflow(args));
+  assert.throws(() => buildWanS2VReencodedMotionWorkflow({ ...args, durationSeconds: 60, chunkFrames: 41 }), /77 images/);
+});
+
+test("production recipe combines re-encoded context, progressive seeds and fixed framing", () => {
+  const args = { ...input, durationSeconds: 67.382, width: 384, height: 512, prompt: "Robot speaks naturally." };
+  const { graph, chunks } = buildWanS2VFixedFramingWorkflow(args);
+  assert.equal(chunks, 15);
+  assert.match(String(graph["8"].inputs.text), /^Robot speaks naturally\. Fixed locked camera/);
+  assert.ok(String(graph["8"].inputs.text).includes(WAN_S2V_FIXED_FRAMING_PROMPT));
+  const samplers = Object.entries(graph).filter(([, node]) => node.class_type === "KSampler").sort(([a], [b]) => Number(a) - Number(b));
+  assert.deepEqual(samplers.map(([, node]) => node.inputs.seed), samplers.map((_, index) => args.seed + index));
+  const extensions = Object.values(graph).filter(node => node.class_type === "WanSoundImageToVideoExtend");
+  assert.equal(extensions.length, chunks - 1);
+  assert.equal(Object.values(graph).filter(node => node.class_type === "VAEEncode").length, chunks - 1);
+  assert.equal(Object.values(graph).filter(node => node.class_type === "AudioEncoderEncode").length, 1);
+  extensions.forEach((node, index) => {
+    const proxy = graph[(node.inputs.video_latent as [string, number])[0]];
+    assert.equal(proxy.class_type, "LatentConcat");
+    assert.deepEqual(node.inputs.audio_encoder_output, ["6", 0]);
+    assert.deepEqual(node.inputs.ref_image, ["7", 0]);
+    const prefix = graph[(proxy.inputs.samples1 as [string, number])[0]];
+    assert.equal(prefix.class_type, "LatentCut");
+    assert.equal(prefix.inputs.amount, (index + 1) * 20 - 19);
+  });
+  assert.ok(!Object.values(graph).some(node => ["TrimAudioDuration", "DGXPrepareWanHandoff"].includes(node.class_type)));
+  assertAcyclic(graph);
 });

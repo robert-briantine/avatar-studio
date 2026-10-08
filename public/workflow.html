@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Documentation détaillée du workflow de création d’un avatar parlant dans DGX Avatar Studio.">
+  <title>Guide du workflow · DGX Avatar Studio</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#17231d;background:#f5f7f4;line-height:1.65;--green:#1b7140;--line:#dce3de;--muted:#69756e;--dark:#13261e;--soft:#e8f6ec}
+    *{box-sizing:border-box}body{margin:0}.top{position:sticky;top:0;background:rgba(245,247,244,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:2}.topin{max-width:1080px;margin:auto;padding:13px 24px;display:flex;justify-content:space-between;align-items:center;gap:15px}.top a{color:var(--green);font-weight:800;text-decoration:none}.top .back{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px}.wrap{max-width:920px;margin:0 auto;padding:42px 24px 80px}.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:850;color:var(--green)}h1{font-size:clamp(30px,5vw,46px);line-height:1.1;letter-spacing:-.04em;margin:8px 0 12px}h2{font-size:23px;letter-spacing:-.025em;margin:0 0 12px}h3{font-size:16px;margin:20px 0 7px}p{margin:8px 0 14px}.lede{font-size:18px;color:#46534b;max-width:780px}.notice,.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin:20px 0;box-shadow:0 4px 18px rgba(19,38,30,.035)}.notice{background:var(--soft);border-color:#c9e9d2}.notice strong{color:var(--green)}.flow{display:grid;gap:10px;margin:20px 0}.flowstep{display:grid;grid-template-columns:42px 1fr;gap:13px;align-items:start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px 17px}.num{width:34px;height:34px;border-radius:11px;background:var(--dark);color:#fff;display:grid;place-items:center;font-weight:850}.flowstep h3{margin:0 0 4px}.flowstep p{margin:0;color:#536159}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grid .card{margin:0}.label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:850}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f2f5f3;border:1px solid var(--line);border-radius:8px;padding:2px 6px;font-size:.92em;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse;margin:10px 0 18px;background:#fff;border-radius:12px;overflow:hidden}th,td{text-align:left;vertical-align:top;padding:11px 12px;border-bottom:1px solid var(--line)}th{font-size:12px;background:#edf2ee}td{font-size:14px}tr:last-child td{border-bottom:0}.small{color:var(--muted);font-size:13px}.toc{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.toc a{color:var(--green);background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:750;text-decoration:none}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}ul,ol{padding-left:22px}li{margin:5px 0}.call{border-left:4px solid #78bc8b;padding:9px 14px;background:#f4faf5;margin:14px 0}.footer{border-top:1px solid var(--line);margin-top:38px;padding-top:16px;color:var(--muted);font-size:12px}
+    @media(max-width:650px){.wrap{padding:28px 15px 55px}.topin{padding:11px 15px}.grid{grid-template-columns:1fr}.card{padding:17px}th,td{padding:8px;font-size:12px}.flowstep{padding:13px}}
+    @media print{.top,.toc{display:none}.wrap{max-width:none;padding:0}.card,.notice,.flowstep{box-shadow:none;break-inside:avoid}body{background:#fff}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="topin"><strong>DGX Avatar Studio · Documentation</strong><a class="back" href="/">← Retour au Studio</a></div></header>
+  <main class="wrap">
+    <div class="eyebrow">Guide technique et utilisateur</div>
+    <h1>Le workflow, de l’image à la vidéo parlante</h1>
+    <p class="lede">Ce document décrit ce que fait réellement Studio lorsqu’on crée un avatar, son empreinte vocale, une narration, puis une vidéo Wan2.2-S2V avec Extend. Les générations vidéo utilisent le WAV complet et une seule séquence continue.</p>
+    <div class="notice"><strong>Configuration vidéo actuelle :</strong> Wan2.2-S2V + Extend natif dans ComfyUI, 16 images par seconde, extensions calculées dans un même graphe, cadrage fixe demandé par le prompt, puis mux du WAV source dans le MP4 final.</div>
+    <nav class="toc" aria-label="Sommaire"><a href="#vue-ensemble">Vue d’ensemble</a><a href="#avatar">1. Avatar</a><a href="#empreinte">2. Empreinte vocale</a><a href="#voix">3. Narration</a><a href="#video">4. Génération vidéo</a><a href="#reglages">Réglages</a><a href="#suivi">Progression et erreurs</a><a href="#short">Short YouTube</a></nav>
+
+    <section id="vue-ensemble">
+      <h2>Vue d’ensemble du parcours</h2>
+      <div class="flow">
+        <div class="flowstep"><span class="num">1</span><div><h3>Image de référence</h3><p>Créer une image ou importer un portrait. Elle devient la référence d’identité visuelle de l’avatar.</p></div></div>
+        <div class="flowstep"><span class="num">2</span><div><h3>Empreinte vocale persistante</h3><p>Qwen3-TTS crée un WAV de référence avec une direction vocale et un preset. L’empreinte est enregistrée sur l’avatar pour ses narrations suivantes.</p></div></div>
+        <div class="flowstep"><span class="num">3</span><div><h3>Nouvelle génération audio</h3><p>Le texte est prononcé avec l’empreinte de l’avatar. Le WAV obtenu est conservé avec cette génération et devient la source sonore de la vidéo.</p></div></div>
+        <div class="flowstep"><span class="num">4</span><div><h3>Vidéo parlante Wan2.2</h3><p>Wan reçoit l’image, le WAV complet et les consignes de mouvement. Il produit le premier bloc puis le prolonge par Extend en gardant la chronologie audio.</p></div></div>
+        <div class="flowstep"><span class="num">5</span><div><h3>Finalisation et historique</h3><p>Studio ajuste la fin à la durée du WAV et assemble la piste audio dans le MP4. La vidéo est enregistrée dans l’historique de la génération.</p></div></div>
+      </div>
+    </section>
+
+    <section id="avatar" class="card">
+      <div class="label">Étape 1</div><h2>Créer l’avatar et son image de référence</h2>
+      <p>Dans « Avatar », on peut générer une image à partir d’un prompt ou importer un fichier PNG, JPG ou WebP. Cette image originale sert de référence visuelle à chaque génération vidéo : le conditionnement Wan conserve le lien à cette identité tout au long des extensions.</p>
+      <p>Si l’image est générée dans Studio, les profils image sont Rapide (12 étapes), Normal (20) et Finale (32), en 1104 × 1472. L’import est une alternative directe.</p>
+      <p>Le réglage de cadrage vidéo agit ensuite sur la préparation de cette image : <strong>Original</strong> la copie pixel pour pixel, <strong>Fit</strong> conserve tout le contenu et ajoute des marges si nécessaire, <strong>Crop</strong> recadre au centre au format de sortie. Cela ne constitue pas un verrou géométrique sur toutes les images générées.</p>
+    </section>
+
+    <section id="empreinte" class="card">
+      <div class="label">Étape 2</div><h2>Créer l’empreinte vocale</h2>
+      <p>Qwen3-TTS fabrique une courte voix de référence à partir du preset, de la direction vocale et du texte de référence. Studio enregistre son WAV et ses paramètres sur l’avatar. Cette étape se fait une fois, puis la même empreinte est réutilisée pour les narrations associées.</p>
+      <p>Si l’empreinte est régénérée, les prochaines narrations utiliseront la nouvelle version. Les médias déjà enregistrés dans l’historique restent associés à leurs générations.</p>
+    </section>
+
+    <section id="voix" class="card">
+      <div class="label">Étape 3</div><h2>Générer le texte parlé</h2>
+      <p>On donne un nom à la génération et on saisit le texte à prononcer. Qwen3-TTS utilise le preset et la direction de l’empreinte de cet avatar, avec son texte et sa langue. Le résultat est un WAV enregistré comme média de la génération.</p>
+      <p>La vidéo prend exactement ce WAV comme source temporelle. Les anciennes métadonnées de segmentation d’une voix ne provoquent pas de découpes : le fichier WAV de cette génération est copié en entier vers ComfyUI et encodé une fois.</p>
+      <div class="call">Conseil pratique : écouter le WAV avant de lancer la vidéo. Une erreur de prononciation, un silence ou une durée indésirable présents dans le WAV seront également présents dans la vidéo.</div>
+    </section>
+
+    <section id="video" class="card">
+      <div class="label">Étape 4 · workflow détaillé</div><h2>Comment Wan2.2-S2V + Extend construit la vidéo</h2>
+      <ol>
+        <li><strong>Validation des prérequis.</strong> Le serveur vérifie la présence des nœuds natifs ComfyUI et des modèles Wan2.2-S2V. Si un nœud ou un modèle manque, le job s’arrête avec une erreur explicite.</li>
+        <li><strong>Préparation des entrées.</strong> L’image est copiée ou préparée selon le cadrage choisi. Le WAV source complet est copié sans découpe. ComfyUI charge ce WAV une fois, puis l’encodeur audio le transforme en conditionnement audio unique.</li>
+        <li><strong>Conditionnement partagé.</strong> Le prompt positif, le prompt négatif, l’image d’identité, le modèle, le VAE et l’encodage audio servent aux différents blocs. Le prompt de cadrage fixe est ajouté automatiquement au prompt positif, même quand le mode créatif est choisi.</li>
+        <li><strong>Bloc initial.</strong> <code class="mono">WanSoundImageToVideo</code> reçoit l’image originale comme référence et génère le premier bloc de 77 images à 16 i/s, soit environ 4,81 secondes de sortie décodée.</li>
+        <li><strong>Extension native successive.</strong> Pour chaque bloc suivant, <code class="mono">WanSoundImageToVideoExtend</code> reçoit l’historique latent cumulé. Un nouveau <code class="mono">KSampler</code> calcule le bloc ; <code class="mono">LatentConcat</code> ajoute son latent à la séquence de sortie. Il n’y a ni rendu vidéo séparé par morceau, ni raccord vidéo après coup.</li>
+        <li><strong>Rafraîchissement du contexte de mouvement.</strong> Avant chaque Extend, l’historique latent est temporairement décodé en images. Studio prend ses 73 dernières images, les réencode en latent, puis les assemble à la partie précédente de l’historique dans un contexte proxy de même longueur temporelle. Extend s’appuie sur ce contexte rafraîchi pour le mouvement et le sampler utilise toujours le latent cumulatif original pour construire la sortie finale. Ce proxy n’est pas utilisé comme image de sortie et ne remplace pas l’image source d’identité.</li>
+        <li><strong>Graine progressive.</strong> Les samplers sont ordonnés du premier au dernier. Le premier utilise la graine de base (par défaut 123456), puis chaque bloc ajoute 1 à cette graine. Cela a donné le meilleur résultat lors du test validé, mais ne garantit pas à lui seul l’absence de variations.</li>
+        <li><strong>Décodage final unique.</strong> Après toutes les extensions, le latent cumulatif est décodé en une seule séquence d’images, puis converti en vidéo à 16 images/s avec le WAV complet.</li>
+        <li><strong>Durée et MP4 final.</strong> La sortie visuelle peut dépasser légèrement la durée audio à cause des blocs entiers. Studio coupe uniquement la fin à la durée exacte du WAV, puis assemble la piste audio originale. Il ne redécoupe pas la génération en segments indépendants, ne régénère pas les images et n’applique pas de correction visage/couleur après le rendu.</li>
+      </ol>
+      <h3>Pourquoi rafraîchir le contexte ?</h3>
+      <p>Une longue chaîne d’extensions peut perdre progressivement des détails visuels. Le contexte réencodé transmet à chaque extension une courte fenêtre récente rafraîchie par le VAE, tout en gardant la longueur de l’historique. La longueur est essentielle : elle permet à Extend de continuer à utiliser le bon décalage dans le même encodage du WAV au lieu de repartir à zéro ou de déplacer la synchronisation.</p>
+      <h3>Combien de blocs ?</h3>
+      <p>Le nombre dépend de la durée du WAV : <code class="mono">ceil(durée en secondes × 16 / 77)</code>. Par exemple, un WAV d’environ 67,4 secondes donne 15 blocs au total : le bloc initial et 14 extensions. Chaque extension conserve toute la séquence latente cumulée comme base temporelle.</p>
+    </section>
+
+    <section id="reglages">
+      <h2>Réglages vidéo disponibles</h2>
+      <table><thead><tr><th>Réglage</th><th>Valeur / effet actuel</th></tr></thead><tbody>
+        <tr><td>Rapide</td><td>512 × 288, 12 étapes par sampler, CFG 5,5. Le format le plus rapide.</td></tr>
+        <tr><td>Équilibré</td><td>768 × 432, 20 étapes par sampler, CFG 6. Valeur sélectionnée par défaut.</td></tr>
+        <tr><td>Qualité</td><td>832 × 480, 28 étapes par sampler, CFG 6. Demande davantage de calcul.</td></tr>
+        <tr><td>Image stricte</td><td>Mode par défaut : prompt générique qui demande de préserver l’identité de l’image et de parler. Le champ de prompt utilisateur n’est pas utilisé dans ce mode.</td></tr>
+        <tr><td>Mouvement créatif</td><td>Utilise le texte du champ « Prompt de mouvement ». La consigne automatique de cadrage fixe est ajoutée après ce texte.</td></tr>
+        <tr><td>Cadrage original</td><td>Copie l’image telle quelle vers ComfyUI.</td></tr>
+        <tr><td>Fit / Crop</td><td>Prépare une image au format demandé en conservant tout le cadre (Fit) ou en recadrant au centre (Crop).</td></tr>
+        <tr><td>FPS / graine</td><td>16 images/s. Graine par défaut 123456, incrémentée d’un par sampler.</td></tr>
+      </tbody></table>
+      <div class="notice"><strong>Le cadrage fixe est une consigne au modèle, pas une contrainte mathématique.</strong> Le prompt demande la même distance, le même angle, la même taille du personnage et l’absence de zoom, panoramique ou recadrage. Wan reste un modèle génératif : il peut encore produire une petite dérive de cadrage selon l’image, le texte, la durée et la graine.</div>
+    </section>
+
+    <section id="suivi" class="card">
+      <div class="label">Exécution</div><h2>Progression, arrêt et erreurs</h2>
+      <p>Le job affiche la validation, la préparation, le calcul des samplers, les décodages et l’encodage MP4. La progression vidéo suit les blocs calculés et estime la durée audio couverte. Les passages de réencodage du contexte ajoutent du travail au calcul d’une extension.</p>
+      <p>Le bouton « Arrêter » annule le job en cours. Une vidéo déjà présente dans l’historique n’est pas écrasée : une nouvelle révision est créée. Une génération vocale modifiée invalide son ancienne vidéo dans la fiche active, tandis que les médias d’historique conservés restent disponibles.</p>
+      <p>Si le service ComfyUI ou Qwen3-TTS est arrêté, la génération ne peut pas terminer. Les voyants de santé en haut de Studio indiquent leur disponibilité. Une erreur liée aux nœuds ou modèles Wan se corrige côté installation ComfyUI ; une erreur liée à la voix se corrige côté service TTS ou entrée audio.</p>
+    </section>
+
+    <section id="short" class="card">
+      <div class="label">Étape facultative</div><h2>Créer un Short YouTube</h2>
+      <p>Le Short est dérivé de la vidéo parlante déjà générée. Il ne relance pas Wan. Studio met la vidéo au format vertical 1080 × 1920 avec le cadrage choisi : fond flouté, plein écran recadré ou bandes noires. L’option de normalisation vise −14 LUFS. L’upscale Real-ESRGAN est facultatif et n’est disponible que si le modèle et le service requis sont installés.</p>
+    </section>
+    <p class="footer">Documentation alignée sur le workflow de production de DGX Avatar Studio. Les étapes vidéo détaillées correspondent au mode Wan2.2-S2V + Extend utilisé par la génération depuis Studio.</p>
+  </main>
+</body>
+</html>

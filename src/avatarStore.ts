@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import type { WanTransitionStyle } from "./wanTransitions.js";
 
 export type Asset = { name: string; path: string; url: string; duration?: number };
 
@@ -28,7 +29,7 @@ export type VoiceAsset = Asset & {
   presetId: string;
   voicePrompt: string;
   seed?: number;
-  /** Independent narration pieces used by the optional First/Last Frame pipeline. */
+  /** Independent narration pieces joined by the selected transition treatment. */
   segments?: Array<{
     name: string;
     path: string;
@@ -45,6 +46,7 @@ export type VideoAsset = Asset & {
   continuity?: "stable" | "continuous";
   stabilizationSeconds?: number;
   upscaled?: boolean;
+  transitionStyle?: WanTransitionStyle;
 };
 
 export type VoiceFingerprint = Asset & {
@@ -92,6 +94,7 @@ export type AvatarGeneration = {
     steps?: number;
     cfg?: number;
     seed?: number;
+    transitionStyle?: WanTransitionStyle;
   };
 };
 
@@ -120,6 +123,7 @@ export type AvatarProject = {
     upscale?: boolean;
     continuity: "stable" | "continuous";
     stabilizationSeconds?: number;
+    transitionStyle?: WanTransitionStyle;
   };
   currentJob?: ProjectJob;
   jobHistory?: ProjectJob[];

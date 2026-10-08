@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Validation · Robot Extend 67 secondes</title>
+<style>body{font:16px system-ui,sans-serif;margin:32px auto;padding:0 20px;max-width:1050px;background:#14191f;color:#eee}video{display:block;width:100%;height:65vh;background:#090d11}button{font:inherit;cursor:pointer;padding:9px 15px;margin:10px 8px 10px 0;border-radius:6px;border:0;background:#d8e3ec;color:#12202c}a{color:#b9d8ff}.captures{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}figure{margin:0}img{width:100%}p{line-height:1.5}</style>
+<h1>Robot · Extend continu · 67 secondes</h1>
+<p>Son complet, BF16, 20 étapes par passe, CFG 6. Vérifier le visage, la texture du métal et le décor entre 45 secondes et la fin.</p>
+<video id="video" controls preload="metadata" src="robot-extend-67s.mp4"></video>
+<div><button data-time="0">Début</button><button data-time="30">30 secondes</button><button data-time="45">45 secondes</button><button data-time="60">60 secondes</button></div>
+<p><a href="robot-extend-67s.mp4">Ouvrir la vidéo</a> · <a href="report.json">Rapport du test</a></p>
+<div class="captures"><figure><img src="frame-00s.png"><figcaption>0 s</figcaption></figure><figure><img src="frame-30s.png"><figcaption>30 s</figcaption></figure><figure><img src="frame-45s.png"><figcaption>45 s</figcaption></figure><figure><img src="frame-60s.png"><figcaption>60 s</figcaption></figure></div>
+<script>const video=document.getElementById('video');document.querySelectorAll('[data-time]').forEach(button=>button.onclick=()=>{video.currentTime=Number(button.dataset.time);video.play()});</script>
+</html>

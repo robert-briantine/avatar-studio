@@ -69,5 +69,5 @@ const report = await renderWanSegments({
 });
 const actualFrames = await probeVideoFrameCount(report.outputPath);
 const expectedFrames = report.plan.reduce((sum, block) => sum + block.frames, 0);
-if (renders !== 3 || actualFrames !== expectedFrames) throw new Error(`Résultat incorrect : ${renders} rendus, ${actualFrames}/${expectedFrames} images.`);
+if (renders !== segments.length || actualFrames !== expectedFrames) throw new Error(`Résultat incorrect : ${renders} rendus, ${actualFrames}/${expectedFrames} images.`);
 console.log(JSON.stringify({ output: report.outputPath, renders, actualFrames, expectedFrames, duration: report.duration, transitions: report.transitions }, null, 2));

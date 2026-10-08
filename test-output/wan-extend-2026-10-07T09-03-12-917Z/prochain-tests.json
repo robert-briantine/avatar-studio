@@ -1,0 +1,55 @@
+{
+  "status": "research-prepared-not-rendered",
+  "sourceReport": "test-output/wan-extend-2026-10-07T09-03-12-917Z/report.json",
+  "durationSeconds": 67.382,
+  "audioPolicy": "one-complete-unchanged-wav",
+  "baseline": {
+    "shift": 8,
+    "cfg": 6,
+    "steps": 20,
+    "seedPolicy": "fixed",
+    "motionContext": "last-19-generated-latents"
+  },
+  "experiments": [
+    {
+      "name": "motion-context",
+      "change": "decode-and-reencode-recent-motion-as-in-Wan",
+      "samplingParameters": "keep-baseline",
+      "seedPolicy": "fixed"
+    },
+    {
+      "name": "seed-progression",
+      "change": "seed-plus-pass-index",
+      "samplingParameters": "keep-baseline"
+    },
+    {
+      "name": "wan-author-settings",
+      "shift": 3,
+      "cfg": 4.5,
+      "steps": 40,
+      "samplingSolver": "uni_pc"
+    },
+    {
+      "name": "context-windows",
+      "experimental": true,
+      "availableNodes": [
+        "ContextWindowsManual",
+        "WanContextWindowsManual"
+      ]
+    }
+  ],
+  "visualReviewSeconds": [
+    0,
+    30,
+    45,
+    50,
+    60,
+    66
+  ],
+  "successCriterion": "User accepts stable geometry, materials, background and mouth continuity beyond 45 seconds",
+  "sources": [
+    "https://github.com/Wan-Video/Wan2.2/blob/main/wan/configs/wan_s2v_14B.py",
+    "https://github.com/Wan-Video/Wan2.2/blob/main/wan/speech2video.py",
+    "https://github.com/Comfy-Org/ComfyUI/pull/12645"
+  ]
+}

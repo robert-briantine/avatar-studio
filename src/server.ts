@@ -12,14 +12,13 @@ import { config } from "./config.js";
 import { ComfyClient } from "./comfy.js";
 import { TtsClient } from "./tts.js";
 import { GeneratorService, type VoiceProgressEvent } from "./generation.js";
-import { assembleWanVideo, checkWanTransitions, concatWavs, createSegmentVideo, createSilence, detectSilences, mediaHealth, probeDuration } from "./media.js";
+import { assembleWanVideo, createSegmentVideo, mediaHealth, probeDuration } from "./media.js";
 import { voicePresets, getVoicePreset } from "./voicePresets.js";
 import { AvatarStore, type AvatarGeneration, type AvatarProject, type ProjectJob, type ShortAsset, type VoiceAsset, type VideoAsset } from "./avatarStore.js";
 import { BatchStore, type BatchRun, type BatchVideoSettings } from "./batchStore.js";
 import { createYouTubeShort, parseShortOptions, shortMakerHealth } from "./shortMaker.js";
-import { buildWanS2VExtendedWorkflow, buildWanS2VSilenceAwareWorkflow, buildWanS2VStabilizedWorkflow, parseWanStabilizationSeconds, planWanS2VSilenceWindows, planWanS2VWindows, WAN_S2V_MODELS, WAN_S2V_NODES, WAN_S2V_STABLE_NODES, WAN_S2V_CHUNK_FRAMES, WAN_S2V_FPS, WAN_S2V_STABILIZATION_SECONDS } from "./wanS2V.js";
-import { WAN_FLF_MODELS, WAN_FLF_NODES } from "./wanFLF.js";
-import { renderWanSegments } from "./wanSegments.js";
+import { buildWanS2VFixedFramingWorkflow, wanS2VPrompt, WAN_S2V_MODELS, WAN_S2V_NODES, WAN_S2V_CHUNK_FRAMES, WAN_S2V_FPS, WAN_S2V_STABILIZATION_SECONDS } from "./wanS2V.js";
+import { parseWanTransitionStyle } from "./wanTransitions.js";
 import { availableBenchmarkWorkers, executeBenchmark, parseBenchmarkWorkers, type BenchmarkRun } from "./benchmark.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -341,7 +340,9 @@ app.get("/api/status", async (_req, res) => {
     ].filter(Boolean) as string[];
     wanModels = { ok: missing.length === 0, missing };
   } catch {}
-  res.json({ comfy: comfyStatus, tts: ttsStatus, ffmpeg, dataRoot, wanS2V: { nodes: wanNodes, models: wanModels } });
+  res.json({ comfy: comfyStatus, tts: ttsStatus, ffmpeg, dataRoot,
+    videoPipeline: { mode: "native-extend", fps: WAN_S2V_FPS, audio: "full-wav" },
+    wanS2V: { nodes: wanNodes, models: wanModels } });
 });
 
 app.get("/api/voice-presets", (_req, res) => res.json(voicePresets));
@@ -650,11 +651,6 @@ app.post("/api/voice/generate", async (req, res) => {
     runDetached(async () => {
       try {
         await updateProjectJob(project, { status: "running", startedAt: Date.now(), progress: 5, message: "Génération Qwen3-TTS…" });
-        const splitByLines = Boolean(req.body.splitByLines) && Boolean(generation && project.voiceFingerprint);
-        const tailSilenceSeconds = Math.max(0.2, Math.min(3, n(req.body.tailSilenceSeconds, 0.8)));
-        let audio: Awaited<ReturnType<GeneratorService["generateVoice"]>>;
-        let segmentAssets: NonNullable<VoiceAsset["segments"]> | undefined;
-        let progressLines: string[] | undefined;
         const voiceContext = {
           signal: controller.signal,
           onVoiceProgress: (event: VoiceProgressEvent) => {
@@ -663,81 +659,24 @@ app.post("/api/voice/generate", async (req, res) => {
               progress: Math.max(5, Math.min(90, Math.round(10 + ratio * 80))),
               current: event.completed,
               total: event.total,
-              message: progressLines && event.sequenceIndex !== undefined
-                ? `${event.message} — « ${progressLines[event.sequenceIndex]?.slice(0, 72) || ""}${(progressLines[event.sequenceIndex]?.length || 0) > 72 ? "…" : ""} »`
-                : event.message
+              message: event.message
             });
           }
         };
-        if (splitByLines) {
-          const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-          if (lines.length < 2) {
-            throw new Error("Le mode par lignes nécessite au moins deux lignes séparées par des retours à la ligne.");
-          }
-          progressLines = lines;
-          const reference = {
+        const audio = await generator.generateVoice({
+          voiceText: text,
+          voicePrompt,
+          voicePresetId: presetId,
+          voiceLanguage: String(req.body.language || "French"),
+          voiceSpeed: n(req.body.speed, 1),
+          voiceSeed: Math.floor(voiceSeedRaw),
+          voiceReference: generation ? {
             id: `avatar-${project.id}`,
             audioPath: project.voiceFingerprint!.path,
             refText: project.voiceFingerprint!.refText,
             presetId: project.voiceFingerprint!.presetId
-          };
-          const generated = await generator.generateBatchVoices(lines.map((line, index) => ({
-            voiceText: line,
-            voicePrompt,
-            voicePresetId: presetId,
-            voiceLanguage: String(req.body.language || "French"),
-            voiceSpeed: n(req.body.speed, 1),
-            voiceSeed: Math.floor(voiceSeedRaw) + index,
-            voiceReference: reference
-          })), voiceContext);
-          const pieces = generated.audios.map((item, index) => {
-            if (!item) throw new Error(`La ligne ${index + 1} n'a produit aucun audio.`);
-            return item;
-          });
-          const base = await store.ensure(project);
-          const stem = generation ? generationFilename(generation, "wav").replace(/\.wav$/i, "") : `voice-${project.id}`;
-          const segmentPaths: string[] = [];
-          segmentAssets = [];
-          for (let index = 0; index < pieces.length; index++) {
-            const piece = pieces[index];
-            const segmentName = `${stem}-segment-${String(index + 1).padStart(2, "0")}.wav`;
-            const segmentPath = path.join(base, "voice", segmentName);
-            const silencePath = path.join(transientRoot, `tail-${randomUUID()}.wav`);
-            await createSilence(silencePath, tailSilenceSeconds, controller.signal);
-            await concatWavs([piece.path, silencePath], segmentPath, controller.signal);
-            await fs.rm(silencePath, { force: true });
-            const duration = await probeDuration(segmentPath, controller.signal);
-            segmentPaths.push(segmentPath);
-            segmentAssets.push({
-              name: segmentName,
-              path: segmentPath,
-              url: pub(project.id, "voice", segmentName),
-              duration,
-              speechDuration: piece.duration,
-              tailSilenceSeconds,
-              text: lines[index]
-            });
-          }
-          const combinedName = generation ? generationFilename(generation, "wav") : "speech.wav";
-          const combinedPath = path.join(base, "voice", combinedName);
-          const duration = await concatWavs(segmentPaths, combinedPath, controller.signal);
-          audio = { name: combinedName, path: combinedPath, url: pub(project.id, "voice", combinedName), duration };
-        } else {
-          audio = await generator.generateVoice({
-            voiceText: text,
-            voicePrompt,
-            voicePresetId: presetId,
-            voiceLanguage: String(req.body.language || "French"),
-            voiceSpeed: n(req.body.speed, 1),
-            voiceSeed: Math.floor(voiceSeedRaw),
-            voiceReference: generation ? {
-              id: `avatar-${project.id}`,
-              audioPath: project.voiceFingerprint!.path,
-              refText: project.voiceFingerprint!.refText,
-              presetId: project.voiceFingerprint!.presetId
-            } : undefined
-          }, voiceContext);
-        }
+          } : undefined
+        }, voiceContext);
         await updateProjectJob(project, { progress: 92, message: "Enregistrement de la voix…" });
         const base = await store.ensure(project);
         const filename = generation ? generationFilename(generation, "wav") : "speech.wav";
@@ -751,8 +690,7 @@ app.post("/api/voice/generate", async (req, res) => {
           text,
           presetId,
           voicePrompt,
-          seed: Math.floor(voiceSeedRaw),
-          ...(segmentAssets ? { segments: segmentAssets } : {})
+          seed: Math.floor(voiceSeedRaw)
         };
         project.voice = voice;
         project.video = undefined;
@@ -943,6 +881,8 @@ app.post("/api/video/generate", async (req, res) => {
     if (!project.avatar) throw new Error("Génère ou charge d'abord un avatar.");
     if (!voice) throw new Error("Génère d'abord la voix.");
 
+    // Accept the legacy field for older clients, without applying transitions.
+    if (req.body.transitionStyle !== undefined) parseWanTransitionStyle(req.body.transitionStyle);
     // A video already in history is immutable: re-render into a fresh entry
     // with a new asset filename so both versions remain accessible.
     if (generation?.video) generation = nextVideoRevision(project, generation);
@@ -953,16 +893,13 @@ app.post("/api/video/generate", async (req, res) => {
 
     // New renders use only native Wan Extend; legacy engine types remain in
     // stored history so old videos continue to display correctly.
-    const stabilized = false;
-    const resetOnSilence = false;
-    const stabilizationSeconds = WAN_S2V_STABILIZATION_SECONDS;
     const continuity = "continuous" as const;
     const job = await createProjectJob(project, "video-wan", `Génération ${engineLabel} en attente…`, {
       generationId: generation?.id,
       batchId: s(req.body.batchId) || undefined
     });
     const controller = controllerFor(job);
-    project.videoSettings = { engine, upscale, continuity, ...(stabilized ? { stabilizationSeconds } : {}) };
+    project.videoSettings = { engine, upscale, continuity };
     if (generation) {
       generation.status = "video-running";
       generation.videoSettings = {
@@ -970,7 +907,6 @@ app.post("/api/video/generate", async (req, res) => {
         upscale,
         quality: req.body.quality === "fast" || req.body.quality === "final" ? req.body.quality : "normal",
         continuity,
-        ...(stabilized ? { stabilizationSeconds } : {}),
         sourceMode: req.body.sourceMode === "creative" ? "creative" : "strict",
         framing: req.body.framing === "fit" || req.body.framing === "crop" ? req.body.framing : "original",
         motionPrompt: s(req.body.motionPrompt),
@@ -1016,7 +952,7 @@ app.post("/api/video/generate", async (req, res) => {
         await fs.mkdir(comfyInputDir, { recursive: true });
 
         const videoQuality = videoQualitySettings(req.body.quality);
-        const total = voice.duration || await probeDuration(voice.path, controller.signal);
+        const total = await probeDuration(voice.path, controller.signal);
         const requestedWidth = Math.floor(n(req.body.width, videoQuality.width));
         const requestedHeight = Math.floor(n(req.body.height, videoQuality.height));
         const steps = Math.max(4, Math.min(60, Math.floor(n(req.body.steps, videoQuality.steps))));
@@ -1027,36 +963,9 @@ app.post("/api/video/generate", async (req, res) => {
         const framing: VideoFramingMode =
           req.body.framing === "fit" || req.body.framing === "crop" ? req.body.framing : "original";
         const userMotionPrompt = String(req.body.motionPrompt || "").trim();
-        const prompt = sourceMode === "strict"
-          ? "The same person with the exact original appearance from the reference image. Preserve the natural skin and beard texture, original lip color, lighting, contrast, clothing and background. Natural synchronized speech and a stable camera."
-          : (userMotionPrompt || "The subject speaks naturally with synchronized mouth movement while keeping the camera stable and preserving the original appearance and background.");
-
-        const silences = resetOnSilence
-          ? await detectSilences(voice.path, controller.signal, 0.20, -38)
-          : undefined;
-        const plannedWindows = stabilized
-          ? (resetOnSilence
-            ? planWanS2VSilenceWindows(total, silences || [], stabilizationSeconds)
-            : planWanS2VWindows(total, stabilizationSeconds))
-          : undefined;
-        const silenceResetCount = plannedWindows?.filter((window, index) => index > 0 && window.resetToOriginal).length || 0;
+        const prompt = wanS2VPrompt(sourceMode === "strict", userMotionPrompt);
         const totalFrames = Math.max(1, Math.ceil(total * WAN_S2V_FPS));
-        const chunks = plannedWindows
-          ? plannedWindows.reduce((sum, window) => sum + Math.ceil(window.frames / WAN_S2V_CHUNK_FRAMES), 0)
-          : Math.max(1, Math.ceil(totalFrames / WAN_S2V_CHUNK_FRAMES));
-        if (!info.WanSoundImageToVideo?.input?.optional?.control_video) {
-          throw new Error("Cette version de ComfyUI ne propose pas control_video pour Wan2.2-S2V. Mets ComfyUI à jour pour verrouiller l'image de depart de chaque bloc.");
-        }
-        if (plannedWindows && plannedWindows.length > 1) {
-          const missing = WAN_S2V_STABLE_NODES.filter(name => !info[name]);
-          if (missing.length) {
-            throw new Error(`Node(s) ComfyUI manquant(s) : ${missing.join(", ")}. Mets ComfyUI à jour pour utiliser les raccords stabilisés.`);
-          }
-          if (!info.WanSoundImageToVideo?.input?.optional?.ref_motion) {
-            throw new Error("Cette version de ComfyUI ne propose pas ref_motion pour Wan2.2-S2V. Mets ComfyUI à jour pour reprendre la pose entre les blocs stabilisés.");
-          }
-          await checkWanTransitions();
-        }
+        const chunks = Math.max(1, Math.ceil(totalFrames / WAN_S2V_CHUNK_FRAMES));
 
         await updateProjectJob(project, {
           progress: 6,
@@ -1064,9 +973,7 @@ app.post("/api/video/generate", async (req, res) => {
           doneSeconds: 0,
           current: 1,
           total: chunks,
-          message: resetOnSilence
-            ? `Test Wan2.2 : ${silenceResetCount} reprise(s) sur silence détecté(s), ${chunks} passe(s) au total…`
-            : `Wan2.2 natif : ${chunks} passe(s) de ${WAN_S2V_CHUNK_FRAMES} frames pour ${total.toFixed(1)} s d'audio…`
+          message: `Wan2.2 natif : ${chunks} passe(s) pour ${total.toFixed(1)} s d'audio complet…`
         });
 
         const base = await store.ensure(project);
@@ -1087,95 +994,12 @@ app.post("/api/video/generate", async (req, res) => {
           framing
         );
 
-        // Une voix découpée demande un vrai reset ComfyUI par ligne. Ne pas
-        // réutiliser le latent Extend global : chaque morceau repart du graphe
-        // Wan initial, puis les vidéos sont recollées avec leurs silences.
-        if (voice.segments?.length) {
-          const flfNodeCheck = await comfy.hasNodes([...WAN_FLF_NODES]);
-          if (!flfNodeCheck.ok) throw new Error(`Node(s) FLF2V ComfyUI manquant(s) : ${flfNodeCheck.missing.join(", ")}.`);
-          const flfMissingModels = [
-            JSON.stringify(info.UNETLoader ?? {}).includes(`"${WAN_FLF_MODELS.high}"`) ? null : WAN_FLF_MODELS.high,
-            JSON.stringify(info.UNETLoader ?? {}).includes(`"${WAN_FLF_MODELS.low}"`) ? null : WAN_FLF_MODELS.low,
-            JSON.stringify(info.CLIPLoader ?? {}).includes(`"${WAN_FLF_MODELS.textEncoder}"`) ? null : WAN_FLF_MODELS.textEncoder,
-            JSON.stringify(info.VAELoader ?? {}).includes(`"${WAN_FLF_MODELS.vae}"`) ? null : WAN_FLF_MODELS.vae
-          ].filter(Boolean) as string[];
-          if (flfMissingModels.length) throw new Error(`Modèle(s) FLF2V manquant(s) : ${flfMissingModels.join(", ")}.`);
-          const filename = generation ? generationFilename(generation, "mp4") : "avatar-speaking-wan2.2-extend.mp4";
-          const target = path.join(base, "video", filename);
-          const { duration } = await renderWanSegments({
-            segments: voice.segments,
-            referenceImageName: imageName,
-            audioPath: voice.path,
-            outputPath: target,
-            workDir,
-            prompt,
-            strictIdentity: sourceMode === "strict",
-            seed, width: requestedWidth, height: requestedHeight, steps, cfg,
-            filenamePrefix: `dgx-avatar/wan-segments-${project.id}-${randomUUID()}`,
-            signal: controller.signal,
-            uploadAudio: async (localPath, index) => {
-              const name = `wan-audio-${project.id}-${index + 1}-${randomUUID()}.wav`;
-              const inputPath = path.join(comfyInputDir, name);
-              await fs.copyFile(localPath, inputPath);
-              tempFiles.push(inputPath);
-              return name;
-            },
-            uploadImage: async localPath => {
-              const name = `wan-frame-${project.id}-${randomUUID()}.png`;
-              const inputPath = path.join(comfyInputDir, name);
-              await fs.copyFile(localPath, inputPath);
-              tempFiles.push(inputPath);
-              return name;
-            },
-            render: async (graph, outputPath) => {
-              const tracked = await comfy.queueTracked(graph, () => undefined, controller.signal);
-              try {
-                const ref = await comfy.waitForFile(tracked.promptId, [".mp4", ".mkv", ".webm"], 0, controller.signal);
-                await fs.writeFile(outputPath, await comfy.downloadFile(ref, controller.signal));
-              } finally { tracked.close(); }
-            },
-            onProgress: async event => {
-              await updateProjectJob(project, {
-                progress: event.progress, current: event.index + 1, total: event.total,
-                totalSeconds: total, message: event.message
-              });
-            }
-          });
-          const video: VideoAsset = {
-            name: filename,
-            path: target,
-            url: pub(project.id, "video", filename),
-            duration,
-            engine: "wan-s2v",
-            continuity
-          };
-          project.video = video;
-          if (generation) {
-            const obsoleteShort = generation.short?.path;
-            generation.video = video;
-            generation.short = undefined;
-            generation.shortError = undefined;
-            generation.status = "done";
-            generation.error = undefined;
-            generation.updatedAt = Date.now();
-            if (obsoleteShort) await fs.rm(obsoleteShort, { force: true }).catch(() => undefined);
-          }
-          await finishProjectJob(project, {
-            message: `Vidéo Wan2.2 terminée avec ${voice.segments.length} réinitialisations de blocs.`,
-            progress: 100,
-            current: voice.segments.length,
-            total: voice.segments.length,
-            doneSeconds: duration,
-            totalSeconds: total,
-            etaSeconds: 0
-          });
-          return;
-        }
-
-        // Un seul fichier WAV : le mode stabilisé en extrait les fenêtres dans
-        // ComfyUI. Le WAV complet reste la piste audio finale dans les deux modes.
+        // Always use the full WAV, including voices with legacy segment metadata.
+        // Native Extend receives the cumulative latent and the same audio encoding.
         const audioName = `wan-audio-full-${project.id}-${randomUUID()}.wav`;
-        await fs.copyFile(voice.path, path.join(comfyInputDir, audioName));
+        const preparedAudioPath = path.join(comfyInputDir, audioName);
+        await fs.copyFile(voice.path, preparedAudioPath);
+        tempFiles.push(preparedImagePath, preparedAudioPath);
 
         const workflowArgs = {
           imageName,
@@ -1186,15 +1010,12 @@ app.post("/api/video/generate", async (req, res) => {
           width: requestedWidth,
           height: requestedHeight,
           durationSeconds: total,
-          stabilizationSeconds,
           steps,
           cfg,
           filenamePrefix: `dgx-avatar/wan-extend-${project.id}`,
           chunkFrames: WAN_S2V_CHUNK_FRAMES
         };
-        const { graph, generatedFrames, windows } = resetOnSilence
-          ? buildWanS2VSilenceAwareWorkflow(workflowArgs, silences || [])
-          : (stabilized ? buildWanS2VStabilizedWorkflow(workflowArgs) : buildWanS2VExtendedWorkflow(workflowArgs));
+        const { graph, generatedFrames } = buildWanS2VFixedFramingWorkflow(workflowArgs);
 
         // Évite de vider les poids et le cache à chaque nouvelle vidéo.
         // ComfyUI libère lui-même de la mémoire lorsque le workflow en a besoin.
@@ -1203,11 +1024,7 @@ app.post("/api/video/generate", async (req, res) => {
           progress: 10,
           current: 1,
           total: chunks,
-          message: windows
-            ? (resetOnSilence
-              ? `Test Wan2.2 : ${silenceResetCount} reset(s) sur silence, autres raccords stabilisés (${stabilizationSeconds} s max)…`
-              : `Calcul Wan2.2 : ${chunks} passe(s), reprise corrigée à chaque bloc natif (${stabilizationSeconds} s)…`)
-            : `Calcul Wan2.2 : bloc initial + ${Math.max(0, chunks - 1)} extension(s) natives…`
+          message: `Calcul Wan2.2 : bloc initial + ${Math.max(0, chunks - 1)} extension(s) natives…`
         });
 
         const samplerNodeIds = Object.entries(graph)
@@ -1220,16 +1037,9 @@ app.post("/api/video/generate", async (req, res) => {
         // Suit chaque sampler, y compris lors d'une réutilisation du cache.
         const samplerFractions = new Map<string, number>();
         const sampledBlocks = () => [...samplerFractions.values()].reduce((sum, value) => sum + value, 0);
-        // Ne compte qu'une fois le temps vidéo partagé par les chevauchements.
-        const samplerSeconds = windows?.flatMap((window, i) => {
-          const overlap = i ? windows[i - 1].startFrame + windows[i - 1].frames - window.startFrame : 0;
-          return Array.from({ length: Math.ceil(window.frames / WAN_S2V_CHUNK_FRAMES) }, (_, j) =>
-            Math.max(0, Math.min(window.frames, (j + 1) * WAN_S2V_CHUNK_FRAMES) - Math.max(overlap, j * WAN_S2V_CHUNK_FRAMES)) / WAN_S2V_FPS
-          );
-        });
         const sampledSeconds = () => samplerNodeIds.reduce((seconds, id, index) => seconds + (
           samplerFractions.get(id) === 1
-            ? (samplerSeconds?.[index] ?? Math.max(0, Math.min(WAN_S2V_CHUNK_FRAMES / WAN_S2V_FPS, total - index * WAN_S2V_CHUNK_FRAMES / WAN_S2V_FPS)))
+            ? Math.max(0, Math.min((WAN_S2V_CHUNK_FRAMES + 3) / WAN_S2V_FPS, total - index * (WAN_S2V_CHUNK_FRAMES + 3) / WAN_S2V_FPS))
             : 0
         ), 0);
 
@@ -1264,9 +1074,7 @@ app.post("/api/video/generate", async (req, res) => {
               current: Math.min(chunks, Math.floor(sampledBlocks()) + 1), total: chunks,
               doneSeconds: Math.min(total, sampledSeconds()), totalSeconds: total,
               message: reanchored
-                ? (graph[nodeId].inputs.ref_motion
-                  ? `Wan2.2 : bloc ${current}/${chunks}, depart verrouille sur la dernière image…`
-                  : `Wan2.2 : bloc ${current}/${chunks} depuis l'image originale exacte…`)
+                ? `Wan2.2 : bloc initial avec l'image de référence…`
                 : `Wan2.2 : extension native ${current}/${chunks}…`
             }, true);
             return;
@@ -1317,9 +1125,7 @@ app.post("/api/video/generate", async (req, res) => {
           doneSeconds: total,
           totalSeconds: total,
           etaSeconds: 0,
-          message: windows
-            ? "Wan2.2 terminé. Adoucissement des raccords et assemblage avec l'audio original…"
-            : `Wan2.2 terminé (${generatedFrames} frames calculées). Ajustement à la durée exacte du WAV…`
+          message: `Wan2.2 terminé (${generatedFrames} frames calculées). Ajustement à la durée exacte du WAV…`
         });
 
         const bytes = await comfy.downloadFile(ref, controller.signal);
@@ -1328,9 +1134,9 @@ app.post("/api/video/generate", async (req, res) => {
 
         const filename = generation ? generationFilename(generation, "mp4") : "avatar-speaking-wan2.2-extend.mp4";
         const target = path.join(base, "video", filename);
-        // Fusionne les mêmes instants des fenêtres voisines, puis remet le WAV
-        // original. Le mode continu garde sa simple coupe de fin habituelle.
-        await assembleWanVideo(raw, voice.path, target, total, windows, preparedImagePath, controller.signal);
+        // Trim only the end and mux the original WAV. No frame reconstruction,
+        // lighting adjustment, mouth-color correction or transition processing.
+        await assembleWanVideo(raw, voice.path, target, total, undefined, undefined, controller.signal);
 
         const duration = await probeDuration(target, controller.signal).catch(() => total);
         const video: VideoAsset = {
@@ -1339,8 +1145,7 @@ app.post("/api/video/generate", async (req, res) => {
           url: pub(project.id, "video", filename),
           duration,
           engine: "wan-s2v",
-          continuity,
-          stabilizationSeconds: stabilized ? stabilizationSeconds : undefined
+          continuity
         };
         project.video = video;
         if (generation) {
@@ -1498,6 +1303,7 @@ function parseBatchVideoSettings(value: any): BatchVideoSettings {
     engine,
     upscale: false,
     quality: quality.profile,
+    transitionStyle: parseWanTransitionStyle(value?.transitionStyle),
     continuity,
     stabilizationSeconds,
     sourceMode: value?.sourceMode === "creative" ? "creative" : "strict",

@@ -1,0 +1,86 @@
+{
+  "status": "completed",
+  "project": "robot qui parle",
+  "sourceAudio": "/home/blockapicoder/dgx-avatar-studio-data/projects/robot-qui-parle--43805a39/voice/speech.wav",
+  "sourceAudioSha256": "51ae6155a93ccd2e31fbf194202684f15151d437b69d05ed7b106a57ab2ced28",
+  "sourceAudioSnapshot": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-context-step3-framing-2026-10-07T16-39-36-855Z/original-audio.wav",
+  "sourceImage": "/home/blockapicoder/dgx-avatar-studio-data/projects/robot-qui-parle--43805a39/avatar/avatar.png",
+  "sourceImageSha256": "5c99d6865b7b8fd76367ef06b4c4fd206f1f0b62f8d9513bf79ab62cb2222214",
+  "sourceImageSnapshot": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-context-step3-framing-2026-10-07T16-39-36-855Z/original-image.png",
+  "experiment": "step-3-fixed-framing-prompt-after-steps-1-and-2",
+  "baselineDirectory": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-context-step2-seeds-2026-10-07T14-22-08-989Z",
+  "productionActivated": false,
+  "changedParameter": "fixed-framing-prompt",
+  "previousStepChangesRetained": [
+    "motion-context-vae-roundtrip",
+    "per-pass-seed"
+  ],
+  "seedPolicy": "seed-plus-sampler-index",
+  "durationSeconds": 67.382,
+  "chunks": 15,
+  "generatedFrames": 1197,
+  "settings": {
+    "imageName": "wan-extend-test-136ce4cf-1892-4798-8d9a-9d7262d7b42a.png",
+    "audioName": "wan-extend-test-15193175-9475-4cdd-b8c5-b148fc52f14d.wav",
+    "durationSeconds": 67.382,
+    "prompt": "The same subject from the reference image speaks with synchronized mouth movement. Preserve the exact identity, anatomy, shapes, surface materials, colors, clothing, lighting and background. Subtle natural motion, stable camera, continuous shot. Fixed locked camera for the entire clip, at exactly the same distance and angle as the reference image. Preserve the same head-and-shoulders crop, screen position, and subject size from the first frame to the last. No zoom in or zoom out, no dolly, no pan, no tilt, no camera movement, no reframing. Only the robot's face and mouth move subtly while speaking.",
+    "strictIdentity": true,
+    "seed": 123456,
+    "width": 384,
+    "height": 512,
+    "steps": 20,
+    "cfg": 6,
+    "filenamePrefix": "dgx-avatar/test-context-wan-context-step3-framing-2026-10-07T16-39-36-855Z"
+  },
+  "models": {
+    "diffusion": "wan2.2_s2v_14B_bf16.safetensors",
+    "textEncoder": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "audioEncoder": "wav2vec2_large_english_fp16.safetensors",
+    "vae": "wan_2.1_vae.safetensors"
+  },
+  "splitAudio": false,
+  "independentResets": 0,
+  "motionReencodings": 14,
+  "visualValidation": "awaiting-user-review",
+  "postProcessing": "trim-end-and-mux-original-audio",
+  "startedAt": "2026-10-07T16:39:36.907Z",
+  "promptId": "adb717a5-12ae-4807-a101-2717aa31f742",
+  "comfyOutput": {
+    "filename": "test-context-wan-context-step3-framing-2026-10-07T16-39-36-855Z_00001_.mp4",
+    "subfolder": "dgx-avatar",
+    "type": "output"
+  },
+  "output": "/home/blockapicoder/dgx-avatar-studio-v0.7.0-benchmark/dgx060/test-output/wan-context-step3-framing-2026-10-07T16-39-36-855Z/robot-extend-67s.mp4",
+  "rawFrames": 1197,
+  "actualFrames": 1079,
+  "actualDuration": 67.4375,
+  "elapsedSeconds": 7256.695,
+  "verification": {
+    "nativeFrameHashesPreserved": true,
+    "sourceAudioHashPreserved": true,
+    "videoDuration": 67.4375,
+    "audioDuration": 67.382,
+    "fps": "16/1",
+    "dimensions": "384x512"
+  },
+  "reviewUrl": "http://127.0.0.1:3034/validation.html",
+  "agentVisualInspection": {
+    "status": "large-scale-drift-not-visible-in-reviewed-stills",
+    "framesReviewedSeconds": [
+      0,
+      10,
+      30,
+      45,
+      50,
+      60,
+      66
+    ],
+    "observations": "Les captures montrent une taille et un cadrage beaucoup plus constants de 45 à 66 secondes que dans l’étape 2 ; le dézoom marqué observé précédemment ne ressort pas dans ces images fixes.",
+    "basis": "inspection-of-still-frames",
+    "userVerdictPending": true
+  },
+  "cameraPromptReferences": [
+    "https://github.com/Wan-Video/Wan2.2/blob/main/generate.py",
+    "https://docs.comfy.org/tutorials/video/wan/wan2-2-fun-camera"
+  ]
+}
