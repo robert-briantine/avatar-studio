@@ -1,10 +1,46 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import path from "node:path";
-import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { AvatarStore } from "../src/avatarStore.js";
 import { BatchStore } from "../src/batchStore.js";
+
+test("renaming waits for all queued or running generation types and preserves voice files", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "avatar-rename-test-"));
+  try {
+    const store = new AvatarStore(directory);
+    await store.init();
+    const project = await store.create("Avatar original");
+    const originalBase = store.base(project);
+    const originalVoice = path.join(originalBase, "voice/narration.wav");
+    await writeFile(originalVoice, "saved narration");
+    project.voice = { name: "narration.wav", path: originalVoice, url: "", text: "Bonjour", presetId: "narrator", voicePrompt: "" };
+    project.generations = [{ id: "g", name: "Essai", text: "Bonjour", createdAt: 1, updatedAt: 1, status: "voice-ready", voice: project.voice }];
+    await store.save(project);
+    for (const type of ["image", "voice-fingerprint", "voice", "video-preview", "video-wan", "video-hybrid", "video-longcat", "short"] as const) {
+      for (const status of ["queued", "running"] as const) {
+        project.currentJob = { id: `${type}-${status}`, type, status, createdAt: 1, progress: 0, message: "Travail en cours" };
+        await assert.rejects(store.rename(project, "Nouveau nom"), /Renommage impossible/);
+        assert.equal(project.name, "Avatar original");
+        assert.equal(store.base(project), originalBase);
+        assert.equal(project.voice.path, originalVoice);
+        assert.equal(await readFile(originalVoice, "utf8"), "saved narration");
+      }
+    }
+    project.currentJob!.status = "done";
+    const rename = store.rename(project, "Nouveau nom");
+    assert.equal(store.isRenaming(project), true);
+    await assert.rejects(store.rename(project, "Autre nom"), /renommage est déjà en cours/);
+    await rename;
+    assert.equal(store.isRenaming(project), false);
+    assert.equal(project.name, "Nouveau nom");
+    assert.notEqual(store.base(project), originalBase);
+    assert.equal(await readFile(project.voice.path, "utf8"), "saved narration");
+    assert.equal(project.generations[0].voice!.path, project.voice.path);
+    await assert.rejects(access(originalVoice), { code: "ENOENT" });
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
 
 test("an avatar keeps its voice fingerprint and named generation history after restart", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "avatar-library-test-"));

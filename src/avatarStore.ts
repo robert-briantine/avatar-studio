@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { WanTransitionStyle } from "./wanTransitions.js";
+import type { AvatarScript, AvatarScriptTiming } from "./avatarScript.js";
 
 export type Asset = { name: string; path: string; url: string; duration?: number };
 
@@ -26,6 +27,9 @@ export type ProjectJob = {
 
 export type VoiceAsset = Asset & {
   text: string;
+  /** Original scenario and visual sequence plan; text contains only spoken words. */
+  script?: AvatarScript;
+  scriptTimings?: AvatarScriptTiming[];
   presetId: string;
   voicePrompt: string;
   seed?: number;
@@ -71,6 +75,7 @@ export type AvatarGeneration = {
   id: string;
   name: string;
   text: string;
+  script?: AvatarScript;
   createdAt: number;
   updatedAt: number;
   status: "draft" | "voice-running" | "voice-ready" | "video-running" | "short-running" | "short-error" | "done" | "error" | "stopped";
@@ -166,6 +171,7 @@ function assetUrl(projectId: string, folder: "avatar" | "voice" | "video", filen
 export class AvatarStore {
   private readonly map = new Map<string, AvatarProject>();
   private readonly baseById = new Map<string, string>();
+  private readonly renaming = new Set<string>();
   constructor(private readonly root: string) {}
 
   async init(): Promise<void> {
@@ -237,7 +243,8 @@ export class AvatarStore {
           project.generations = [{
             id: randomUUID(),
             name: "Generation importee",
-            text: project.voice?.text || "",
+            text: project.voice?.script?.source || project.voice?.text || "",
+            script: project.voice?.script,
             createdAt: project.createdAt,
             updatedAt: project.updatedAt,
             status: project.video ? "done" : project.voice ? "voice-ready" : "draft",
@@ -343,44 +350,55 @@ export class AvatarStore {
     return target;
   }
 
+  isRenaming(p: AvatarProject): boolean { return this.renaming.has(p.id); }
+
   async rename(p: AvatarProject, newName: string): Promise<void> {
+    if (p.currentJob?.status === "queued" || p.currentJob?.status === "running") {
+      throw new Error("Renommage impossible pendant une génération en attente ou en cours.");
+    }
+    if (this.isRenaming(p)) throw new Error("Un renommage est déjà en cours.");
     const cleanName = newName.trim();
     if (!cleanName) throw new Error("Le nom du projet est obligatoire.");
-    const oldBase = this.base(p);
-    const newFolderName = makeFolderName(cleanName.slice(0, 120), p.id);
-    const newBase = path.join(this.root, newFolderName);
+    this.renaming.add(p.id);
+    try {
+      const oldBase = this.base(p);
+      const newFolderName = makeFolderName(cleanName.slice(0, 120), p.id);
+      const newBase = path.join(this.root, newFolderName);
 
-    if (path.resolve(oldBase) !== path.resolve(newBase)) {
-      await fs.rename(oldBase, newBase);
-      const remap = (asset?: Asset) => {
-        if (!asset) return;
-        const rel = path.relative(oldBase, asset.path);
-        asset.path = path.join(newBase, rel);
-      };
-      const remapVoiceSegments = (voice?: VoiceAsset) => {
-        for (const segment of voice?.segments || []) {
-          const rel = path.relative(oldBase, segment.path);
-          segment.path = path.join(newBase, rel);
+      if (path.resolve(oldBase) !== path.resolve(newBase)) {
+        await fs.rename(oldBase, newBase);
+        const remap = (asset?: Asset) => {
+          if (!asset) return;
+          const rel = path.relative(oldBase, asset.path);
+          asset.path = path.join(newBase, rel);
+        };
+        const remapVoiceSegments = (voice?: VoiceAsset) => {
+          for (const segment of voice?.segments || []) {
+            const rel = path.relative(oldBase, segment.path);
+            segment.path = path.join(newBase, rel);
+          }
+        };
+        remap(p.avatar);
+        remap(p.voice);
+        remap(p.video);
+        remap(p.voiceFingerprint);
+        remapVoiceSegments(p.voice);
+        remapVoiceSegments(p.voiceFingerprint as VoiceAsset | undefined);
+        for (const generation of p.generations || []) {
+          remap(generation.voice);
+          remapVoiceSegments(generation.voice);
+          remap(generation.video);
+          remap(generation.short);
         }
-      };
-      remap(p.avatar);
-      remap(p.voice);
-      remap(p.video);
-      remap(p.voiceFingerprint);
-      remapVoiceSegments(p.voice);
-      remapVoiceSegments(p.voiceFingerprint as VoiceAsset | undefined);
-      for (const generation of p.generations || []) {
-        remap(generation.voice);
-        remapVoiceSegments(generation.voice);
-        remap(generation.video);
-        remap(generation.short);
+        this.baseById.set(p.id, newBase);
       }
-      this.baseById.set(p.id, newBase);
-    }
 
-    p.name = cleanName.slice(0, 120);
-    p.folderName = newFolderName;
-    await this.save(p);
+      p.name = cleanName.slice(0, 120);
+      p.folderName = newFolderName;
+      await this.save(p);
+    } finally {
+      this.renaming.delete(p.id);
+    }
   }
 
   async ensure(p: AvatarProject): Promise<string> {

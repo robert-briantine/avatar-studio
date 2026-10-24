@@ -81,6 +81,10 @@
               <div class="cardHead"><div><h2>Nouvelle génération</h2><p>Nommez le rendu, écrivez le texte, générez la voix clonée puis la vidéo.</p></div><span class="badge ready">Empreinte active</span></div>
               <div class="field"><label>Nom de la génération</label><input id="generationName" class="input" placeholder="Ex. Présentation produit · version française"></div>
               <div class="field"><label>Texte à prononcer</label><textarea id="speechText" placeholder="Saisissez le texte exact que l’avatar doit prononcer…"></textarea></div>
+              <p class="status">Pour afficher un texte ou une formule en bas de la vidéo : <code>{Texte: Bonjour}</code> ou <code>{Latex: x+1}</code>, suivi des paroles. <code>{}</code> termine l’affichage. Ces commandes ne sont pas prononcées.</p>
+              <p class="status">Pour remplacer l’avatar par une image pendant les paroles : <code>{Image: une licorne}</code>. <code>{}</code> fait revenir l’avatar. Une description identique réutilise la même image.</p>
+              <p class="status">Pour insérer une image ou une vidéo du serveur : <code>{File:/chemin/fichier.mp4}</code>. Si la vidéo possède du son, les paroles reprennent avec l’avatar après sa lecture.</p>
+              <p class="status">Chaque commande visuelle doit être suivie de paroles. Pour écrire des accolades dans les paroles : <code>\{exemple\}</code>.</p>
               <div class="actions"><button id="generateVoice" class="btn primary">1 · Générer la voix</button><span class="status">La voix utilisera automatiquement l’empreinte de cet avatar.</span></div>
               <div id="generationStatus" class="status"></div>
               <div id="selectedGeneration" class="hidden"><div class="divider"></div><div class="cardHead"><div><h3 id="selectedGenerationTitle"></h3><p id="selectedGenerationMeta"></p></div><span id="selectedGenerationBadge" class="badge"></span></div><div id="selectedVoiceMedia"></div></div>
@@ -189,6 +193,9 @@ function renderJob(){
   $('#generateVideo').disabled=running||!generation?.voice;
   $('#generateShort').disabled=running||!generation?.video;
   $('#deleteAvatar').disabled=running||!state.project;
+  $('#renameAvatar').disabled=running||!state.project;
+  $('#avatarName').disabled=running||!state.project;
+  $('#renameAvatar').title=running?'Renommage disponible après la fin de la génération.':'';
 }
 function renderStudio(){
   const project=state.project;
@@ -216,7 +223,7 @@ async function refreshProjects(selectId){const data=await api('/api/projects');s
 
 $('#createAvatar').onclick=async()=>{const name=$('#newAvatarName').value.trim();if(!name)return toast('Donnez un nom au nouvel avatar.',true);try{const data=await post('/api/project',{name});$('#newAvatarName').value='';state.project=data.project;state.step=1;state.selectedGenerationId=null;await refreshProjects(data.project.id);toast('Avatar créé. Ajoutez maintenant son image.')}catch(error){toast(error.message,true)}};
 $('#newAvatarName').onkeydown=event=>{if(event.key==='Enter')$('#createAvatar').click()};
-$('#renameAvatar').onclick=async()=>{if(!state.project)return;try{const data=await api(`/api/project/${encodeURIComponent(state.project.id)}/name`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({name:$('#avatarName').value})});state.project=data.project;await refreshProjects(state.project.id);toast('Avatar renommé.')}catch(error){toast(error.message,true)}};
+$('#renameAvatar').onclick=async()=>{if(!state.project||active(state.project.currentJob))return;try{const data=await api(`/api/project/${encodeURIComponent(state.project.id)}/name`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({name:$('#avatarName').value})});state.project=data.project;await refreshProjects(state.project.id);toast('Avatar renommé.')}catch(error){toast(error.message,true)}};
 $('#deleteAvatar').onclick=async()=>{
   if(!state.project)return;
   const project=state.project;

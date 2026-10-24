@@ -328,6 +328,33 @@ export class ComfyClient {
     }
   }
 
+  async freeMemoryWhenIdle(promptId?: string, signal = AbortSignal.timeout(30_000)): Promise<boolean> {
+    // /free sets global worker flags. Do not set them while another prompt is
+    // running or queued. A cancelled prompt can still be unwinding in PyTorch;
+    // wait for that specific prompt, independently of its aborted job signal.
+    while (true) {
+      throwIfAborted(signal);
+      const response = await fetch(`${this.baseUrl}/queue`, { signal });
+      if (!response.ok) {
+        throw new Error(`ComfyUI queue check failed: ${response.status} ${await response.text()}`);
+      }
+      const queue = await response.json() as { queue_running?: unknown; queue_pending?: unknown };
+      if (!Array.isArray(queue.queue_running) || !Array.isArray(queue.queue_pending)) {
+        throw new Error("ComfyUI queue check failed: invalid queue response");
+      }
+      if (queue.queue_pending.length > 0) return false;
+      if (queue.queue_running.length === 0) {
+        await this.freeMemory(signal);
+        // The worker consumes /free asynchronously; true means accepted.
+        return true;
+      }
+      if (!promptId || queue.queue_running.some(item => !Array.isArray(item) || item[1] !== promptId)) {
+        return false;
+      }
+      await delay(250, signal);
+    }
+  }
+
   async cancelPrompt(promptId?: string): Promise<void> {
     const tasks: Promise<unknown>[] = [];
     tasks.push(fetch(`${this.baseUrl}/interrupt`, {

@@ -103,6 +103,10 @@
       <h2>2. Voix</h2>
       <label>Texte</label>
       <textarea id="speechText" placeholder="Bonjour, je suis votre avatar…"></textarea>
+      <p class="small">Affichage en bas de la vidéo : <code>{Texte: Bonjour}</code> ou <code>{Latex: x+1}</code>, puis les paroles. <code>{}</code> termine l’affichage. Les commandes ne sont pas prononcées.</p>
+      <p class="small"><code>{Image: une licorne}</code> remplace l’avatar par une image pendant les paroles suivantes. <code>{}</code> fait revenir l’avatar. Une description identique réutilise la même image.</p>
+      <p class="small"><code>{File:/chemin/fichier.mp4}</code> insère une image ou une vidéo du serveur. Une vidéo sonore est lue avant la reprise des paroles avec l’avatar.</p>
+      <p class="small">Chaque commande visuelle doit être suivie de paroles. Accolades littérales dans les paroles : <code>\{exemple\}</code>.</p>
       <label>Preset</label><select id="voicePreset"></select>
       <label>Prompt voix</label><textarea id="voicePrompt"></textarea>
       <div class="toolbar"><button id="generateVoice">Générer la voix</button></div>
@@ -205,6 +209,7 @@ function renderJob(){
   const job=project?.currentJob;
   const busy=Boolean(isJobActive(job)||pendingVideoProjects.has(project?.id));
   ['#generateAvatar','#generateVoice','#previewVideo','#comfyVideo'].forEach(id=>setBusy(id,busy));
+  ['#projectName','#saveProjectName'].forEach(id=>setBusy(id,busy||!project));
   updateVideoModeUi();
   if(!job){box.style.display='none';return}
   box.style.display='block';
@@ -253,7 +258,7 @@ function render(){
   updateVideoModeUi();
   if(project?.avatar?.prompt) $('#avatarPrompt').value=project.avatar.prompt;
   if(project?.avatar?.builtPrompt){$('#builtPrompt').style.display='block';$('#builtPrompt').textContent=project.avatar.builtPrompt}else{$('#builtPrompt').style.display='none';$('#builtPrompt').textContent=''}
-  if(project?.voice){$('#speechText').value=project.voice.text||'';if(project.voice.presetId)$('#voicePreset').value=project.voice.presetId;$('#voicePrompt').value=project.voice.voicePrompt||'';}
+  if(project?.voice){$('#speechText').value=project.voice.script?.source||project.voice.text||'';if(project.voice.presetId)$('#voicePreset').value=project.voice.presetId;$('#voicePrompt').value=project.voice.voicePrompt||'';}
   renderJob();
 }
 function renderProjectList(){
@@ -322,7 +327,7 @@ function updateVideoModeUi(){
 }
 
 async function saveProjectName(){
-  if(!project)return;
+  if(!project||isJobActive(project.currentJob)||pendingVideoProjects.has(project.id))return;
   const name=$('#projectName').value.trim();
   if(!name)return;
   const d=await api(`/api/project/${encodeURIComponent(project.id)}/name`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({name})});

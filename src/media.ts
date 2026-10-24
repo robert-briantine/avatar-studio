@@ -56,6 +56,77 @@ export async function probeDuration(filePath: string, signal?: AbortSignal): Pro
   return value;
 }
 
+/** Check the completed MP4 before publishing it, at frame/AAC packet precision. */
+export async function validateScriptVideo(filePath: string, expectedDuration: number, signal?: AbortSignal): Promise<void> {
+  if (!Number.isFinite(expectedDuration) || expectedDuration <= 0) throw new RangeError("Durée de montage invalide.");
+  const { stdout } = await run("ffprobe", ["-v", "error", "-show_entries",
+    "stream=codec_type,width,height,duration,avg_frame_rate", "-of", "json", filePath], signal);
+  const streams = JSON.parse(stdout).streams as Array<{
+    codec_type?: string; width?: number; height?: number; duration?: string; avg_frame_rate?: string
+  }>;
+  const video = streams?.find(stream => stream.codec_type === "video");
+  const audio = streams?.find(stream => stream.codec_type === "audio");
+  const [numerator, denominator] = (video?.avg_frame_rate || "").split("/").map(Number);
+  const fps = numerator / denominator;
+  if (!video?.width || !video.height || !audio || !Number.isFinite(fps) || fps <= 0) {
+    throw new Error("Montage invalide : pistes vidéo et audio complètes attendues.");
+  }
+  const videoDuration = Number(video.duration);
+  const audioDuration = Number(audio.duration);
+  if (!Number.isFinite(videoDuration) || !Number.isFinite(audioDuration) || videoDuration <= 0 || audioDuration <= 0
+    || Math.abs(videoDuration - expectedDuration) > 1 / fps + 0.001
+    || Math.abs(audioDuration - expectedDuration) > 0.025) {
+    throw new Error(`Montage désynchronisé : ${expectedDuration.toFixed(3)} s attendues, ` +
+      `vidéo ${videoDuration.toFixed(3)} s, audio ${audioDuration.toFixed(3)} s.`);
+  }
+}
+
+export async function probeVideoSize(filePath: string, signal?: AbortSignal): Promise<{ width: number; height: number }> {
+  const { stdout } = await run("ffprobe", ["-v", "error", "-select_streams", "v:0",
+    "-show_entries", "stream=width,height", "-of", "json", filePath], signal);
+  const stream = JSON.parse(stdout).streams?.[0];
+  if (!Number.isInteger(stream?.width) || !Number.isInteger(stream?.height) || stream.width < 1 || stream.height < 1) {
+    throw new Error("Dimensions de la vidéo introuvables.");
+  }
+  return { width: stream.width, height: stream.height };
+}
+
+export async function probeLocalVideo(filePath: string, signal?: AbortSignal): Promise<{ duration: number; hasAudio: boolean; videoStreamIndex: number }> {
+  const { stdout } = await run("ffprobe", ["-v", "error", "-protocol_whitelist", "file,pipe",
+    "-show_streams", "-show_format", "-of", "json", filePath], signal);
+  const data = JSON.parse(stdout) as {
+    format?: { duration?: string };
+    streams?: Array<{ index: number; codec_type?: string; duration?: string; width?: number; height?: number; disposition?: { attached_pic?: number } }>;
+  };
+  const video = data.streams?.find(stream => stream.codec_type === "video" && !stream.disposition?.attached_pic);
+  if (!video?.width || !video.height) throw new Error("Le fichier ne contient pas de vidéo.");
+  const durations = [Number(data.format?.duration), ...(data.streams || []).map(stream => Number(stream.duration))]
+    .filter(value => Number.isFinite(value) && value > 0);
+  if (!durations.length) throw new Error("Durée de la vidéo introuvable.");
+  return {
+    duration: Math.round(Math.max(...durations) * 48000) / 48000,
+    videoStreamIndex: video.index,
+    hasAudio: Boolean(data.streams?.some(stream => stream.codec_type === "audio"))
+  };
+}
+
+/** Images are transparent full-frame PNGs; all text stays outside FFmpeg syntax. */
+export async function overlayVideoImages(
+  inputPath: string, outputPath: string,
+  images: Array<{ path: string; start: number; end: number }>, signal?: AbortSignal
+): Promise<void> {
+  const args = ["-y", "-i", inputPath];
+  for (const image of images) args.push("-i", image.path);
+  const filters = images.map((image, index) =>
+    `[${index ? `v${index}` : "0:v:0"}][${index + 1}:v:0]` +
+    `overlay=0:0:eof_action=repeat:enable='gte(t,${image.start.toFixed(9)})*lt(t,${image.end.toFixed(9)})'[v${index + 1}]`
+  );
+  args.push("-filter_complex", filters.join(";"), "-map", `[v${images.length}]`, "-map", "0:a?",
+    "-c:v", "libx264", "-preset", "fast", "-crf", "0", "-pix_fmt", "yuv420p", "-c:a", "copy",
+    "-movflags", "+faststart", outputPath);
+  await run("ffmpeg", args, signal);
+}
+
 const ttsLoudnessFilter = "loudnorm=I=-18:LRA=11:TP=-2.0";
 
 async function writeFinalTtsAudio(
@@ -124,7 +195,8 @@ export async function processAudio(inputPath: string, outputPath: string, filter
 export async function concatWavs(
   wavPaths: string[],
   outputPath: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  channels: 1 | 2 = 1
 ): Promise<number> {
   if (!wavPaths.length) throw new Error("Aucun WAV à assembler");
   if (wavPaths.length === 1) {
@@ -138,11 +210,11 @@ export async function concatWavs(
   const args = ["-y"];
   for (const wavPath of wavPaths) args.push("-i", wavPath);
   const normalized = wavPaths.map((_, index) =>
-    `[${index}:a]aformat=sample_rates=48000:channel_layouts=mono,asetpts=PTS-STARTPTS[a${index}]`
+    `[${index}:a]aformat=sample_rates=48000:channel_layouts=${channels === 2 ? "stereo" : "mono"},asetpts=PTS-STARTPTS[a${index}]`
   ).join(";");
   const inputs = wavPaths.map((_, index) => `[a${index}]`).join("");
   args.push("-filter_complex", `${normalized};${inputs}concat=n=${wavPaths.length}:v=0:a=1[a]`,
-    "-map", "[a]", "-ar", "48000", "-ac", "1", "-c:a", "pcm_s16le", outputPath);
+    "-map", "[a]", "-ar", "48000", "-ac", String(channels), "-c:a", "pcm_s16le", outputPath);
   await run("ffmpeg", args, signal);
 
   return probeDuration(outputPath, signal);
@@ -353,16 +425,47 @@ export async function concatVideos(segmentPaths: string[], outputPath: string, s
 }
 
 export async function concatVideoOnly(
-  segmentPaths: string[], outputPath: string, signal?: AbortSignal, fps = WAN_S2V_FPS
+  segmentPaths: string[], outputPath: string, signal?: AbortSignal, fps = WAN_S2V_FPS, lossless = false
 ): Promise<number> {
   if (!segmentPaths.length) throw new Error("Aucun segment vidéo à assembler");
   const args = ["-y"];
   for (const segment of segmentPaths) args.push("-i", segment);
   const inputs = segmentPaths.map((_, index) => `[${index}:v]fps=${fps},settb=AVTB,setpts=N/(${fps}*TB)[v${index}]`).join(";");
   const concatInputs = segmentPaths.map((_, index) => `[v${index}]`).join("");
-  args.push("-filter_complex", `${inputs};${concatInputs}concat=n=${segmentPaths.length}:v=1:a=0[joined];[joined]setpts=N/(${fps}*TB)[v]`, "-map", "[v]", "-an", "-r", String(fps), "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", outputPath);
+  args.push("-filter_complex", `${inputs};${concatInputs}concat=n=${segmentPaths.length}:v=1:a=0[joined];[joined]setpts=N/(${fps}*TB)[v]`, "-map", "[v]", "-an", "-r", String(fps), "-c:v", "libx264", "-preset", "fast", "-crf", lossless ? "0" : "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", outputPath);
   await run("ffmpeg", args, signal);
   return probeDuration(outputPath, signal);
+}
+
+/** All script blocks share one canvas and an exact number of video frames. */
+export async function createScriptVideoBlock(
+  inputPath: string, outputPath: string, width: number, height: number,
+  fps: number, frames: number, still: boolean, signal?: AbortSignal, videoStreamIndex?: number
+): Promise<void> {
+  const args = ["-y"];
+  if (still) args.push("-loop", "1", "-framerate", String(fps));
+  args.push("-protocol_whitelist", "file,pipe", "-i", inputPath);
+  if (videoStreamIndex !== undefined) args.push("-map", `0:${videoStreamIndex}`);
+  const filters = [
+    `scale=${width}:${height}:force_original_aspect_ratio=decrease`,
+    `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black`,
+    "setsar=1", `fps=${fps}`,
+    ...(still ? [] : [`tpad=stop_mode=clone:stop_duration=${frames / fps}`]),
+    `trim=end_frame=${frames}`, `setpts=N/(${fps}*TB)`, "format=yuv420p"
+  ];
+  args.push("-vf", filters.join(","), "-an", "-frames:v", String(frames), "-r", String(fps),
+    "-c:v", "libx264", "-preset", "fast", "-crf", "0", "-movflags", "+faststart", outputPath);
+  await run("ffmpeg", args, signal);
+}
+
+/** Keep a file's audio at its original level and pad only a missing tail. */
+export async function extractScriptFileAudio(
+  inputPath: string, outputPath: string, duration: number, signal?: AbortSignal
+): Promise<void> {
+  await run("ffmpeg", ["-y", "-protocol_whitelist", "file,pipe", "-i", inputPath,
+    "-map", "0:a:0", "-vn", "-af",
+    `aresample=48000:async=1:first_pts=0,aformat=channel_layouts=stereo,apad,atrim=end_sample=${Math.round(duration * 48000)},asetpts=PTS-STARTPTS`,
+    "-ar", "48000", "-ac", "2", "-c:a", "pcm_s16le", outputPath], signal);
 }
 
 

@@ -1,0 +1,30 @@
+Bonjour je suis dgx spark voici une partie de mon architecture
+
+{Texte:DGX Avatar Studio • IA locale • NVIDIA DGX Spark} Une image, une voix : votre présentateur prend vie. DGX Avatar Studio transforme vos idées en vidéos, localement.
+
+{Image:Illustration pédagogique premium, ambiance bleu nuit et cyan, atelier de création vidéo sur un ordinateur compact, portrait lumineux d’un avatar robot amical sur un écran, palette de portraits humains et créatures stylisées, composition centrée prévue pour un recadrage vertical neuf seizièmes, rendu tridimensionnel soigné, sans texte, sans lettres, sans logos.} Importez un portrait ou décrivez votre avatar.
+
+{Texte:Qwen-Image-2512 • ComfyUI} Qwen Image crée portraits et illustrations, avec Comfy UI.
+
+{Texte:Qwen3-TTS-12Hz-1.7B-VoiceDesign • Qwen3-TTS-12Hz-1.7B-Base} Voice Design crée une voix. Le modèle Base la clone depuis une empreinte enregistrée.
+
+{Image:Illustration pédagogique premium, ambiance bleu nuit et cyan, même avatar robot amical, une onde audio lumineuse rejoint son portrait et une succession de petites images montre son visage en train de parler, mouvements subtils, composition centrée prévue pour un recadrage vertical neuf seizièmes, rendu tridimensionnel soigné, sans texte, sans lettres, sans logos.} Le visage s’anime au rythme de votre narration.
+
+{Texte:Wan2.2-S2V-14B • BF16 • Extend natif} Wan deux point deux et Extend prolongent la vidéo avec une référence visuelle commune.
+
+{Texte:UMT5-XXL • Wav2Vec2-Large • VAE} Le texte et le son guident l’animation.
+
+{Latex:N=\left\lceil 16\,T \right\rceil} Seize images par seconde : la durée audio détermine le nombre d’images.
+
+{Texte:Langage-avatar • MathJax • LaTeX • cache SHA-256} Ajoutez titres, formules et images synchronisées. Les illustrations identiques sont réutilisées.
+
+{Image:Illustration pédagogique premium, ambiance bleu nuit et cyan, table de montage verticale composée de vignettes d’avatar robot, photos, paysages et séquences vidéo, une piste audio continue relie les éléments, un smartphone présente le résultat, composition centrée prévue pour un recadrage vertical neuf seizièmes, rendu tridimensionnel soigné, sans texte, sans lettres, sans logos.} Insérez aussi vos photos et vidéos, avec ou sans son.
+
+{Texte:Bibliothèque d’avatars • historique • batchs • benchmarks} L’historique conserve vos essais. Les lots automatisent, les benchmarks comparent les performances.
+
+{Latex:\frac{1080}{1920}=\frac{9}{16}} Exportez un Short vertical, avec fond flouté, recadrage ou bandes noires.
+
+{Texte:FFmpeg • H.264 / AAC • RealESRGAN_x2plus / RealESRGAN_x4plus • CUDA} FFmpeg assemble la vidéo. Real ESRGAN propose un agrandissement en option.
+
+{Texte:DGX Avatar Studio • Du scénario au Short YouTube} Vos idées, votre avatar, votre Short.
+{} si tous cela te semble compliqué abandonne toi pour suivre de passionnante videos qui expliqueront comme créer ça propre IA pour créer des choses fantastique, aujourd'hui avec l'iA la seul limite que tu peux avoir c'est ton imagination

@@ -365,6 +365,24 @@ Relancer `./start.sh`, recharger la page, puis générer une nouvelle vidéo ave
 `backups/avant-correction-flou-20260929.tar.gz`. Les anciennes vidéos restent
 disponibles jusqu'à leur remplacement par une nouvelle génération.
 
+## Libération de mémoire après une vidéo Wan
+
+Par défaut, l'application demande à ComfyUI de décharger les modèles et de vider
+le cache du workflow après avoir téléchargé le MP4 Wan, avant son assemblage
+final avec le WAV. Le cache reste disponible pendant toutes les passes Extend.
+Le nettoyage est aussi tenté en cas d'erreur ou d'arrêt : il attend jusqu'à 30 s
+que le prompt concerné termine, sans utiliser le signal d'arrêt de la génération.
+Si un autre prompt est en cours ou en attente, le nettoyage est ignoré pour
+préserver ce travail. Un échec du nettoyage est journalisé sans supprimer la
+vidéo ni masquer l'erreur initiale. Les fichiers générés et l'historique ComfyUI
+sont conservés.
+
+Ce comportement est actif sans modifier le fichier `.env` existant. Relancer
+l'application pour l'appliquer. Pour conserver les modèles entre les vidéos et
+éviter leur rechargement, ajouter `WAN_FREE_MEMORY_AFTER_VIDEO=false` dans `.env`.
+Cette option concerne les générations vidéo du studio ; le benchmark conserve
+son comportement actuel pour mesurer la réutilisation du cache.
+
 ## Optimisation vidéo — septembre 2026
 
 - Correction du batch Wan : une seule vidéo est calculée, puis prolongée avec les

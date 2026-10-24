@@ -10,6 +10,7 @@ import { buildQwen2512Workflow, buildQwenEdit2511Workflow } from "./workflows.js
 import { alignNarrationBoundaries, concatWavs, createSegmentVideo, createSilence, detectSilences, processAudio, probeDuration, splitWavAtBoundaries, type NarrationBoundary } from "./media.js";
 import { getVoicePreset } from "./voicePresets.js";
 import type { GenerateOptions } from "./types.js";
+import { hasScriptVisuals, type AvatarScript, type AvatarScriptTiming } from "./avatarScript.js";
 
 export type VoiceProgressEvent = {
   phase: "reference" | "sequence" | "done";
@@ -348,6 +349,53 @@ export class GeneratorService {
     return { name, path: outputPath, url: `/outputs/${name}`, duration };
   }
 
+
+  async generateScriptVoice(
+    script: AvatarScript,
+    input: Omit<VoiceGenerationInput, "voiceText">,
+    context: GenerationContext = {}
+  ): Promise<GeneratedAudio & { scriptTimings?: AvatarScriptTiming[] }> {
+    if (!hasScriptVisuals(script)) {
+      return this.generateVoice({ ...input, voiceText: script.narration }, context);
+    }
+
+    const parts: GeneratedAudio[] = [];
+    const scriptTimings: AvatarScriptTiming[] = [];
+    const name = `voice-script-${randomUUID()}.wav`;
+    const outputPath = path.join(this.outputsDir, name);
+    let reference = input.voiceReference;
+    let samples = 0;
+    try {
+      for (const [sequenceIndex, sequence] of script.sequences.entries()) {
+        context.signal?.throwIfAborted();
+        context.onVoiceProgress?.({
+          phase: "sequence", completed: sequenceIndex, total: script.sequences.length,
+          sequenceIndex, message: `Voix ${sequenceIndex + 1}/${script.sequences.length}`
+        });
+        const audio = await this.generateVoice({ ...input, voiceText: sequence.text, voiceReference: reference }, context);
+        parts.push(audio);
+        // Legacy projects without a fingerprint reuse the first spoken portion
+        // as their reference, so every portion keeps the same voice.
+        reference ??= {
+          id: name, audioPath: audio.path, refText: sequence.text,
+          presetId: input.voicePresetId || "narrator"
+        };
+        const start = samples / 48000;
+        samples += Math.round(audio.duration * 48000);
+        scriptTimings.push({ sequenceIndex, start, end: samples / 48000 });
+      }
+      const duration = await concatWavs(parts.map(part => part.path), outputPath, context.signal);
+      context.onVoiceProgress?.({
+        phase: "done", completed: parts.length, total: parts.length, message: "Narration synchronisée terminée"
+      });
+      return { name, path: outputPath, url: `/outputs/${name}`, duration, scriptTimings };
+    } catch (error) {
+      await fs.rm(outputPath, { force: true }).catch(() => undefined);
+      throw error;
+    } finally {
+      await Promise.all(parts.map(part => fs.rm(part.path, { force: true }).catch(() => undefined)));
+    }
+  }
 
   async testVoice(input: VoiceGenerationInput, context: GenerationContext = {}) {
     if (!input.voiceText.trim()) throw new Error("Le texte à lire est vide");

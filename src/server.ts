@@ -11,6 +11,11 @@ import sharp from "sharp";
 import { config } from "./config.js";
 import { ComfyClient } from "./comfy.js";
 import { TtsClient } from "./tts.js";
+import { parseAvatarScript } from "./avatarScript.js";
+import { applyScriptOverlays, getScriptOverlays, validateScriptOverlays, validateVoiceScript } from "./scriptOverlays.js";
+import { ScriptImageCache } from "./scriptImageCache.js";
+import { planScriptImages, renderScriptImages } from "./scriptImages.js";
+import { planScriptFiles, renderScriptFiles, resolveScriptFiles } from "./scriptFiles.js";
 import { GeneratorService, type VoiceProgressEvent } from "./generation.js";
 import { assembleWanVideo, createSegmentVideo, mediaHealth, probeDuration } from "./media.js";
 import { voicePresets, getVoicePreset } from "./voicePresets.js";
@@ -50,6 +55,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 
 const comfy = new ComfyClient();
 const tts = new TtsClient();
 const generator = new GeneratorService(transientRoot, comfy, tts);
+const scriptImageCache = new ScriptImageCache(path.join(dataRoot, "script-images"));
+await scriptImageCache.init();
 const store = new AvatarStore(projectRoot);
 await store.init();
 const batchStore = new BatchStore(dataRoot);
@@ -82,14 +89,21 @@ function generationOrThrow(project: AvatarProject, id: unknown): AvatarGeneratio
   return generation;
 }
 
+function parseNarrationScript(text: string) {
+  const script = parseAvatarScript(text);
+  if (!script.narration) throw new Error("Le scénario ne contient aucun texte à lire.");
+  return script;
+}
+
 function createAvatarGeneration(project: AvatarProject, nameValue: unknown, textValue: unknown, batchId?: string): AvatarGeneration {
   const name = s(nameValue);
   const text = s(textValue);
   if (!name) throw new Error("Le nom de la generation est obligatoire.");
   if (!text) throw new Error("Le texte a lire est vide.");
+  const script = parseNarrationScript(text);
   const now = Date.now();
   const generation: AvatarGeneration = {
-    id: randomUUID(), name: name.slice(0, 120), text, createdAt: now, updatedAt: now,
+    id: randomUUID(), name: name.slice(0, 120), text, script, createdAt: now, updatedAt: now,
     status: "draft", batchId
   };
   project.generations = [generation, ...(project.generations || [])];
@@ -103,8 +117,8 @@ function nextVideoRevision(project: AvatarProject, source: AvatarGeneration): Av
   while (names.has(`${baseName} — vidéo ${revision}`)) revision++;
   const now = Date.now();
   const generation: AvatarGeneration = {
-    id: randomUUID(), name: `${baseName} — vidéo ${revision}`.slice(0, 120), text: source.text,
-    createdAt: now, updatedAt: now, status: "video-running", voice: source.voice || project.voice,
+    id: randomUUID(), name: `${baseName} — vidéo ${revision}`.slice(0, 120), text: source.text, script: source.script,
+    createdAt: now, updatedAt: now, status: "video-running", voice: source.voice,
     batchId: source.batchId
   };
   project.generations = [generation, ...(project.generations || [])];
@@ -116,6 +130,23 @@ function abortMessage(error: unknown): boolean {
 }
 async function copyAsset(source: string, target: string): Promise<void> {
   if (path.resolve(source) !== path.resolve(target)) await fs.copyFile(source, target);
+}
+
+async function scriptImageForJob(project: AvatarProject, content: string, signal: AbortSignal): Promise<string> {
+  await updateProjectJob(project, { message: `Préparation de l’image : ${content.slice(0, 160)}` });
+  const image = await scriptImageCache.get(content, async () => {
+    const generated = await generator.generateImage({
+      scenePrompt: content, text: "", textMode: "exact", width: 1472, height: 1104,
+      seed: Math.floor(Math.random() * 1_000_000_000), textPosition: "bottom", fontSize: 32,
+      steps: config.generation.baseSteps, upscaleFactor: 1, refineQuality: false, visualPreset: "none"
+    }, { signal });
+    try {
+      return await fs.readFile(generated.path);
+    } finally {
+      await fs.rm(generated.path, { force: true }).catch(() => undefined);
+    }
+  }, signal);
+  return image.path;
 }
 
 function s(value: unknown): string {
@@ -256,6 +287,7 @@ async function createProjectJob(
   message: string,
   meta: Pick<ProjectJob, "generationId" | "batchId"> = {}
 ): Promise<ProjectJob> {
+  if (store.isRenaming(project)) throw new Error("Un renommage est en cours. Attends sa fin avant de lancer une génération.");
   const existing = activeJob(project);
   if (existing) throw new Error(`Une génération est déjà en cours : ${existing.message}`);
   const job: ProjectJob = {
@@ -289,8 +321,8 @@ async function finishProjectJob(project: AvatarProject, patch: Partial<ProjectJo
   };
   project.currentJob = finished;
   project.jobHistory = [finished, ...(project.jobHistory || []).filter(j => j.id !== finished.id)].slice(0, 20);
-  activeControllers.delete(finished.id);
   await store.save(project);
+  activeControllers.delete(finished.id);
 }
 
 function controllerFor(job: ProjectJob): AbortController {
@@ -364,6 +396,10 @@ app.post("/api/project", async (req, res) => {
 app.patch("/api/project/:id/name", async (req, res) => {
   try {
     const project = projectOrThrow(req.params.id);
+    if (activeJob(project) || (project.currentJob && activeControllers.has(project.currentJob.id))) {
+      return res.status(409).json({ error: "Renommage indisponible pendant une génération en attente ou en cours. Attends sa fin." });
+    }
+    if (store.isRenaming(project)) return res.status(409).json({ error: "Un renommage est déjà en cours." });
     const name = s(req.body?.name);
     if (!name) throw new Error("Le nom du projet est vide.");
     await store.rename(project, name);
@@ -422,6 +458,7 @@ app.delete("/api/project/:id", async (req, res) => {
 app.post("/api/project/:id/generations", async (req, res) => {
   try {
     const project = projectOrThrow(req.params.id);
+    await validateScriptOverlays(parseNarrationScript(s(req.body?.text)));
     const generation = createAvatarGeneration(project, req.body?.name, req.body?.text);
     await store.save(project);
     res.status(201).json({ project, generation });
@@ -623,15 +660,19 @@ app.post("/api/voice/generate", async (req, res) => {
     const project = projectOrThrow(req.body.projectId);
     const text = String(req.body.text || "").trim();
     if (!text) throw new Error("Le texte à lire est vide.");
+    const script = parseNarrationScript(text);
     const wantsGeneration = Boolean(req.body.generationId || s(req.body.generationName));
     if (activeJob(project)) throw new Error(`Une generation est deja en cours : ${project.currentJob?.message}`);
     if (wantsGeneration && !project.voiceFingerprint) {
       throw new Error("Cree d'abord l'empreinte vocale de cet avatar.");
     }
+    await Promise.all([resolveScriptFiles(script), validateScriptOverlays(script)]);
+    if (activeJob(project)) throw new Error(`Une generation est deja en cours : ${project.currentJob?.message}`);
     let generation: AvatarGeneration | undefined;
     if (req.body.generationId) {
       generation = generationOrThrow(project, req.body.generationId);
       generation.text = text;
+      generation.script = script;
       generation.updatedAt = Date.now();
     } else if (s(req.body.generationName)) {
       generation = createAvatarGeneration(project, req.body.generationName, text, s(req.body.batchId) || undefined);
@@ -663,8 +704,7 @@ app.post("/api/voice/generate", async (req, res) => {
             });
           }
         };
-        const audio = await generator.generateVoice({
-          voiceText: text,
+        const audio = await generator.generateScriptVoice(script, {
           voicePrompt,
           voicePresetId: presetId,
           voiceLanguage: String(req.body.language || "French"),
@@ -687,7 +727,9 @@ app.post("/api/voice/generate", async (req, res) => {
           path: target,
           url: pub(project.id, "voice", filename),
           duration: audio.duration,
-          text,
+          text: script.narration,
+          script,
+          scriptTimings: audio.scriptTimings,
           presetId,
           voicePrompt,
           seed: Math.floor(voiceSeedRaw)
@@ -830,20 +872,46 @@ app.post("/api/video/preview", async (req, res) => {
   try {
     const project = projectOrThrow(req.body.projectId);
     const generation = req.body.generationId ? generationOrThrow(project, req.body.generationId) : undefined;
-    const voice = generation?.voice || project.voice;
+    const voice = generation ? generation.voice : project.voice;
     if (!project.avatar) throw new Error("Génère ou charge d'abord un avatar.");
-    if (!voice) throw new Error("Génère d'abord la voix.");
+    if (!voice) throw new RangeError("Génère d'abord la voix de cette génération.");
+    await validateVoiceScript(voice, generation?.text);
+    const filePlan = await planScriptFiles(voice);
+    const overlays = filePlan?.overlays ?? getScriptOverlays(voice);
+    const imageSpans = planScriptImages(voice);
     const job = await createProjectJob(project, "video-preview", "Création de la vidéo test en attente…", { generationId: generation?.id });
     const controller = controllerFor(job);
     if (generation) generation.status = "video-running";
     await store.save(project);
     runDetached(async () => {
+      let rawPreview: string | undefined;
       try {
         await updateProjectJob(project, { status: "running", startedAt: Date.now(), progress: 10, message: "Création de la vidéo test avec FFmpeg…" });
         const base = await store.ensure(project);
         const filename = generation ? generationFilename(generation, "mp4") : "avatar-preview.mp4";
         const target = path.join(base, "video", filename);
-        const duration = await createSegmentVideo(project.avatar!.path, voice.path, target, controller.signal);
+        rawPreview = path.join(base, "video", `.preview-${randomUUID()}.mp4`);
+        const duration = filePlan ? filePlan.duration : imageSpans.length
+          ? await probeDuration(voice.path, controller.signal)
+          : await createSegmentVideo(project.avatar!.path, voice.path, rawPreview || target, controller.signal);
+        if (filePlan) {
+          await renderScriptFiles({
+            plan: filePlan, audioPath: voice.path, outputPath: rawPreview || target,
+            width: config.video.width, height: config.video.height, fps: config.video.fps,
+            resolveImage: content => scriptImageForJob(project, content, controller.signal),
+            renderAvatar: async (wav, output) => { await createSegmentVideo(project.avatar!.path, wav, output, controller.signal); },
+            signal: controller.signal
+          });
+        } else if (imageSpans.length) {
+          await renderScriptImages({
+            spans: imageSpans, audioPath: voice.path, outputPath: rawPreview || target,
+            width: config.video.width, height: config.video.height, fps: config.video.fps,
+            resolveImage: content => scriptImageForJob(project, content, controller.signal),
+            renderAvatar: async (wav, output) => { await createSegmentVideo(project.avatar!.path, wav, output, controller.signal); },
+            signal: controller.signal
+          });
+        }
+        await applyScriptOverlays(rawPreview, target, overlays, controller.signal, duration);
         const video: VideoAsset = { name: filename, path: target, url: pub(project.id, "video", filename), duration, engine: "preview" };
         project.video = video;
         if (generation) {
@@ -864,11 +932,13 @@ app.post("/api/video/preview", async (req, res) => {
           generation.updatedAt = Date.now();
         }
         await finishProjectJob(project, { status: abortMessage(error) ? "interrupted" : "error", message: abortMessage(error) ? "Video test arretee." : "Erreur pendant la vidéo test.", error: error instanceof Error ? error.message : String(error) });
+      } finally {
+        if (rawPreview) await fs.rm(rawPreview, { force: true }).catch(() => undefined);
       }
     });
     res.status(202).json({ project, job });
   } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
+    res.status(e instanceof RangeError ? 400 : 500).json({ error: e instanceof Error ? e.message : String(e) });
   }
 });
 
@@ -877,9 +947,14 @@ app.post("/api/video/generate", async (req, res) => {
     const project = projectOrThrow(req.body.projectId);
     if (req.body.engine && req.body.engine !== "wan-s2v") throw new RangeError("Seul Wan2.2-S2V + Extend est disponible.");
     let generation = req.body.generationId ? generationOrThrow(project, req.body.generationId) : undefined;
-    const voice = generation?.voice || project.voice;
+    const voice = generation ? generation.voice : project.voice;
     if (!project.avatar) throw new Error("Génère ou charge d'abord un avatar.");
-    if (!voice) throw new Error("Génère d'abord la voix.");
+    if (!voice) throw new RangeError("Génère d'abord la voix de cette génération.");
+    await validateVoiceScript(voice, generation?.text);
+    const filePlan = await planScriptFiles(voice);
+    if (activeJob(project)) throw new Error(`Une generation est deja en cours : ${project.currentJob?.message}`);
+    const overlays = filePlan?.overlays ?? getScriptOverlays(voice);
+    const imageSpans = planScriptImages(voice);
 
     const videoQuality = videoQualitySettings(req.body.quality);
     let referenceSize = { width: videoQuality.width, height: videoQuality.height };
@@ -937,26 +1012,34 @@ app.post("/api/video/generate", async (req, res) => {
           message: "Vérification de Wan2.2-S2V Extend…"
         });
 
-        const nodeCheck = await comfy.hasNodes([...WAN_S2V_NODES]);
-        if (!nodeCheck.ok) {
-          throw new Error(`Node(s) ComfyUI manquant(s) : ${nodeCheck.missing.join(", ")}. Mets ComfyUI à jour pour utiliser ce mode vidéo.`);
-        }
+        let inputDirectory: string | undefined;
+        const checkWan = async (): Promise<string> => {
+          if (inputDirectory) return inputDirectory;
+          const nodeCheck = await comfy.hasNodes([...WAN_S2V_NODES]);
+          if (!nodeCheck.ok) {
+            throw new Error(`Node(s) ComfyUI manquant(s) : ${nodeCheck.missing.join(", ")}. Mets ComfyUI à jour pour utiliser ce mode vidéo.`);
+          }
 
-        const info = await comfy.nodeInfo();
-        const nodeHasModel = (node: string, model: string): boolean => JSON.stringify(info?.[node] ?? {}).includes(`"${model}"`);
-        const missingModels = [
-          nodeHasModel("UNETLoader", WAN_S2V_MODELS.diffusion) ? null : WAN_S2V_MODELS.diffusion,
-          nodeHasModel("CLIPLoader", WAN_S2V_MODELS.textEncoder) ? null : WAN_S2V_MODELS.textEncoder,
-          nodeHasModel("AudioEncoderLoader", WAN_S2V_MODELS.audioEncoder) ? null : WAN_S2V_MODELS.audioEncoder,
-          nodeHasModel("VAELoader", WAN_S2V_MODELS.vae) ? null : WAN_S2V_MODELS.vae
-        ].filter(Boolean) as string[];
-        if (missingModels.length) throw new Error(`Modèle(s) Wan2.2-S2V manquant(s) : ${missingModels.join(", ")}.`);
+          const info = await comfy.nodeInfo();
+          const nodeHasModel = (node: string, model: string): boolean => JSON.stringify(info?.[node] ?? {}).includes(`"${model}"`);
+          const missingModels = [
+            nodeHasModel("UNETLoader", WAN_S2V_MODELS.diffusion) ? null : WAN_S2V_MODELS.diffusion,
+            nodeHasModel("CLIPLoader", WAN_S2V_MODELS.textEncoder) ? null : WAN_S2V_MODELS.textEncoder,
+            nodeHasModel("AudioEncoderLoader", WAN_S2V_MODELS.audioEncoder) ? null : WAN_S2V_MODELS.audioEncoder,
+            nodeHasModel("VAELoader", WAN_S2V_MODELS.vae) ? null : WAN_S2V_MODELS.vae
+          ].filter(Boolean) as string[];
+          if (missingModels.length) throw new Error(`Modèle(s) Wan2.2-S2V manquant(s) : ${missingModels.join(", ")}.`);
 
-        const comfyInputDir = process.env.COMFY_INPUT_DIR?.trim();
-        if (!comfyInputDir) throw new Error("COMFY_INPUT_DIR n'est pas configuré dans .env.");
-        await fs.mkdir(comfyInputDir, { recursive: true });
+          const inputDir = process.env.COMFY_INPUT_DIR?.trim();
+          if (!inputDir) throw new Error("COMFY_INPUT_DIR n'est pas configuré dans .env.");
+          await fs.mkdir(inputDir, { recursive: true });
 
-        const total = await probeDuration(voice.path, controller.signal);
+          inputDirectory = inputDir;
+          return inputDir;
+        };
+        if (!imageSpans.length && !filePlan) await checkWan();
+
+        const narrationDuration = await probeDuration(voice.path, controller.signal);
         if (videoQuality.profile === "normal" && (!req.body.framing || req.body.framing === "original")
             && (req.body.width === undefined || req.body.height === undefined)) {
           const metadata = await sharp(project.avatar!.path).metadata();
@@ -969,189 +1052,245 @@ app.post("/api/video/generate", async (req, res) => {
           }
         }
 
-        const steps = Math.max(4, Math.min(60, Math.floor(n(req.body.steps, videoQuality.steps))));
-        const cfg = n(req.body.cfg, videoQuality.cfg);
-        const seed = Math.floor(n(req.body.seed, 123456));
-
-        const sourceMode: VideoSourceMode = req.body.sourceMode === "creative" ? "creative" : "strict";
-        const framing: VideoFramingMode =
-          req.body.framing === "fit" || req.body.framing === "crop" ? req.body.framing : "original";
-        const userMotionPrompt = String(req.body.motionPrompt || "").trim();
-        const prompt = wanS2VPrompt(sourceMode === "strict", userMotionPrompt);
-        const totalFrames = Math.max(1, Math.ceil(total * WAN_S2V_FPS));
-        const chunks = Math.max(1, Math.ceil(totalFrames / WAN_S2V_CHUNK_FRAMES));
-
-        await updateProjectJob(project, {
-          progress: 6,
-          totalSeconds: total,
-          doneSeconds: 0,
-          current: 1,
-          total: chunks,
-          message: `Wan2.2 natif : ${chunks} passe(s) pour ${total.toFixed(1)} s d'audio complet…`
-        });
-
         const base = await store.ensure(project);
-        const workDir = path.join(transientRoot, `wan-extend-${project.id}-${randomUUID()}`);
-        await fs.mkdir(workDir, { recursive: true });
-        tempFiles.push(workDir);
-
-        // Image de référence : aucun traitement en mode Original.
-        const sourceExt = path.extname(project.avatar!.path) || ".png";
-        const imageExt = framing === "original" ? sourceExt : ".png";
-        const imageName = `wan-avatar-${project.id}-${randomUUID()}${imageExt}`;
-        const preparedImagePath = path.join(comfyInputDir, imageName);
-        await prepareWanReferenceImage(
-          project.avatar!.path,
-          preparedImagePath,
-          requestedWidth,
-          requestedHeight,
-          framing
-        );
-
-        // Always use the full WAV, including voices with legacy segment metadata.
-        // Native Extend receives the cumulative latent and the same audio encoding.
-        const audioName = `wan-audio-full-${project.id}-${randomUUID()}.wav`;
-        const preparedAudioPath = path.join(comfyInputDir, audioName);
-        await fs.copyFile(voice.path, preparedAudioPath);
-        tempFiles.push(preparedImagePath, preparedAudioPath);
-
-        const workflowArgs = {
-          imageName,
-          audioName,
-          prompt,
-          strictIdentity: sourceMode === "strict",
-          faceIdentityPrompt: project.avatar!.identityPrompt,
-          seed,
-          width: requestedWidth,
-          height: requestedHeight,
-          durationSeconds: total,
-          steps,
-          cfg,
-          filenamePrefix: `dgx-avatar/wan-extend-${project.id}`,
-          chunkFrames: WAN_S2V_CHUNK_FRAMES
-        };
-        const { graph, generatedFrames } = buildWanS2VFaceStableWorkflow(workflowArgs);
-
-        // Évite de vider les poids et le cache à chaque nouvelle vidéo.
-        // ComfyUI libère lui-même de la mémoire lorsque le workflow en a besoin.
-        if (config.video.freeMemoryBeforeWan) await comfy.freeMemory(controller.signal).catch(() => undefined);
-        await updateProjectJob(project, {
-          progress: 10,
-          current: 1,
-          total: chunks,
-          message: `Calcul Wan2.2 : bloc initial + ${Math.max(0, chunks - 1)} extension(s) natives…`
-        });
-
-        const samplerNodeIds = Object.entries(graph)
-          .filter(([, node]) => node.class_type === "KSampler")
-          .map(([id]) => id)
-          .sort((a, b) => Number(a) - Number(b));
-        const conditioningNodeIds = samplerNodeIds.map(id => (graph[id].inputs.latent_image as [string, number])[0]);
-        const decodeNodeIds = Object.entries(graph).filter(([, node]) => node.class_type === "VAEDecode").map(([id]) => id);
-        const saveNodeId = Object.entries(graph).find(([, node]) => node.class_type === "SaveVideo")?.[0];
-        // Suit chaque sampler, y compris lors d'une réutilisation du cache.
-        const samplerFractions = new Map<string, number>();
-        const sampledBlocks = () => [...samplerFractions.values()].reduce((sum, value) => sum + value, 0);
-        const sampledSeconds = () => samplerNodeIds.reduce((seconds, id, index) => seconds + (
-          samplerFractions.get(id) === 1
-            ? Math.max(0, Math.min((WAN_S2V_CHUNK_FRAMES + 3) / WAN_S2V_FPS, total - index * (WAN_S2V_CHUNK_FRAMES + 3) / WAN_S2V_FPS))
-            : 0
-        ), 0);
-
-        let lastUiUpdateAt = 0;
-        let lastUiProgress = 9;
-        let updateChain = Promise.resolve();
-        const pushProgress = (patch: Partial<ProjectJob>, force = false) => {
-          const now = Date.now();
-          const requestedProgress = Math.max(lastUiProgress, Number(patch.progress ?? lastUiProgress));
-          if (!force && now - lastUiUpdateAt < 850 && Math.abs(requestedProgress - lastUiProgress) < 1) return;
-          lastUiUpdateAt = now;
-          lastUiProgress = requestedProgress;
-          updateChain = updateChain
-            .then(() => updateProjectJob(project, {
-              ...patch,
-              progress: requestedProgress,
-              etaSeconds: estimateRemainingSeconds(project.currentJob?.startedAt, Math.max(1, requestedProgress))
-            }))
-            .catch(error => console.error("[Wan progress]", error));
-        };
-
-        const tracked = await comfy.queueTracked(graph, event => {
-          const nodeId = event.node;
-          if (!nodeId) return;
-
-          const conditioningIndex = conditioningNodeIds.indexOf(nodeId);
-          if (conditioningIndex >= 0 && event.type === "executing") {
-            const current = conditioningIndex + 1;
-            const reanchored = graph[nodeId].class_type === "WanSoundImageToVideo";
-            pushProgress({
-              progress: Math.min(79, Math.round(10 + 70 * sampledBlocks() / chunks)),
-              current: Math.min(chunks, Math.floor(sampledBlocks()) + 1), total: chunks,
-              doneSeconds: Math.min(total, sampledSeconds()), totalSeconds: total,
-              message: reanchored
-                ? `Wan2.2 : bloc initial avec l'image de référence…`
-                : `Wan2.2 : extension native ${current}/${chunks}…`
-            }, true);
-            return;
-          }
-
-          const samplerIndex = samplerNodeIds.indexOf(nodeId);
-          if (samplerIndex >= 0 && event.type === "progress" && event.max && event.value !== undefined) {
-            const fraction = Math.max(0, Math.min(1, event.value / event.max));
-            samplerFractions.set(nodeId, Math.max(samplerFractions.get(nodeId) ?? 0, fraction));
-            const progress = 10 + 70 * (sampledBlocks() / chunks);
-            const doneSeconds = Math.min(total, sampledSeconds());
-            pushProgress({
-              progress: Math.min(79, Math.round(progress * 10) / 10),
-              current: Math.max(1, Math.ceil(sampledBlocks())), total: chunks, doneSeconds, totalSeconds: total,
-              message: `Wan2.2 : calcul du bloc ${samplerIndex + 1}/${chunks} — étape ${event.value}/${event.max}…`
-            });
-            return;
-          }
-
-          const decodeIndex = decodeNodeIds.indexOf(nodeId);
-          if (decodeIndex >= 0 && event.type === "executing") {
-            pushProgress({
-              message: `Wan2.2 : décodage vidéo ${decodeIndex + 1}/${decodeNodeIds.length}…`
-            }, true);
-            return;
-          }
-
-          if (nodeId === saveNodeId && event.type === "executing") {
-            pushProgress({
-              progress: 94, current: chunks, total: chunks, doneSeconds: total, totalSeconds: total,
-              message: "Wan2.2 : encodage et sauvegarde MP4…"
-            }, true);
-          }
-        }, controller.signal);
-
-        let ref;
-        try {
-          ref = await comfy.waitForFile(tracked.promptId, [".mp4", ".mkv", ".webm"], 0, controller.signal);
-          await updateChain;
-        } finally {
-          tracked.close();
-        }
-
-        await updateProjectJob(project, {
-          progress: 96,
-          current: chunks,
-          total: chunks,
-          doneSeconds: total,
-          totalSeconds: total,
-          etaSeconds: 0,
-          message: `Wan2.2 terminé (${generatedFrames} frames calculées). Ajustement à la durée exacte du WAV…`
-        });
-
-        const bytes = await comfy.downloadFile(ref, controller.signal);
-        const raw = path.join(workDir, "wan-extended-raw.mp4");
-        await fs.writeFile(raw, bytes);
-
         const filename = generation ? generationFilename(generation, "mp4") : "avatar-speaking-wan2.2-extend.mp4";
         const target = path.join(base, "video", filename);
-        // Trim only the end and mux the original WAV. No frame reconstruction,
-        // lighting adjustment, mouth-color correction or transition processing.
-        await assembleWanVideo(raw, voice.path, target, total, undefined, undefined, controller.signal);
+        const assembled = path.join(transientRoot, `script-source-${randomUUID()}.mp4`);
+        tempFiles.push(assembled);
+        let chunks = 0;
+        let renderedSeconds = 0;
+        const visibleSeconds = filePlan
+          ? filePlan.spans.filter(span => span.mode === "avatar").reduce((sum, span) => sum + span.end - span.start, 0)
+          : imageSpans.length
+          ? imageSpans.filter(span => span.mode === "avatar").reduce((sum, span) => sum + span.end - span.start, 0)
+          : narrationDuration;
+
+        const renderAvatar = async (audioPath: string, destination: string, total: number): Promise<number> => {
+          const updateRender = (patch: Partial<ProjectJob>) => updateProjectJob(project, imageSpans.length || filePlan ? {
+            ...patch,
+            progress: Math.max(project.currentJob?.progress || 0,
+              Math.min(96, 10 + 84 * (renderedSeconds + total * Number(patch.progress || 0) / 100) / visibleSeconds)),
+            doneSeconds: renderedSeconds + Number(patch.doneSeconds || 0), totalSeconds: filePlan?.duration ?? narrationDuration
+          } : patch);
+          const comfyInputDir = await checkWan();
+
+          const steps = Math.max(4, Math.min(60, Math.floor(n(req.body.steps, videoQuality.steps))));
+          const cfg = n(req.body.cfg, videoQuality.cfg);
+          const seed = Math.floor(n(req.body.seed, 123456));
+
+          const sourceMode: VideoSourceMode = req.body.sourceMode === "creative" ? "creative" : "strict";
+          const framing: VideoFramingMode =
+            req.body.framing === "fit" || req.body.framing === "crop" ? req.body.framing : "original";
+          const userMotionPrompt = String(req.body.motionPrompt || "").trim();
+          const prompt = wanS2VPrompt(sourceMode === "strict", userMotionPrompt);
+          const totalFrames = Math.max(1, Math.ceil(total * WAN_S2V_FPS));
+          const chunks = Math.max(1, Math.ceil(totalFrames / WAN_S2V_CHUNK_FRAMES));
+
+          await updateRender({
+            progress: 6,
+            totalSeconds: total,
+            doneSeconds: 0,
+            current: 1,
+            total: chunks,
+            message: `Wan2.2 natif : ${chunks} passe(s) pour ${total.toFixed(1)} s d'audio complet…`
+          });
+
+          const workDir = path.join(transientRoot, `wan-extend-${project.id}-${randomUUID()}`);
+          await fs.mkdir(workDir, { recursive: true });
+          tempFiles.push(workDir);
+
+          // Image de référence : aucun traitement en mode Original.
+          const sourceExt = path.extname(project.avatar!.path) || ".png";
+          const imageExt = framing === "original" ? sourceExt : ".png";
+          const imageName = `wan-avatar-${project.id}-${randomUUID()}${imageExt}`;
+          const preparedImagePath = path.join(comfyInputDir, imageName);
+          await prepareWanReferenceImage(
+            project.avatar!.path,
+            preparedImagePath,
+            requestedWidth,
+            requestedHeight,
+            framing
+          );
+
+          // Use the full visible passage WAV, including any legacy segment metadata.
+          // Native Extend receives the cumulative latent and the same audio encoding.
+          const audioName = `wan-audio-full-${project.id}-${randomUUID()}.wav`;
+          const preparedAudioPath = path.join(comfyInputDir, audioName);
+          await fs.copyFile(audioPath, preparedAudioPath);
+          tempFiles.push(preparedImagePath, preparedAudioPath);
+
+          const workflowArgs = {
+            imageName,
+            audioName,
+            prompt,
+            strictIdentity: sourceMode === "strict",
+            faceIdentityPrompt: project.avatar!.identityPrompt,
+            seed,
+            width: requestedWidth,
+            height: requestedHeight,
+            durationSeconds: total,
+            steps,
+            cfg,
+            filenamePrefix: `dgx-avatar/wan-extend-${project.id}`,
+            chunkFrames: WAN_S2V_CHUNK_FRAMES
+          };
+          const { graph, generatedFrames } = buildWanS2VFaceStableWorkflow(workflowArgs);
+
+          // Le cache reste disponible pendant toutes les passes Extend. Le
+          // déchargement de fin de vidéo intervient après récupération du MP4.
+          if (config.video.freeMemoryBeforeWan) await comfy.freeMemory(controller.signal).catch(() => undefined);
+          await updateRender({
+            progress: 10,
+            current: 1,
+            total: chunks,
+            message: `Calcul Wan2.2 : bloc initial + ${Math.max(0, chunks - 1)} extension(s) natives…`
+          });
+
+          const samplerNodeIds = Object.entries(graph)
+            .filter(([, node]) => node.class_type === "KSampler")
+            .map(([id]) => id)
+            .sort((a, b) => Number(a) - Number(b));
+          const conditioningNodeIds = samplerNodeIds.map(id => (graph[id].inputs.latent_image as [string, number])[0]);
+          const decodeNodeIds = Object.entries(graph).filter(([, node]) => node.class_type === "VAEDecode").map(([id]) => id);
+          const saveNodeId = Object.entries(graph).find(([, node]) => node.class_type === "SaveVideo")?.[0];
+          // Suit chaque sampler, y compris lors d'une réutilisation du cache.
+          const samplerFractions = new Map<string, number>();
+          const sampledBlocks = () => [...samplerFractions.values()].reduce((sum, value) => sum + value, 0);
+          const sampledSeconds = () => samplerNodeIds.reduce((seconds, id, index) => seconds + (
+            samplerFractions.get(id) === 1
+              ? Math.max(0, Math.min((WAN_S2V_CHUNK_FRAMES + 3) / WAN_S2V_FPS, total - index * (WAN_S2V_CHUNK_FRAMES + 3) / WAN_S2V_FPS))
+              : 0
+          ), 0);
+
+          let lastUiUpdateAt = 0;
+          let lastUiProgress = 9;
+          let updateChain = Promise.resolve();
+          const pushProgress = (patch: Partial<ProjectJob>, force = false) => {
+            const now = Date.now();
+            const requestedProgress = Math.max(lastUiProgress, Number(patch.progress ?? lastUiProgress));
+            if (!force && now - lastUiUpdateAt < 850 && Math.abs(requestedProgress - lastUiProgress) < 1) return;
+            lastUiUpdateAt = now;
+            lastUiProgress = requestedProgress;
+            updateChain = updateChain
+              .then(() => updateRender({
+                ...patch,
+                progress: requestedProgress,
+                etaSeconds: estimateRemainingSeconds(project.currentJob?.startedAt, Math.max(1, requestedProgress))
+              }))
+              .catch(error => console.error("[Wan progress]", error));
+          };
+
+          const tracked = await comfy.queueTracked(graph, event => {
+            const nodeId = event.node;
+            if (!nodeId) return;
+
+            const conditioningIndex = conditioningNodeIds.indexOf(nodeId);
+            if (conditioningIndex >= 0 && event.type === "executing") {
+              const current = conditioningIndex + 1;
+              const reanchored = graph[nodeId].class_type === "WanSoundImageToVideo";
+              pushProgress({
+                progress: Math.min(79, Math.round(10 + 70 * sampledBlocks() / chunks)),
+                current: Math.min(chunks, Math.floor(sampledBlocks()) + 1), total: chunks,
+                doneSeconds: Math.min(total, sampledSeconds()), totalSeconds: total,
+                message: reanchored
+                  ? `Wan2.2 : bloc initial avec l'image de référence…`
+                  : `Wan2.2 : extension native ${current}/${chunks}…`
+              }, true);
+              return;
+            }
+
+            const samplerIndex = samplerNodeIds.indexOf(nodeId);
+            if (samplerIndex >= 0 && event.type === "progress" && event.max && event.value !== undefined) {
+              const fraction = Math.max(0, Math.min(1, event.value / event.max));
+              samplerFractions.set(nodeId, Math.max(samplerFractions.get(nodeId) ?? 0, fraction));
+              const progress = 10 + 70 * (sampledBlocks() / chunks);
+              const doneSeconds = Math.min(total, sampledSeconds());
+              pushProgress({
+                progress: Math.min(79, Math.round(progress * 10) / 10),
+                current: Math.max(1, Math.ceil(sampledBlocks())), total: chunks, doneSeconds, totalSeconds: total,
+                message: `Wan2.2 : calcul du bloc ${samplerIndex + 1}/${chunks} — étape ${event.value}/${event.max}…`
+              });
+              return;
+            }
+
+            const decodeIndex = decodeNodeIds.indexOf(nodeId);
+            if (decodeIndex >= 0 && event.type === "executing") {
+              pushProgress({
+                message: `Wan2.2 : décodage vidéo ${decodeIndex + 1}/${decodeNodeIds.length}…`
+              }, true);
+              return;
+            }
+
+            if (nodeId === saveNodeId && event.type === "executing") {
+              pushProgress({
+                progress: 94, current: chunks, total: chunks, doneSeconds: total, totalSeconds: total,
+                message: "Wan2.2 : encodage et sauvegarde MP4…"
+              }, true);
+            }
+          }, controller.signal);
+
+          const raw = path.join(workDir, "wan-extended-raw.mp4");
+          try {
+            const ref = await comfy.waitForFile(tracked.promptId, [".mp4", ".mkv", ".webm"], 0, controller.signal);
+            await updateChain;
+
+            await updateRender({
+              progress: 96,
+              current: chunks,
+              total: chunks,
+              doneSeconds: total,
+              totalSeconds: total,
+              etaSeconds: 0,
+              message: `Wan2.2 terminé (${generatedFrames} frames calculées). Ajustement à la durée exacte du WAV…`
+            });
+
+            const bytes = await comfy.downloadFile(ref, controller.signal);
+            await fs.writeFile(raw, bytes);
+          } finally {
+            tracked.close();
+            if (config.video.freeMemoryAfterWan) {
+              try {
+                const requested = await comfy.freeMemoryWhenIdle(tracked.promptId);
+                console.log(requested
+                  ? "[Wan memory] Déchargement des modèles et du cache demandé après génération."
+                  : "[Wan memory] Nettoyage ignoré : un autre prompt ComfyUI est en cours ou en attente.");
+              } catch (error) {
+                // A cleanup failure must not discard a completed video or mask
+                // the original inference/cancellation error.
+                console.warn("[Wan memory] Échec du nettoyage après génération :", error);
+              }
+            }
+          }
+
+          await assembleWanVideo(raw, audioPath, destination, total, undefined, undefined, controller.signal);
+          renderedSeconds += total;
+          return chunks;
+        };
+
+        if (filePlan) {
+          await renderScriptFiles({
+            plan: filePlan, audioPath: voice.path, outputPath: assembled,
+            width: requestedWidth, height: requestedHeight, fps: WAN_S2V_FPS,
+            resolveImage: content => scriptImageForJob(project, content, controller.signal),
+            renderAvatar: async (wav, output, duration) => { chunks += await renderAvatar(wav, output, duration); },
+            signal: controller.signal
+          });
+        } else if (imageSpans.length) {
+          await renderScriptImages({
+            spans: imageSpans, audioPath: voice.path, outputPath: assembled,
+            width: requestedWidth, height: requestedHeight, fps: WAN_S2V_FPS,
+            resolveImage: content => scriptImageForJob(project, content, controller.signal),
+            renderAvatar: async (wav, output, duration) => { chunks += await renderAvatar(wav, output, duration); },
+            signal: controller.signal
+          });
+        } else {
+          chunks = await renderAvatar(voice.path, assembled, narrationDuration);
+        }
+        const total = filePlan?.duration ?? narrationDuration;
+        if (overlays.length) {
+          await updateProjectJob(project, { progress: 98, message: "Incrustation du texte et des formules…" });
+        }
+        await applyScriptOverlays(assembled, target, overlays, controller.signal, total);
 
         const duration = await probeDuration(target, controller.signal).catch(() => total);
         const video: VideoAsset = {
@@ -1525,7 +1664,7 @@ app.post("/api/batches", async (req, res) => {
     const rows = Array.isArray(req.body?.items) ? req.body.items : [];
     if (!rows.length) throw new Error("Ajoute au moins une ligne au batch.");
     if (rows.length > 100) throw new Error("Un batch est limite a 100 generations.");
-    const items = rows.map((row: any, index: number) => {
+    const items = await Promise.all(rows.map(async (row: any, index: number) => {
       const project = projectOrThrow(row.avatarId);
       if (!project.avatar) throw new Error(`Ligne ${index + 1} : l'avatar n'a pas d'image.`);
       if (!project.voiceFingerprint) throw new Error(`Ligne ${index + 1} : l'avatar n'a pas d'empreinte vocale.`);
@@ -1533,8 +1672,15 @@ app.post("/api/batches", async (req, res) => {
       const text = s(row.text);
       if (!itemName) throw new Error(`Ligne ${index + 1} : nom de generation manquant.`);
       if (!text) throw new Error(`Ligne ${index + 1} : texte manquant.`);
+      try {
+        const script = parseNarrationScript(text);
+        await Promise.all([resolveScriptFiles(script), validateScriptOverlays(script)]);
+      } catch (error) {
+        throw new Error(`Ligne ${index + 1} : ${error instanceof Error ? error.message : String(error)}`);
+      }
       return batchStore.newItem({ avatarId: project.id, avatarName: project.name, name: itemName.slice(0, 120), text });
-    });
+    }));
+    assertNoOtherBatch();
     const batch = await batchStore.create({
       name: name.slice(0, 120),
       status: "queued",

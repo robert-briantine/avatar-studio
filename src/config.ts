@@ -68,6 +68,9 @@ export const config = {
     // ComfyUI gère l'éviction des modèles selon la mémoire disponible.
     // Option de repli pour retrouver le déchargement systématique historique.
     freeMemoryBeforeWan: /^(1|true|yes)$/i.test(envString("WAN_FREE_MEMORY_BEFORE_VIDEO", "false")),
+    // Le cache reste utile pendant Extend, mais ne doit pas retenir la vidéo
+    // et les modèles après sa sauvegarde.
+    freeMemoryAfterWan: /^(1|true|yes)$/i.test(envString("WAN_FREE_MEMORY_AFTER_VIDEO", "true")),
     width: Number(process.env.VIDEO_WIDTH ?? 1920),
     height: Number(process.env.VIDEO_HEIGHT ?? 1080),
     fps: Number(process.env.VIDEO_FPS ?? 30),
