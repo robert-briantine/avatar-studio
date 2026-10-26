@@ -14,14 +14,17 @@ import { AvatarStore, type AvatarProject } from "../src/avatarStore.js";
 import { WAN_S2V_FACE_STABILITY_PROMPT, WAN_S2V_FIXED_FRAMING_PROMPT, WAN_S2V_MODELS, WAN_S2V_NODES } from "../src/wanS2V.js";
 import type { PromptGraph } from "../src/workflows.js";
 import { parseAvatarScript } from "../src/avatarScript.js";
+import { ResourceStore } from "../src/resourceStore.js";
 
 const exec = promisify(execFile);
 
-for (const variant of ["plain", "captioned", "images", "files"]) {
+for (const variant of ["plain", "captioned", "images", "files", "references"]) {
 const captioned = variant === "captioned";
 const withImages = variant === "images";
 const withFiles = variant === "files";
-test(withFiles ? "sound file insertion renders only the two avatar passages and keeps deferred narration"
+const withReferences = variant === "references";
+test(withReferences ? "named resources generate only the two visible Wan passages without image inference"
+  : withFiles ? "sound file insertion renders only the two avatar passages and keeps deferred narration"
   : withImages ? "image scripts generate only the two visible Wan passages and keep the original narration"
   : captioned
   ? "Wan Extend adds measured text and LaTeX overlays while preserving the native avatar region"
@@ -50,8 +53,16 @@ test(withFiles ? "sound file insertion renders only the two avatar passages and 
       { sequenceIndex: 2, start: 2, end: 61.5 }
     ];
   }
-  if (withImages) {
-    project.voice.script = parseAvatarScript("{Texte: hello} Bonjour. {} Suite. {Image: licorne} Image. {} Fin.");
+  if (withImages || withReferences) {
+    if (withReferences) {
+      const resources = new ResourceStore(path.join(directory, "resources")); await resources.init();
+      const resource = await resources.create({ name: "Image préparée", type: "image", source: "Un support déjà enregistré." });
+      const job = await resources.beginImageGeneration(resource.id);
+      await resources.finishImageGeneration(resource.id, job.imageGeneration!.id,
+        await sharp({ create: { width: 64, height: 64, channels: 3, background: "#cc2211" } }).png().toBuffer());
+      project.voice.resourceReferences = [{ name: "Image préparée", resourceId: resource.id }];
+    }
+    project.voice.script = parseAvatarScript(`{Texte: hello} Bonjour. {} Suite. {${withReferences ? "Ref:Image préparée" : "Image: licorne"}} Image. {} Fin.`);
     project.voice.text = project.voice.script.narration;
     project.voice.duration = 61.5;
     project.voice.scriptTimings = [
@@ -101,7 +112,7 @@ test(withFiles ? "sound file insertion renders only the two avatar passages and 
         submissions++;
         const name = Object.values(graph!).find(n => n.class_type === "LoadAudio")!.inputs.audio as string;
         submittedAudioHash = createHash("sha256").update(await readFile(path.join(directory, "input", name))).digest("hex");
-        if (withImages || withFiles) {
+        if (withImages || withFiles || withReferences) {
           submittedDurations.push(Number((await exec("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path.join(directory, "input", name)])).stdout));
         }
         return void res.end(JSON.stringify({ prompt_id: "native-test" }));
@@ -175,7 +186,7 @@ test(withFiles ? "sound file insertion renders only the two avatar passages and 
     }
     assert.equal(handlerError, undefined);
     assert.equal(result!.currentJob?.status, "done", `${JSON.stringify(result!.currentJob)}\n${logs}`);
-    if (withImages || withFiles) {
+    if (withImages || withFiles || withReferences) {
       assert.equal(imageSubmissions, withImages ? 1 : 0);
       assert.equal(submissions, 2, "only the avatar passages before and after the image must be generated");
       assert.deepEqual(submittedDurations, [1, 1]);

@@ -17,7 +17,7 @@
   <main class="wrap">
     <div class="eyebrow">Guide technique et utilisateur</div>
     <h1>Le workflow, de l’image à la vidéo parlante</h1>
-    <p class="lede">Ce document décrit ce que fait réellement Studio lorsqu’on crée un avatar, son empreinte vocale, une narration, puis une vidéo Wan2.2-S2V avec Extend. Les générations vidéo utilisent le WAV complet et une seule séquence continue.</p>
+    <p class="lede">Ce document décrit ce que fait réellement Studio lorsqu’on crée un avatar, son empreinte vocale, une narration, puis une vidéo Wan2.2-S2V avec Extend. Sans commande de remplacement visuel, la vidéo utilise le WAV complet et une seule séquence continue. Un scénario peut aussi alterner l’avatar et des ressources de la bibliothèque.</p>
     <div class="notice"><strong>Configuration vidéo actuelle :</strong> Wan2.2-S2V + Extend natif dans ComfyUI, 16 images par seconde, extensions calculées dans un même graphe, cadrage fixe demandé par le prompt, puis mux du WAV source dans le MP4 final.</div>
     <nav class="toc" aria-label="Sommaire"><a href="#vue-ensemble">Vue d’ensemble</a><a href="#avatar">1. Avatar</a><a href="#empreinte">2. Empreinte vocale</a><a href="#voix">3. Narration</a><a href="#video">4. Génération vidéo</a><a href="#reglages">Réglages</a><a href="#suivi">Progression et erreurs</a><a href="#short">Short YouTube</a></nav>
 
@@ -27,7 +27,7 @@
         <div class="flowstep"><span class="num">1</span><div><h3>Image de référence</h3><p>Créer une image ou importer un portrait. Elle devient la référence d’identité visuelle de l’avatar.</p></div></div>
         <div class="flowstep"><span class="num">2</span><div><h3>Empreinte vocale persistante</h3><p>Qwen3-TTS crée un WAV de référence avec une direction vocale et un preset. L’empreinte est enregistrée sur l’avatar pour ses narrations suivantes.</p></div></div>
         <div class="flowstep"><span class="num">3</span><div><h3>Nouvelle génération audio</h3><p>Le texte est prononcé avec l’empreinte de l’avatar. Le WAV obtenu est conservé avec cette génération et devient la source sonore de la vidéo.</p></div></div>
-        <div class="flowstep"><span class="num">4</span><div><h3>Vidéo parlante Wan2.2</h3><p>Wan reçoit l’image, le WAV complet et les consignes de mouvement. Il produit le premier bloc puis le prolonge par Extend en gardant la chronologie audio.</p></div></div>
+        <div class="flowstep"><span class="num">4</span><div><h3>Vidéo parlante Wan2.2</h3><p>Pour chaque passage où l’avatar est visible, Wan reçoit l’image, l’audio associé et les consignes de mouvement. Il produit le premier bloc puis le prolonge par Extend en gardant la chronologie audio.</p></div></div>
         <div class="flowstep"><span class="num">5</span><div><h3>Finalisation et historique</h3><p>Studio ajuste la fin à la durée du WAV et assemble la piste audio dans le MP4. La vidéo est enregistrée dans l’historique de la génération.</p></div></div>
       </div>
     </section>
@@ -42,18 +42,25 @@
     <section id="empreinte" class="card">
       <div class="label">Étape 2</div><h2>Créer l’empreinte vocale</h2>
       <p>Qwen3-TTS fabrique une courte voix de référence à partir du preset, de la direction vocale et du texte de référence. Studio enregistre son WAV et ses paramètres sur l’avatar. Cette étape se fait une fois, puis la même empreinte est réutilisée pour les narrations associées.</p>
+      <p>Vous pouvez aussi créer l’empreinte depuis un fichier son : dans l’étape Empreinte vocale, choisissez un fichier WAV, MP3, FLAC, M4A, OGG ou AAC de <strong>3 secondes minimum</strong> et de 30 Mo maximum, puis cliquez sur « Créer l’empreinte depuis ce fichier ». Utilisez une seule voix clairement audible, sans musique ni bruit de fond. Un aperçu permet d’écouter le fichier ; le serveur vérifie sa durée réelle et le convertit en WAV. Aucune transcription n’est nécessaire.</p>
+      <p>Pour partir d’une vidéo YouTube, collez son lien dans « Ou récupérer la voix d’une vidéo YouTube » et indiquez le début de l’extrait : par exemple <strong>01:30</strong> récupère le son de <strong>01:30 à 01:33</strong>. Le bouton d’extraction enregistre ces trois secondes comme empreinte. La vidéo doit être publique, terminée et contenir assez de son après le repère. L’extrait se réécoute ensuite dans « Empreinte enregistrée ».</p>
       <p>Si l’empreinte est régénérée, les prochaines narrations utiliseront la nouvelle version. Les médias déjà enregistrés dans l’historique restent associés à leurs générations.</p>
     </section>
 
     <section id="voix" class="card">
       <div class="label">Étape 3</div><h2>Générer le texte parlé</h2>
       <p>On donne un nom à la génération et on saisit le texte à prononcer. Qwen3-TTS utilise le preset et la direction de l’empreinte de cet avatar, avec son texte et sa langue. Le résultat est un WAV enregistré comme média de la génération.</p>
-      <p>La vidéo prend exactement ce WAV comme source temporelle. Les anciennes métadonnées de segmentation d’une voix ne provoquent pas de découpes : le fichier WAV de cette génération est copié en entier vers ComfyUI et encodé une fois.</p>
+      <p>La vidéo prend ce WAV comme source temporelle. Sans commande de remplacement visuel, les anciennes métadonnées de segmentation d’une voix ne provoquent pas de découpes : le fichier WAV de cette génération est copié en entier vers ComfyUI et encodé une fois.</p>
+      <p>Pour afficher une ressource de l’onglet Ressources, saisissez par exemple <code class="mono">{Ref:FormuleEnergie} Cette formule relie la masse et l’énergie.</code> Le visuel enregistré, avec son fond éventuel, remplace l’avatar pendant ces paroles. <code class="mono">{}</code> rétablit l’avatar. Les commandes, les noms des ressources et leur contenu ne sont pas ajoutés à la voix. Les durées de narration mesurées règlent les changements de visuel, dans l’aperçu vidéo comme dans la vidéo finale.</p>
+      <p>Pour choisir le nom sans le recopier, tapez <code class="mono">{Ref:</code> dans le scénario du Studio ou d’une ligne de batch. La modale propose d’abord le type, puis les noms des ressources avec un visuel enregistré. Le choix complète la commande, ajoute l’accolade fermante et replace le curseur après <code class="mono">}</code> pour saisir les paroles. « Types de ressources » permet de revenir aux types ; « Annuler » ou Échap ferme la fenêtre en conservant le texte saisi. Une accolade échappée n’ouvre pas cette sélection.</p>
+      <p>Le bouton <strong>Vérifier et prévisualiser le scénario</strong> montre les paroles et les séquences, avec les vignettes des ressources. Un nom inconnu ou un rendu indisponible est signalé avant de générer la voix. Les voix enregistrées gardent leurs associations après un renommage de ressource ; les nouveaux scénarios utilisent les noms actuels.</p>
+      <p>Avec des références, des images ou des fichiers, Wan calcule seulement les passages où l’avatar reste visible. Studio assemble ensuite ces passages avec les autres visuels, en conservant la narration et les éventuels sons des fichiers à leur place.</p>
       <div class="call">Conseil pratique : écouter le WAV avant de lancer la vidéo. Une erreur de prononciation, un silence ou une durée indésirable présents dans le WAV seront également présents dans la vidéo.</div>
     </section>
 
     <section id="video" class="card">
       <div class="label">Étape 4 · workflow détaillé</div><h2>Comment Wan2.2-S2V + Extend construit la vidéo</h2>
+      <p>Ce déroulement s’applique au WAV complet lorsque l’avatar reste visible, ou à l’audio de chaque passage où il apparaît dans un scénario avec des remplacements visuels.</p>
       <ol>
         <li><strong>Validation des prérequis.</strong> Le serveur vérifie la présence des nœuds natifs ComfyUI et des modèles Wan2.2-S2V. Si un nœud ou un modèle manque, le job s’arrête avec une erreur explicite.</li>
         <li><strong>Préparation des entrées.</strong> L’image est copiée ou préparée selon le cadrage choisi. Le WAV source complet est copié sans découpe. ComfyUI charge ce WAV une fois, puis l’encodeur audio le transforme en conditionnement audio unique.</li>

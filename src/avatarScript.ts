@@ -1,6 +1,6 @@
 export type AvatarScriptDisplay =
   | { mode: "standard" }
-  | { mode: "text" | "latex" | "image" | "file"; content: string };
+  | { mode: "text" | "latex" | "image" | "file" | "ref"; content: string };
 
 export type AvatarScriptSequence = AvatarScriptDisplay & { text: string };
 
@@ -21,8 +21,12 @@ export function hasScriptImages(script: AvatarScript): boolean {
   return script.sequences.some(sequence => sequence.mode === "image");
 }
 
+export function hasScriptReferences(script: AvatarScript): boolean {
+  return script.sequences.some(sequence => sequence.mode === "ref");
+}
+
 export function hasScriptVisuals(script: AvatarScript): boolean {
-  return hasScriptOverlays(script) || hasScriptImages(script) || script.sequences.some(sequence => sequence.mode === "file");
+  return hasScriptOverlays(script) || hasScriptImages(script) || hasScriptReferences(script) || script.sequences.some(sequence => sequence.mode === "file");
 }
 
 export class AvatarScriptSyntaxError extends Error {
@@ -32,8 +36,8 @@ export class AvatarScriptSyntaxError extends Error {
   }
 }
 
-const commandModes = new Map<string, "text" | "latex" | "image" | "file">([
-  ["Texte", "text"], ["Latex", "latex"], ["Image", "image"], ["File", "file"]
+const commandModes = new Map<string, "text" | "latex" | "image" | "file" | "ref">([
+  ["Texte", "text"], ["Latex", "latex"], ["Image", "image"], ["File", "file"], ["Ref", "ref"]
 ]);
 
 /** Parse visual instructions without reading files or generating any media. */
@@ -100,7 +104,7 @@ export function parseAvatarScript(source: string): AvatarScript {
       if (!content) {
         throw new AvatarScriptSyntaxError(`Contenu vide pour la commande ${name}`, start);
       }
-      display = { mode, content };
+      display = { mode, content: mode === "ref" ? content.replace(/\\\\/g, "\\") : content };
       displayStart = start;
     }
     cursor++;

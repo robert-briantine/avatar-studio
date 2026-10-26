@@ -11,6 +11,14 @@
     @media(max-width:1050px){.app{grid-template-columns:235px 1fr}.grid,.batchLayout{grid-template-columns:1fr}.batchRow{grid-template-columns:1fr 1fr}.batchRow textarea{grid-column:1/-1}.iconBtn{position:absolute;right:48px}.healthItem span:last-child{display:none}}
     @media(max-width:720px){.app{display:block}.sidebar{position:relative;height:auto;padding:15px}.avatarList{display:flex;overflow:auto}.avatarItem{min-width:180px}.newAvatar{margin-top:12px}.sideFoot{display:none}.topbar{padding:0 16px;height:66px}.content{padding:22px 16px 50px}.context{display:block}.contextActions{margin-top:15px}.stepText small{display:none}.step{padding:9px 7px}.row{grid-template-columns:1fr}.batchRow{grid-template-columns:1fr}.batchRow textarea{grid-column:auto}.iconBtn{position:static}.nav button{padding:8px 12px}}
     .guideLink{display:inline-flex;align-items:center;padding:9px 13px;border-radius:9px;background:#fff;color:var(--green-deep);font-size:12px;font-weight:800;text-decoration:none;box-shadow:0 2px 9px rgba(20,40,31,.06)}.guideLink:hover{background:var(--soft)}
+    .resourceLayout{display:grid;grid-template-columns:minmax(260px,.8fr) minmax(0,1.2fr);gap:20px;align-items:start}.resourceList{display:grid;gap:9px;max-height:650px;overflow:auto}.resourceItem{width:100%;text-align:left;padding:13px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}.resourceItem.active{border-color:#66b982;background:var(--soft)}.resourceItem strong{display:block;overflow-wrap:anywhere;margin-bottom:8px}.resourceItem small{display:block;color:var(--muted);margin-top:8px}.resourceSource{min-height:220px}.resourceSource.monospace{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2}.resourcePreview{min-height:180px;margin-top:12px;padding:12px;text-align:center}.resourcePreview img{max-height:320px}.resourcePreview.transparentPreview{background:transparent}.resourceItem:disabled{opacity:.6;cursor:wait}
+    .latexTools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.latexTools button{min-width:38px}.latexPreview{min-height:160px;background:transparent;border:1px solid var(--line);border-radius:12px;display:flex;justify-content:center;align-items:center;padding:20px;overflow:auto;color:var(--muted);font-size:13px}.latexPreview img{max-width:100%;max-height:220px;object-fit:contain}.latexSource{min-height:125px}
+    .codeEditor{height:320px;min-width:0;max-width:100%;overflow:hidden;border:1px solid var(--line);border-radius:12px}.codeEditor .monaco-editor textarea.inputarea{min-height:0;padding:0;border:0;border-radius:0;resize:none;transition:none;box-shadow:none;background:transparent;color:inherit;line-height:normal}.codePreview{min-height:160px;border:1px solid var(--line);border-radius:12px;background:#f5f7f4;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font-size:13px}.codePreview img{display:block;width:100%;height:auto}.resourceLayout>.card{min-width:0}
+    .editingDiagram .resourceLayout{grid-template-columns:minmax(220px,.45fr) minmax(0,1.55fr)}.diagramWorkspace{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;margin-bottom:18px}.diagramControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border-bottom:1px solid var(--line)}.diagramControls label{font-size:12px;font-weight:800}.diagramControls select{width:auto;max-width:100%;flex:1;min-width:160px;padding:8px}.diagramFrame{display:block;width:100%;height:560px;border:0}.diagramWorkspace:fullscreen{width:100vw;height:100vh;padding:12px;border:0;border-radius:0;display:flex;flex-direction:column}.diagramWorkspace:fullscreen .diagramFrame{flex:1;min-height:0}.diagramWorkspace .status{margin:10px}.diagramPreview{min-height:160px;border:1px solid var(--line);border-radius:12px;background:transparent;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font-size:13px}.diagramPreview img{width:100%;height:auto;display:block}
+    .compositionSettings{padding:14px;margin-top:12px;border:1px solid var(--line);border-radius:12px;background:#f8faf8}.compositionSettings .field{margin:10px 0}.compositionSettings input[type=range]{width:100%;accent-color:var(--green-deep)}.latexPreview.composed{padding:0;overflow:hidden}.latexPreview.composed img{width:100%;max-width:100%;max-height:none;height:auto;display:block}
+    .scriptPreviewPanel{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#f8faf8}.scriptPreviewPanel h3{font-size:14px}.scriptNarration{white-space:pre-wrap;font-size:13px;line-height:1.5}.scriptPreviewSteps{display:grid;gap:12px;max-height:600px;overflow:auto;margin:12px 0 0;padding-left:22px}.scriptPreviewSteps li{font-size:12px;padding:10px;background:#fff;border:1px solid var(--line);border-radius:10px;overflow-wrap:anywhere}.scriptPreviewSteps strong{display:block;margin-bottom:8px}.scriptPreviewSteps img{display:block;width:100%;max-height:220px;object-fit:contain;background:#fff}.scriptPreviewSteps p{white-space:pre-wrap;margin:8px 0 0}.scriptPreviewSteps code{display:block;white-space:pre-wrap;color:var(--muted)}
+    .referencePicker{width:560px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);padding:22px;border:1px solid var(--line);border-radius:16px;color:var(--ink);background:#fff;box-shadow:var(--shadow)}.referencePicker[open]{display:flex;flex-direction:column;gap:12px}.referencePicker::backdrop{background:rgba(15,30,23,.5)}.referencePicker h2{font-size:19px;margin:0;outline:none}.referencePicker p{font-size:13px;line-height:1.5;margin:0;color:var(--muted)}.referencePicker .status{margin:0;overflow-wrap:anywhere}.referenceChoices{display:grid;gap:9px;overflow:auto;min-height:0;padding:3px}.referenceChoices[data-step=types]{grid-template-columns:repeat(2,minmax(0,1fr))}.referenceChoice{display:block;min-width:0;width:100%;padding:14px;text-align:left;border:1px solid var(--line);border-radius:12px;background:#f8faf8;color:var(--ink);font:inherit;cursor:pointer;overflow-wrap:anywhere}.referenceChoice:hover{border-color:var(--green-deep);background:var(--soft)}.referenceChoice:focus-visible,.referencePicker .btn:focus-visible{outline:3px solid var(--green-deep);outline-offset:2px}.referenceChoice:disabled{opacity:.55;cursor:wait}.referenceChoice span{font-size:13px;font-weight:800}.referenceChoice small{display:block;margin-top:5px;color:var(--muted);font-size:12px}.referencePicker .actions{margin-top:0;flex-shrink:0}.referencePicker [hidden]{display:none!important}
+    @media(max-width:1050px){.resourceLayout,.editingDiagram .resourceLayout{grid-template-columns:1fr}}@media(max-width:720px){.topbar{height:auto;min-height:66px;flex-wrap:wrap;gap:10px;padding-top:10px;padding-bottom:10px}.health{gap:8px}.diagramFrame{height:470px}}
   </style>
 </head>
 <body>
@@ -28,7 +36,7 @@
 
   <main class="main">
     <header class="topbar">
-      <nav class="nav"><button id="studioNav" class="active">Studio</button><button id="batchNav">Batch</button></nav>
+      <nav class="nav" aria-label="Espaces de travail"><button id="studioNav" class="active">Studio</button><button id="resourcesNav">Ressources</button><button id="batchNav">Batch</button></nav>
       <div class="health"><a class="guideLink" href="/workflow.html">Guide du workflow</a><div id="health" class="healthItem"><i class="dot"></i><span>Services</span></div></div>
     </header>
 
@@ -64,13 +72,35 @@
 
         <div id="step2" class="grid hidden">
           <div class="card">
-            <div class="cardHead"><div><h2>Créer l’empreinte vocale</h2><p>Elle est générée une seule fois puis clonée pour toutes les narrations de cet avatar.</p></div><span id="voiceBadge" class="badge">À créer</span></div>
+            <div class="cardHead"><div><h2>Créer l’empreinte vocale</h2><p>Générez une voix ou importez un fichier son. Cette référence sera clonée pour les narrations de cet avatar.</p></div><span id="voiceBadge" class="badge">À créer</span></div>
             <div class="callout">L’empreinte est un WAV de référence associé durablement à cet avatar. Changer le texte d’une génération ne changera plus son identité vocale.</div>
             <div class="field"><label>Style de voix</label><select id="voicePreset"></select></div>
             <div class="field"><label>Direction vocale</label><textarea id="voicePrompt" placeholder="Décrivez le timbre, l’âge, le rythme et l’intention…"></textarea></div>
             <details class="advanced"><summary>Texte de référence</summary><div class="field"><textarea id="fingerprintText" style="min-height:90px">Bonjour. Cette voix est la signature de mon avatar. Elle restera naturelle, claire et cohérente dans toutes mes prochaines narrations.</textarea></div></details>
-            <div class="actions"><button id="generateFingerprint" class="btn primary">Créer l’empreinte</button><button id="toGenerations" class="btn secondary" disabled>Continuer →</button></div>
+            <div class="actions"><button id="generateFingerprint" class="btn primary">Créer l’empreinte</button></div>
             <div id="voiceStatus" class="status"></div>
+            <div class="divider"></div>
+            <div class="upload">
+              <strong>Ou créer l’empreinte depuis un fichier son</strong>
+              <p id="fingerprintRequirements" class="status" aria-live="polite">Chargement de la durée minimale…</p>
+              <p class="status">Choisissez un extrait de voix seule, clairement audible, sans musique ni bruit de fond. Aucune transcription n’est nécessaire.</p>
+              <label for="fingerprintFile" class="status">Fichier audio de référence</label>
+              <input id="fingerprintFile" type="file" accept="audio/*,.wav,.mp3,.flac,.m4a,.ogg,.aac,.opus,.webm" aria-describedby="fingerprintRequirements fingerprintFileStatus">
+              <audio id="fingerprintPreview" class="hidden" controls preload="metadata" style="width:100%;margin-top:12px"></audio>
+              <div id="fingerprintFileStatus" class="status" role="status"></div>
+              <div class="actions"><button id="uploadFingerprint" class="btn primary" disabled>Créer l’empreinte depuis ce fichier</button></div>
+            </div>
+            <div class="divider"></div>
+            <div class="upload">
+              <strong>Ou récupérer la voix d’une vidéo YouTube</strong>
+              <p id="youtubeClipHint" class="status">Un extrait de 3 secondes sera récupéré à partir du repère choisi.</p>
+              <div class="field"><label for="youtubeUrl">Lien de la vidéo YouTube</label><input id="youtubeUrl" class="input" type="url" placeholder="https://www.youtube.com/watch?v=…"></div>
+              <div class="field"><label for="youtubeStart">Début de l’extrait <span class="hint">secondes, mm:ss ou hh:mm:ss</span></label><input id="youtubeStart" class="input" type="text" value="00:00" placeholder="01:30" aria-describedby="youtubeClipHint"></div>
+              <p class="status">Exemple : 01:30 récupère le son de 01:30 à 01:33. Choisissez un passage avec une seule voix, sans musique.</p>
+              <div class="actions"><button id="youtubeFingerprint" class="btn primary" disabled>Extraire 3 secondes et créer l’empreinte</button></div>
+              <div id="youtubeStatus" class="status" role="status"></div>
+            </div>
+            <div class="actions"><button id="toGenerations" class="btn secondary" disabled>Continuer →</button></div>
           </div>
           <div class="card"><div class="cardHead"><div><h3>Empreinte enregistrée</h3><p id="fingerprintMeta">Aucune empreinte pour le moment.</p></div></div><div id="fingerprintMedia" class="media">Aucune voix</div><div class="actions"><button class="btn secondary smallBtn" data-open-folder="voice">Ouvrir le dossier des sons</button></div><p class="status">La régénération remplace uniquement l’empreinte de référence. Les générations déjà produites restent dans l’historique.</p></div>
         </div>
@@ -83,8 +113,10 @@
               <div class="field"><label>Texte à prononcer</label><textarea id="speechText" placeholder="Saisissez le texte exact que l’avatar doit prononcer…"></textarea></div>
               <p class="status">Pour afficher un texte ou une formule en bas de la vidéo : <code>{Texte: Bonjour}</code> ou <code>{Latex: x+1}</code>, suivi des paroles. <code>{}</code> termine l’affichage. Ces commandes ne sont pas prononcées.</p>
               <p class="status">Pour remplacer l’avatar par une image pendant les paroles : <code>{Image: une licorne}</code>. <code>{}</code> fait revenir l’avatar. Une description identique réutilise la même image.</p>
+              <p class="status">Pour afficher une ressource enregistrée, tapez <code>{Ref:</code> : choisissez son type puis son nom dans la fenêtre proposée. La commande <code>{Ref:FormuleEnergie}</code> est complétée automatiquement. Ajoutez ensuite les paroles ; <code>{}</code> fait revenir l’avatar.</p>
               <p class="status">Pour insérer une image ou une vidéo du serveur : <code>{File:/chemin/fichier.mp4}</code>. Si la vidéo possède du son, les paroles reprennent avec l’avatar après sa lecture.</p>
               <p class="status">Chaque commande visuelle doit être suivie de paroles. Pour écrire des accolades dans les paroles : <code>\{exemple\}</code>.</p>
+              <div class="actions"><button id="previewScript" class="btn secondary" type="button">Vérifier et prévisualiser le scénario</button></div><div id="scriptPreviewStatus" class="status" role="status" aria-live="polite"></div><div id="scriptPreviewPanel" class="scriptPreviewPanel hidden"></div>
               <div class="actions"><button id="generateVoice" class="btn primary">1 · Générer la voix</button><span class="status">La voix utilisera automatiquement l’empreinte de cet avatar.</span></div>
               <div id="generationStatus" class="status"></div>
               <div id="selectedGeneration" class="hidden"><div class="divider"></div><div class="cardHead"><div><h3 id="selectedGenerationTitle"></h3><p id="selectedGenerationMeta"></p></div><span id="selectedGenerationBadge" class="badge"></span></div><div id="selectedVoiceMedia"></div></div>
@@ -111,6 +143,39 @@
         </div>
       </section>
 
+      <section id="resourcesView" class="hidden" aria-labelledby="resourcesTitle">
+        <div class="context"><div><div class="eyebrow">Bibliothèque commune</div><h1 id="resourcesTitle">Ressources</h1><p>Enregistrez vos contenus visuels et retrouvez-les pour tous vos avatars.</p></div><button id="newResource" class="btn primary" disabled>+ Nouvelle ressource</button></div>
+        <div class="resourceLayout">
+          <aside class="card">
+            <div class="cardHead"><div><h2>Bibliothèque</h2><p>Images, formules, code et diagrammes.</p></div><span id="resourceCount" class="badge">0</span></div>
+            <div class="field"><label for="resourceSearch">Rechercher par nom</label><input id="resourceSearch" class="input" type="search" placeholder="Nom de la ressource"></div>
+            <div class="field"><label for="resourceFilter">Type de ressource</label><select id="resourceFilter"><option value="">Tous les types</option></select></div>
+            <div id="resourceListStatus" class="status" role="status"></div>
+            <div id="resourceList" class="resourceList"><div class="empty">Chargement de la bibliothèque…</div></div>
+            <div class="actions"><button id="refreshResources" class="btn secondary smallBtn">Actualiser</button></div>
+          </aside>
+          <div class="card">
+            <div class="cardHead"><div><h2 id="resourceEditorTitle">Nouvelle ressource</h2><p id="resourceEditorMeta">Choisissez un type et enregistrez son contenu.</p></div><span id="resourceDraftBadge" class="badge hidden">Non enregistré</span></div>
+            <form id="resourceForm" novalidate>
+              <div class="field"><label for="resourceName">Nom de la ressource <span class="hint">unique dans la bibliothèque</span></label><input id="resourceName" class="input" maxlength="120" required placeholder="Ex. FondCours"></div>
+              <div class="field"><label for="resourceType">Type</label><select id="resourceType" required></select></div>
+              <div id="resourceCodeThemeField" class="field hidden"><label for="resourceCodeTheme">Thème du code et du visuel</label><select id="resourceCodeTheme"><option value="dark-plus">VS Code — sombre (Dark+)</option><option value="light-plus">VS Code — clair (Light+)</option></select></div>
+              <div class="field"><label id="resourceSourceLabel" for="resourceSource">Contenu source</label><div id="resourceLatexTools" class="latexTools hidden" role="toolbar" aria-label="Aides de saisie LaTeX"><button type="button" class="btn secondary smallBtn" data-latex-insert="fraction" title="Insérer une fraction">Fraction</button><button type="button" class="btn secondary smallBtn" data-latex-insert="power" title="Insérer une puissance" aria-label="Puissance">x²</button><button type="button" class="btn secondary smallBtn" data-latex-insert="subscript" title="Insérer un indice" aria-label="Indice">x₁</button><button type="button" class="btn secondary smallBtn" data-latex-insert="sqrt" title="Insérer une racine carrée" aria-label="Racine carrée">√</button><button type="button" class="btn secondary smallBtn" data-latex-insert="alpha" title="Insérer alpha" aria-label="Alpha">α</button><button type="button" class="btn secondary smallBtn" data-latex-insert="beta" title="Insérer bêta" aria-label="Bêta">β</button><button type="button" class="btn secondary smallBtn" data-latex-insert="pi" title="Insérer pi" aria-label="Pi">π</button><button type="button" class="btn secondary smallBtn" data-latex-insert="sum" title="Insérer une somme" aria-label="Somme">∑</button><button type="button" class="btn secondary smallBtn" data-latex-insert="integral" title="Insérer une intégrale" aria-label="Intégrale">∫</button><button type="button" class="btn secondary smallBtn" data-latex-insert="infinity" title="Insérer l’infini" aria-label="Infini">∞</button></div><textarea id="resourceSource" class="resourceSource" spellcheck="false" aria-describedby="resourceSourceHint"></textarea><p id="resourceSourceHint" class="status"></p></div>
+              <div id="resourceCodeEditor" class="codeEditor hidden" tabindex="-1" aria-label="Éditeur TypeScript"></div><div id="resourceCodeEditorStatus" class="status hidden" role="status" aria-live="polite"></div>
+              <div id="resourceDiagramWorkspace" class="diagramWorkspace hidden"><div class="diagramControls"><label for="resourceDiagramType">Type de diagramme</label><select id="resourceDiagramType"><option value="Flowchart">Organigramme</option><option value="ActivityDiagram">Activités</option><option value="ClassDiagram">Classes UML</option><option value="ObjectDiagram">Objets UML</option><option value="UseCaseDiagram">Cas d’utilisation</option><option value="CommunicationDiagram">Communication</option><option value="ComponentDiagram">Composants</option><option value="DeploymentDiagram">Déploiement</option><option value="BPMN">Processus BPMN</option><option value="PetriNet">Réseau de Petri</option><option value="ReachabilityGraph">Graphe d’accessibilité</option><option value="SyntaxTree">Arbre syntaxique</option><option value="Sfc">Grafcet (SFC)</option></select><button id="importResourceDiagram" class="btn secondary smallBtn" type="button" title="Importer un fichier JSON Apollon (1 Mo maximum)">Importer JSON</button><input id="resourceDiagramImportFile" type="file" accept=".json,application/json" hidden aria-label="Fichier JSON Apollon à importer"><button id="exportResourceDiagram" class="btn secondary smallBtn" type="button" title="Télécharger le diagramme éditable au format JSON Apollon">Exporter JSON</button><button id="exampleResourceDiagram" class="btn secondary smallBtn" type="button">Ajouter l’exemple</button><button id="fitResourceDiagram" class="btn secondary smallBtn" type="button">Tout afficher</button><button id="expandResourceDiagram" class="btn secondary smallBtn" type="button">Agrandir</button></div><iframe id="resourceDiagramFrame" class="diagramFrame hidden" title="Éditeur graphique de diagrammes Apollon"></iframe><div id="resourceDiagramEditorStatus" class="status" role="status" aria-live="polite"></div><div class="actions"><button id="convertResourceDiagram" class="btn secondary smallBtn hidden" type="button">Convertir le texte</button><button id="retryResourceDiagram" class="btn secondary smallBtn hidden" type="button">Réessayer</button></div></div>
+              <div id="resourceLatexPanel" class="hidden"><div class="cardHead"><h3>Aperçu de la formule</h3><button id="refreshResourceLatex" class="btn secondary smallBtn" type="button">Actualiser</button></div><div class="field"><label for="resourceLatexColor">Couleur de la formule <output id="resourceLatexColorValue" for="resourceLatexColor">#17231d</output></label><input id="resourceLatexColor" type="color" value="#17231d" style="width:64px;height:40px;padding:3px;cursor:pointer"></div><div id="resourceLatexPreview" class="latexPreview" aria-busy="false">Votre formule apparaîtra ici.</div><div id="resourceLatexStatus" class="status" role="status" aria-live="polite"></div></div>
+              <div id="resourceCodePanel" class="hidden"><div class="cardHead"><h3>Aperçu du visuel</h3><button id="refreshResourceCode" class="btn secondary smallBtn" type="button">Actualiser</button></div><div id="resourceCodePreview" class="codePreview" aria-busy="false">Votre code apparaîtra ici.</div><div id="resourceCodeStatus" class="status" role="status" aria-live="polite"></div></div>
+              <div id="resourceDiagramPanel" class="hidden"><div class="cardHead"><h3>Aperçu du diagramme</h3><button id="refreshResourceDiagram" class="btn secondary smallBtn" type="button">Actualiser</button></div><div id="resourceDiagramPreview" class="diagramPreview" aria-busy="false">Votre diagramme apparaîtra ici.</div><div id="resourceDiagramStatus" class="status" role="status" aria-live="polite"></div></div>
+              <div id="resourceBackgroundField" class="field hidden"><label for="resourceBackground">Image de fond associée <span class="hint">facultatif</span></label><select id="resourceBackground"><option value="">Aucune image de fond</option></select><div id="resourceCompositionSettings" class="compositionSettings hidden"><div class="row"><div class="field"><label for="resourceCompositionPosition">Position du contenu</label><select id="resourceCompositionPosition"><option value="top-left">En haut à gauche</option><option value="top">En haut au centre</option><option value="top-right">En haut à droite</option><option value="left">Au centre à gauche</option><option value="center" selected>Au centre</option><option value="right">Au centre à droite</option><option value="bottom-left">En bas à gauche</option><option value="bottom">En bas au centre</option><option value="bottom-right">En bas à droite</option></select></div><div class="field"><label for="resourceCompositionMargin">Marge extérieure (px)</label><input id="resourceCompositionMargin" class="input" type="number" min="16" max="160" step="8" value="64"></div></div><div class="field"><label for="resourceCompositionSize">Taille du contenu <output id="resourceCompositionSizeValue" for="resourceCompositionSize">80 %</output></label><input id="resourceCompositionSize" type="range" min="30" max="90" step="1" value="80"></div><div class="field"><label for="resourceCompositionFit">Cadrage de l’image de fond</label><select id="resourceCompositionFit"><option value="contain">Image entière</option><option value="cover">Remplir le cadre (rogner les bords)</option></select></div><p class="status">Le panneau garde le contenu lisible et laisse voir le fond autour. Les réglages sont conservés avec la ressource.</p></div></div>
+              <div class="actions"><button id="saveResource" class="btn primary" type="submit" disabled>Enregistrer la ressource</button><button id="generateResourceImage" class="btn secondary" type="button" disabled>Générer l’image</button><button id="stopResourceImage" class="btn danger hidden" type="button">Arrêter la génération</button></div>
+              <div id="resourceStatus" class="status" role="status" aria-live="polite"></div>
+              <div id="resourceImageStatus" class="status" role="status" aria-live="polite"></div>
+            </form>
+            <div id="resourceSavedPreview"><div class="divider"></div><h3>Aperçu enregistré</h3><div id="resourcePreview" class="media resourcePreview">Aucun aperçu disponible.</div></div>
+          </div>
+        </div>
+      </section>
+
       <section id="batchView" class="hidden">
         <div class="context"><div><div class="eyebrow">Production automatisée</div><h1>Génération par batch</h1><p>Préparez une séquence avatar + texte. La machine génère chaque voix puis chaque vidéo, dans l’ordre.</p></div></div>
         <div class="batchLayout">
@@ -125,9 +190,21 @@
   </main>
 </div>
 <div id="toast" class="toast"></div>
+<dialog id="scriptReferenceDialog" class="referencePicker" aria-labelledby="scriptReferenceTitle" aria-describedby="scriptReferenceDescription">
+  <h2 id="scriptReferenceTitle" tabindex="-1">Choisir un type de ressource</h2>
+  <p id="scriptReferenceDescription">Sélectionnez un type, puis le nom de la ressource à afficher.</p>
+  <div id="scriptReferenceChoices" class="referenceChoices" data-step="types"></div>
+  <div id="scriptReferenceStatus" class="status" role="status" aria-live="polite"></div>
+  <div class="actions"><button id="scriptReferenceBack" type="button" class="btn secondary" hidden>← Types de ressources</button><button id="scriptReferenceRetry" type="button" class="btn secondary" hidden>Réessayer</button><button id="scriptReferenceCancel" type="button" class="btn ghost">Annuler</button></div>
+</dialog>
 
 <script type="module">
+import { initResourceLibrary } from './resources.js';
+import { initScriptPreview } from './scriptPreview.js';
+import { initScriptReferencePicker } from './scriptReferencePicker.js';
+
 const state={projects:[],project:null,presets:[],step:1,view:'studio',selectedGenerationId:null,batches:[],selectedBatchId:null,batchRows:[{avatarId:'',name:'',text:''}],shortHealth:{ffmpeg:false,upscale:false}};
+const fingerprintImport={requirements:null,file:null,duration:null,url:null,checking:false,uploading:false};
 const transitionNames={interpolated:'3 · Mouvement interpolé',reconstructed:'4 · Reprise reconstruite'};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -137,6 +214,33 @@ const fmtDuration=value=>Number.isFinite(Number(value))?`${Number(value).toFixed
 async function api(url,opt={}){const response=await fetch(url,opt);let data={};try{data=await response.json()}catch{}if(!response.ok)throw Error(data.error||`HTTP ${response.status}`);return data}
 function toast(message,bad=false){const node=$('#toast');node.textContent=message;node.style.background=bad?'#7d2c2c':'';node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),3200)}
 function post(url,body){return api(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})}
+const resourceLibrary=initResourceLibrary({api,toast,fmtDate});
+const scriptPreview=initScriptPreview({api});
+const scriptReferencePicker=initScriptReferencePicker({api,toast});
+function renderFingerprintImport(){
+  const busy=active(state.project?.currentJob)||fingerprintImport.uploading;
+  const tooShort=Number.isFinite(fingerprintImport.duration)&&fingerprintImport.duration<fingerprintImport.requirements?.minDurationSeconds;
+  $('#fingerprintFile').disabled=busy||!state.project?.avatar||!fingerprintImport.requirements;
+  $('#uploadFingerprint').disabled=busy||!state.project?.avatar||!fingerprintImport.requirements||!fingerprintImport.file||fingerprintImport.checking||tooShort;
+  $('#youtubeUrl').disabled=busy||!state.project?.avatar;
+  $('#youtubeStart').disabled=busy||!state.project?.avatar;
+  $('#youtubeFingerprint').disabled=busy||!state.project?.avatar||!$('#youtubeUrl').value.trim()||!$('#youtubeStart').value.trim();
+}
+function resetFingerprintImport(clearSelection=true){
+  if(fingerprintImport.url)URL.revokeObjectURL(fingerprintImport.url);
+  Object.assign(fingerprintImport,{file:null,duration:null,url:null,checking:false});
+  if(clearSelection)$('#fingerprintFile').value='';
+  $('#fingerprintPreview').pause();$('#fingerprintPreview').removeAttribute('src');$('#fingerprintPreview').load();$('#fingerprintPreview').classList.add('hidden');
+  $('#fingerprintFileStatus').textContent='';$('#fingerprintFileStatus').className='status';
+}
+function audioFileDuration(url){
+  return new Promise(resolve=>{
+    const audio=new Audio();
+    const finish=duration=>{clearTimeout(timer);audio.onloadedmetadata=null;audio.onerror=null;audio.removeAttribute('src');audio.load();resolve(duration)};
+    const timer=setTimeout(()=>finish(null),5000);
+    audio.preload='metadata';audio.onloadedmetadata=()=>finish(Number.isFinite(audio.duration)?audio.duration:null);audio.onerror=()=>finish(null);audio.src=url;
+  });
+}
 document.addEventListener('click',async event=>{const button=event.target.closest('[data-open-folder]');if(!button||!state.project)return;button.disabled=true;try{await post(`/api/project/${encodeURIComponent(state.project.id)}/open-folder`,{folder:button.dataset.openFolder});toast(button.dataset.openFolder==='voice'?'Dossier des sons ouvert.':'Dossier des vidéos ouvert.')}catch(error){toast(`Impossible d’ouvrir le dossier : ${error.message}`,true)}finally{button.disabled=false}});
 
 function renderSidebar(){
@@ -174,6 +278,7 @@ function renderHistory(){
     if(generation){
       $('#generationName').value=generation.name;
       $('#speechText').value=generation.text;
+      scriptPreview.reset();
     }
     renderSelectedGeneration();renderHistory();
   });
@@ -187,7 +292,8 @@ function renderJob(){
   // Toujours recalculer l'etat, y compris apres la fin d'un job. Se contenter
   // de desactiver au lancement laissait notamment « Generer la voix » grise.
   $('#generateAvatar').disabled=running||!state.project;
-  $('#generateFingerprint').disabled=running||!state.project?.avatar;
+  $('#generateFingerprint').disabled=running||fingerprintImport.uploading||!state.project?.avatar;
+  renderFingerprintImport();
   $('#generateVoice').disabled=running||!state.project?.voiceFingerprint;
   $('#previewVideo').disabled=running||!generation?.voice;
   $('#generateVideo').disabled=running||!generation?.voice;
@@ -212,16 +318,16 @@ function renderStudio(){
   $('#avatarMedia').innerHTML=project.avatar?`<img src="/api/avatar/file/${encodeURIComponent(project.id)}?v=${project.updatedAt}" alt="${esc(project.name)}">`:'Aucune image';
   $('#toVoice').disabled=!project.avatar||active(project.currentJob);
   $('#voiceBadge').className=`badge ${project.voiceFingerprint?'ready':''}`;$('#voiceBadge').textContent=project.voiceFingerprint?'Empreinte prête':'À créer';
-  $('#fingerprintMeta').textContent=project.voiceFingerprint?`${fmtDuration(project.voiceFingerprint.duration)} · créée le ${fmtDate(project.voiceFingerprint.createdAt)}`:'Aucune empreinte pour le moment.';
+  $('#fingerprintMeta').textContent=project.voiceFingerprint?`${fmtDuration(project.voiceFingerprint.duration)} · ${project.voiceFingerprint.source==='youtube'?`YouTube : ${project.voiceFingerprint.originalName} · début ${fmtDuration(project.voiceFingerprint.startSeconds)} · `:project.voiceFingerprint.source==='uploaded'?`importée depuis ${project.voiceFingerprint.originalName} · `:''}créée le ${fmtDate(project.voiceFingerprint.createdAt)}`:'Aucune empreinte pour le moment.';
   $('#fingerprintMedia').innerHTML=project.voiceFingerprint?`<audio controls src="${esc(project.voiceFingerprint.url)}?v=${project.updatedAt}"></audio>`:'Aucune voix';
   $('#toGenerations').disabled=!project.voiceFingerprint||active(project.currentJob);
   renderSelectedGeneration();renderHistory();renderJob();
 }
 
-async function loadProject(id){if(!id)return;const data=await api(`/api/project/${encodeURIComponent(id)}`);const changed=state.project?.id!==id;state.project=data.project;if(changed){state.step=state.project.avatar?state.project.voiceFingerprint?3:2:1;state.selectedGenerationId=state.project.generations?.[0]?.id||null;if(state.project.avatar?.prompt)$('#avatarPrompt').value=state.project.avatar.prompt}renderSidebar();renderStudio()}
+async function loadProject(id){if(!id)return;const data=await api(`/api/project/${encodeURIComponent(id)}`);const changed=state.project?.id!==id;state.project=data.project;if(changed){resetFingerprintImport();state.step=state.project.avatar?state.project.voiceFingerprint?3:2:1;state.selectedGenerationId=state.project.generations?.[0]?.id||null;if(state.project.avatar?.prompt)$('#avatarPrompt').value=state.project.avatar.prompt}renderSidebar();renderStudio()}
 async function refreshProjects(selectId){const data=await api('/api/projects');state.projects=data.projects||[];renderSidebar();const id=selectId||state.project?.id;if(id&&state.projects.some(project=>project.id===id))await loadProject(id);else if(!state.project&&state.projects.length)await loadProject(state.projects[0].id)}
 
-$('#createAvatar').onclick=async()=>{const name=$('#newAvatarName').value.trim();if(!name)return toast('Donnez un nom au nouvel avatar.',true);try{const data=await post('/api/project',{name});$('#newAvatarName').value='';state.project=data.project;state.step=1;state.selectedGenerationId=null;await refreshProjects(data.project.id);toast('Avatar créé. Ajoutez maintenant son image.')}catch(error){toast(error.message,true)}};
+$('#createAvatar').onclick=async()=>{const name=$('#newAvatarName').value.trim();if(!name)return toast('Donnez un nom au nouvel avatar.',true);try{const data=await post('/api/project',{name});$('#newAvatarName').value='';resetFingerprintImport();state.project=data.project;state.step=1;state.selectedGenerationId=null;await refreshProjects(data.project.id);toast('Avatar créé. Ajoutez maintenant son image.')}catch(error){toast(error.message,true)}};
 $('#newAvatarName').onkeydown=event=>{if(event.key==='Enter')$('#createAvatar').click()};
 $('#renameAvatar').onclick=async()=>{if(!state.project||active(state.project.currentJob))return;try{const data=await api(`/api/project/${encodeURIComponent(state.project.id)}/name`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({name:$('#avatarName').value})});state.project=data.project;await refreshProjects(state.project.id);toast('Avatar renommé.')}catch(error){toast(error.message,true)}};
 $('#deleteAvatar').onclick=async()=>{
@@ -242,6 +348,48 @@ $('#toVoice').onclick=()=>setStep(2);$('#toGenerations').onclick=()=>setStep(3);
 
 $('#voicePreset').onchange=()=>{const preset=state.presets.find(item=>item.id===$('#voicePreset').value);if(preset)$('#voicePrompt').value=preset.prompt};
 $('#generateFingerprint').onclick=async()=>{if(!state.project)return;$('#voiceStatus').textContent='Création de l’empreinte…';try{const data=await post('/api/voice/fingerprint',{projectId:state.project.id,voicePreset:$('#voicePreset').value,voicePrompt:$('#voicePrompt').value,refText:$('#fingerprintText').value,language:'French',voiceSeed:123456});state.project=data.project;renderStudio()}catch(error){$('#voiceStatus').textContent=error.message;$('#voiceStatus').className='status bad'}};
+$('#fingerprintFile').onchange=async event=>{
+  const file=event.target.files?.[0];resetFingerprintImport(false);
+  if(!file)return renderFingerprintImport();
+  const status=$('#fingerprintFileStatus'),requirements=fingerprintImport.requirements;
+  if(file.size>requirements.maxFileSizeBytes){status.textContent=`Le fichier dépasse la limite de ${requirements.maxFileSizeBytes/1024/1024} Mo.`;status.className='status bad';return renderFingerprintImport()}
+  if(!file.size){status.textContent='Le fichier audio est vide.';status.className='status bad';return renderFingerprintImport()}
+  fingerprintImport.file=file;fingerprintImport.checking=true;fingerprintImport.url=URL.createObjectURL(file);
+  $('#fingerprintPreview').src=fingerprintImport.url;$('#fingerprintPreview').classList.remove('hidden');
+  status.textContent='Vérification de la durée du fichier…';renderFingerprintImport();
+  const duration=await audioFileDuration(fingerprintImport.url);
+  if(fingerprintImport.file!==file)return;
+  fingerprintImport.duration=duration;fingerprintImport.checking=false;
+  const tooShort=Number.isFinite(duration)&&duration<requirements.minDurationSeconds;
+  status.textContent=tooShort?`Durée détectée : ${duration.toFixed(2)} s. Il faut au moins ${requirements.minDurationSeconds} secondes.`:Number.isFinite(duration)?`${file.name} · ${fmtDuration(duration)} · prêt à importer.`:'Aperçu indisponible dans ce navigateur. La durée et le format seront vérifiés à l’import.';
+  status.className=`status ${tooShort?'bad':''}`;renderFingerprintImport();
+};
+$('#uploadFingerprint').onclick=async()=>{
+  if(!state.project||$('#uploadFingerprint').disabled)return;
+  const projectId=state.project.id,form=new FormData();form.append('projectId',projectId);form.append('audio',fingerprintImport.file,fingerprintImport.file.name);
+  fingerprintImport.uploading=true;$('#fingerprintFileStatus').textContent='Envoi du fichier audio…';renderJob();
+  try{
+    const data=await api('/api/voice/fingerprint/upload',{method:'POST',body:form});
+    if(state.project?.id===projectId){state.project=data.project;resetFingerprintImport();renderStudio()}
+    toast('Fichier reçu. Vérification de l’empreinte en cours.');
+  }catch(error){if(state.project?.id===projectId){$('#fingerprintFileStatus').textContent=error.message;$('#fingerprintFileStatus').className='status bad'}}
+  finally{fingerprintImport.uploading=false;renderJob()}
+};
+['#youtubeUrl','#youtubeStart'].forEach(selector=>{
+  $(selector).oninput=()=>{$('#youtubeStatus').textContent='';$('#youtubeStatus').className='status';renderFingerprintImport()};
+  $(selector).onkeydown=event=>{if(event.key==='Enter'&&!$('#youtubeFingerprint').disabled)$('#youtubeFingerprint').click()};
+});
+$('#youtubeFingerprint').onclick=async()=>{
+  if(!state.project||$('#youtubeFingerprint').disabled)return;
+  const projectId=state.project.id,url=$('#youtubeUrl').value.trim(),start=$('#youtubeStart').value.trim();
+  fingerprintImport.uploading=true;$('#youtubeStatus').textContent='Lancement de l’extraction audio…';$('#youtubeStatus').className='status';renderJob();
+  try{
+    const data=await post('/api/voice/fingerprint/youtube',{projectId,url,start});
+    if(state.project?.id===projectId){state.project=data.project;$('#youtubeStatus').textContent='';renderStudio()}
+    toast('Extraction YouTube lancée.');
+  }catch(error){if(state.project?.id===projectId){$('#youtubeStatus').textContent=error.message;$('#youtubeStatus').className='status bad'}}
+  finally{fingerprintImport.uploading=false;renderJob()}
+};
 $('#generateVoice').onclick=async()=>{if(!state.project)return;const name=$('#generationName').value.trim(),text=$('#speechText').value.trim();if(!name||!text)return toast('Le nom et le texte de la génération sont obligatoires.',true);$('#generationStatus').textContent='Génération de la voix clonée…';try{const data=await post('/api/voice/generate',{projectId:state.project.id,generationName:name,text,language:'French',speed:1,voiceSeed:123456});state.project=data.project;state.selectedGenerationId=data.generation.id;renderStudio();toast('La voix est dans la file de génération.')}catch(error){$('#generationStatus').textContent=error.message;$('#generationStatus').className='status bad'}};
 async function deleteGeneration(generationId){
   if(!state.project)return;
@@ -271,7 +419,7 @@ $('#addBatchRow').onclick=()=>{state.batchRows.push({avatarId:'',name:'',text:''
 function batchStatusLabel(status){return{pending:'En attente',voice:'Voix',video:'Vidéo',short:'Short YouTube',queued:'En attente',running:'En cours',stopping:'Arrêt…',stopped:'Arrêté',done:'Terminé',error:'Avec erreurs'}[status]||status}
 function selectedBatch(){return state.batches.find(batch=>batch.id===state.selectedBatchId)}
 function renderBatch(){
-  renderBatchRows();const batch=selectedBatch();
+  if(!scriptReferencePicker.isOpen()&&!$('#batchRows').contains(document.activeElement))renderBatchRows();const batch=selectedBatch();
   $('#batchHistory').innerHTML=state.batches.length?state.batches.map(item=>`<button class="${item.id===state.selectedBatchId?'active':''}" data-batch="${esc(item.id)}"><strong>${esc(item.name)}</strong><div class="status">${batchStatusLabel(item.status)} · ${item.progress}% · ${fmtDate(item.createdAt)}</div></button>`).join(''):'<div class="empty"><p>Aucun batch enregistré.</p></div>';
   $$('[data-batch]').forEach(button=>button.onclick=()=>{state.selectedBatchId=button.dataset.batch;renderBatch()});
   $('#batchRunCard').classList.toggle('hidden',!batch);if(!batch)return;
@@ -285,8 +433,8 @@ $('#stopBatch').onclick=async()=>{const batch=selectedBatch();if(!batch)return;t
 $('#resumeBatch').onclick=async()=>{const batch=selectedBatch();if(!batch)return;try{await post(`/api/batches/${encodeURIComponent(batch.id)}/resume`,{});await refreshBatches();toast('Batch repris.')}catch(error){toast(error.message,true)}};
 $('#restartBatch').onclick=async()=>{const batch=selectedBatch();if(!batch||!confirm('Recommencer tout le batch créera de nouvelles générations. Continuer ?'))return;try{await post(`/api/batches/${encodeURIComponent(batch.id)}/restart`,{});await refreshBatches();toast('Batch recommencé depuis la première ligne.')}catch(error){toast(error.message,true)}};
 
-function setView(view){state.view=view;$('#studioView').classList.toggle('hidden',view!=='studio');$('#batchView').classList.toggle('hidden',view!=='batch');$('#studioNav').classList.toggle('active',view==='studio');$('#batchNav').classList.toggle('active',view==='batch');if(view==='batch')refreshBatches();else refreshProjects(state.project?.id)}
-$('#studioNav').onclick=()=>setView('studio');$('#batchNav').onclick=()=>setView('batch');
+function setView(view){state.view=view;for(const name of ['studio','resources','batch']){$(`#${name}View`).classList.toggle('hidden',view!==name);$(`#${name}Nav`).classList.toggle('active',view===name)}if(view==='batch')refreshBatches();else if(view==='resources')resourceLibrary.open();else refreshProjects(state.project?.id)}
+$('#studioNav').onclick=()=>setView('studio');$('#resourcesNav').onclick=()=>setView('resources');$('#batchNav').onclick=()=>setView('batch');
 async function loadHealth(){try{const [data,short]=await Promise.all([api('/api/status'),api('/api/short/status')]);state.shortHealth=short;$('#storage').textContent=`Stockage · ${data.dataRoot}`;const services=[['Comfy',data.comfy?.ok],['TTS',data.tts?.ok],['Wan2.2 Extend',data.wanS2V?.nodes?.ok&&data.wanS2V?.models?.ok],['Upscale IA',short.upscale]];$('#health').innerHTML=services.map(([name,ok])=>`<div class="healthItem"><i class="dot ${ok?'ok':'bad'}"></i><span>${name}</span></div>`).join('');$('#shortAiStatus').textContent=short.upscale?'Real-ESRGAN x2/x4 est installé et disponible.':`Upscale IA indisponible${short.reason?` · ${short.reason}`:''}`;$('#shortAiStatus').className=`status ${short.upscale?'':'bad'}`;if(!short.upscale){$('#shortUpscale').checked=false;$('#batchShortUpscale').checked=false}$('#shortUpscale').disabled=!short.upscale;$('#batchShortUpscale').disabled=!short.upscale;syncShortOptions()}catch(error){$('#health').innerHTML='<div class="healthItem"><i class="dot bad"></i><span>Services indisponibles</span></div>';$('#shortAiStatus').textContent='État du moteur Short indisponible.';$('#shortAiStatus').className='status bad'}}
 async function poll(){try{
   // Ne jamais reconstruire les balises <audio>/<video> pendant le polling :
@@ -306,7 +454,11 @@ async function poll(){try{
   if(state.batches.some(batch=>['queued','running','stopping'].includes(batch.status)))await refreshBatches();
 }catch(error){console.warn(error)}}
 
-state.presets=await api('/api/voice-presets');$('#voicePreset').innerHTML=state.presets.map(preset=>`<option value="${esc(preset.id)}">${esc(preset.label)}</option>`).join('');if(state.presets[0])$('#voicePrompt').value=state.presets[0].prompt;
+[state.presets,fingerprintImport.requirements]=await Promise.all([api('/api/voice-presets'),api('/api/voice/fingerprint/requirements')]);
+$('#fingerprintRequirements').innerHTML=`<strong>Durée minimale : ${fingerprintImport.requirements.minDurationSeconds} secondes.</strong><br>WAV, MP3, FLAC, M4A, OGG ou AAC · ${fingerprintImport.requirements.maxFileSizeBytes/1024/1024} Mo maximum`;
+$('#youtubeClipHint').textContent=`Un extrait de ${fingerprintImport.requirements.minDurationSeconds} secondes sera récupéré à partir du repère choisi.`;
+$('#youtubeFingerprint').textContent=`Extraire ${fingerprintImport.requirements.minDurationSeconds} secondes et créer l’empreinte`;
+$('#voicePreset').innerHTML=state.presets.map(preset=>`<option value="${esc(preset.id)}">${esc(preset.label)}</option>`).join('');if(state.presets[0])$('#voicePrompt').value=state.presets[0].prompt;
 await Promise.all([loadHealth(),refreshProjects(),refreshBatches()]);renderBatchRows();setInterval(poll,2000);
 </script>
 </body>

@@ -4,6 +4,7 @@ import sharp from "sharp";
 import type { AvatarScript } from "./avatarScript.js";
 import type { VoiceAsset } from "./avatarStore.js";
 import { getScriptTimings, type TimedScriptOverlay } from "./scriptOverlays.js";
+import { prepareScriptReferenceImage } from "./scriptReferences.js";
 import {
   concatVideoOnly, concatWavs, createScriptVideoBlock, extractAudioSegment,
   extractScriptFileAudio, muxVideoAudio, probeLocalVideo
@@ -47,7 +48,7 @@ export async function resolveScriptFiles(script: AvatarScript, signal?: AbortSig
   return files;
 }
 
-export type ScriptFileSpan = ({ mode: "avatar" } | { mode: "image"; content: string }
+export type ScriptFileSpan = ({ mode: "avatar" } | { mode: "image"; content: string } | { mode: "ref"; content: string }
   | { mode: "file-image" | "file-video" | "file-sound"; file: ScriptLocalFile }) & {
   start: number;
   end: number;
@@ -89,8 +90,8 @@ export async function planScriptFiles(voice: VoiceAsset, signal?: AbortSignal): 
       if (sequence.mode === "text" || sequence.mode === "latex") {
         overlays.push({ mode: sequence.mode, content: sequence.content, start: cursor, end: cursor + duration });
       }
-      append(sequence.mode === "image"
-        ? { mode: "image", content: sequence.content, start: cursor, end: cursor + duration, narrationStart: timing.start, narrationEnd: timing.end }
+      append(sequence.mode === "image" || sequence.mode === "ref"
+        ? { mode: sequence.mode, content: sequence.content, start: cursor, end: cursor + duration, narrationStart: timing.start, narrationEnd: timing.end }
         : { mode: "avatar", start: cursor, end: cursor + duration, narrationStart: timing.start, narrationEnd: timing.end });
     }
     cursor += duration;
@@ -106,12 +107,23 @@ export async function renderScriptFiles(options: {
   height: number;
   fps: number;
   resolveImage: (content: string) => Promise<string>;
+  resolveReference?: (name: string) => Promise<string>;
   renderAvatar: (audioPath: string, outputPath: string, duration: number) => Promise<void>;
   signal?: AbortSignal;
 }): Promise<void> {
   const { plan, audioPath, outputPath, width, height, fps, signal } = options;
   const directory = await fs.mkdtemp(path.join(path.dirname(outputPath), ".script-files-"));
   try {
+    const references = new Map<string, string>();
+    for (const span of plan.spans) {
+      signal?.throwIfAborted();
+      if (span.mode !== "ref" || references.has(span.content)) continue;
+      if (!options.resolveReference) throw new RangeError("Le résolveur des ressources nommées est indisponible.");
+      const image = await options.resolveReference(span.content);
+      const prepared = path.join(directory, `reference-${references.size}.png`);
+      await prepareScriptReferenceImage(image, prepared, width, height, signal);
+      references.set(span.content, prepared);
+    }
     const images = new Map<string, string>();
     for (const span of plan.spans) {
       signal?.throwIfAborted();
@@ -135,8 +147,8 @@ export async function renderScriptFiles(options: {
         const raw = path.join(directory, `${index}-avatar.mp4`);
         await options.renderAvatar(wav, raw, span.narrationEnd! - span.narrationStart!);
         await createScriptVideoBlock(raw, clip, width, height, fps, frames, false, signal);
-      } else if (span.mode === "image") {
-        await createScriptVideoBlock(images.get(span.content)!, clip, width, height, fps, frames, true, signal);
+      } else if (span.mode === "image" || span.mode === "ref") {
+        await createScriptVideoBlock((span.mode === "ref" ? references : images).get(span.content)!, clip, width, height, fps, frames, true, signal);
       } else if (span.mode === "file-image") {
         const normalized = path.join(directory, `${index}-image.png`);
         await sharp(span.file.path).rotate().flatten({ background: "black" }).png().toFile(normalized);

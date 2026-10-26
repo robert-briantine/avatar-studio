@@ -1,26 +1,27 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { VoiceAsset } from "./avatarStore.js";
-import { hasScriptImages } from "./avatarScript.js";
+import { hasScriptImages, hasScriptReferences } from "./avatarScript.js";
+import { prepareScriptReferenceImage } from "./scriptReferences.js";
 import { getScriptTimings } from "./scriptOverlays.js";
 import { concatVideoOnly, createScriptVideoBlock, extractAudioSegment, muxVideoAudio } from "./media.js";
 
-export type ScriptVisualSpan = ({ mode: "avatar" } | { mode: "image"; content: string }) & {
+export type ScriptVisualSpan = ({ mode: "avatar" } | { mode: "image" | "ref"; content: string }) & {
   start: number;
   end: number;
 };
 
 export function planScriptImages(voice: VoiceAsset): ScriptVisualSpan[] {
-  if (!voice.script || !hasScriptImages(voice.script)) return [];
+  if (!voice.script || !hasScriptImages(voice.script) && !hasScriptReferences(voice.script)) return [];
   const spans: ScriptVisualSpan[] = [];
   for (const timing of getScriptTimings(voice)) {
     const sequence = voice.script.sequences[timing.sequenceIndex];
     const previous = spans.at(-1);
-    if (sequence.mode !== "image" && previous?.mode === "avatar") {
+    if (sequence.mode !== "image" && sequence.mode !== "ref" && previous?.mode === "avatar") {
       previous.end = timing.end;
     } else {
-      spans.push(sequence.mode === "image"
-        ? { mode: "image", content: sequence.content, start: timing.start, end: timing.end }
+      spans.push(sequence.mode === "image" || sequence.mode === "ref"
+        ? { mode: sequence.mode, content: sequence.content, start: timing.start, end: timing.end }
         : { mode: "avatar", start: timing.start, end: timing.end });
     }
   }
@@ -36,6 +37,7 @@ export async function renderScriptImages(options: {
   height: number;
   fps: number;
   resolveImage: (content: string) => Promise<string>;
+  resolveReference?: (name: string) => Promise<string>;
   renderAvatar: (audioPath: string, outputPath: string, duration: number) => Promise<void>;
   onProgress?: (completed: number, total: number) => void | Promise<void>;
   signal?: AbortSignal;
@@ -44,6 +46,16 @@ export async function renderScriptImages(options: {
   if (!spans.length) throw new Error("Aucune séquence à monter.");
   const directory = await fs.mkdtemp(path.join(path.dirname(outputPath), ".script-images-"));
   try {
+    const references = new Map<string, string>();
+    for (const span of spans) {
+      signal?.throwIfAborted();
+      if (span.mode !== "ref" || references.has(span.content)) continue;
+      if (!options.resolveReference) throw new RangeError("Le résolveur des ressources nommées est indisponible.");
+      const image = await options.resolveReference(span.content);
+      const prepared = path.join(directory, `reference-${references.size}.png`);
+      await prepareScriptReferenceImage(image, prepared, width, height, signal);
+      references.set(span.content, prepared);
+    }
     // Resolve every image before loading Wan, so image/video models do not
     // alternate on the GPU for each paragraph.
     const images = new Map<string, string>();
@@ -59,8 +71,8 @@ export async function renderScriptImages(options: {
       const frames = endFrame - startFrame;
       if (frames <= 0) continue;
       const clip = path.join(directory, `${index}.mp4`);
-      if (span.mode === "image") {
-        await createScriptVideoBlock(images.get(span.content)!, clip, width, height, fps, frames, true, signal);
+      if (span.mode === "image" || span.mode === "ref") {
+        await createScriptVideoBlock((span.mode === "ref" ? references : images).get(span.content)!, clip, width, height, fps, frames, true, signal);
       } else {
         const wav = path.join(directory, `${index}.wav`);
         const raw = path.join(directory, `${index}-avatar.mp4`);

@@ -14,11 +14,21 @@ import { TtsClient } from "./tts.js";
 import { parseAvatarScript } from "./avatarScript.js";
 import { applyScriptOverlays, getScriptOverlays, validateScriptOverlays, validateVoiceScript } from "./scriptOverlays.js";
 import { ScriptImageCache } from "./scriptImageCache.js";
+import { ResourceStore, ResourceError, resourceTypes, type Resource } from "./resourceStore.js";
+import { ResourceImages } from "./resourceImages.js";
+import { LatexError, renderResourceLatex, renderResourceLatexPreview } from "./latex.js";
+import { CodeRenderError, renderResourceCode } from "./resourceCode.js";
+import { DiagramError } from "./diagramModel.js";
+import { renderResourceDiagram, resourceDiagramModel } from "./resourceDiagram.js";
+import { CompositionError } from "./resourceComposition.js";
 import { planScriptImages, renderScriptImages } from "./scriptImages.js";
 import { planScriptFiles, renderScriptFiles, resolveScriptFiles } from "./scriptFiles.js";
+import { bindScriptReferences, resolveScriptReferences } from "./scriptReferences.js";
 import { GeneratorService, type VoiceProgressEvent } from "./generation.js";
 import { assembleWanVideo, createSegmentVideo, mediaHealth, probeDuration } from "./media.js";
 import { voicePresets, getVoicePreset } from "./voicePresets.js";
+import { MIN_VOICE_FINGERPRINT_SECONDS, MAX_VOICE_UPLOAD_BYTES, prepareVoiceFingerprintAudio } from "./voiceFingerprint.js";
+import { extractYouTubeVoice, parseAudioTimestamp, parseYouTubeUrl } from "./youtubeAudio.js";
 import { AvatarStore, type AvatarGeneration, type AvatarProject, type ProjectJob, type ShortAsset, type VoiceAsset, type VideoAsset } from "./avatarStore.js";
 import { BatchStore, type BatchRun, type BatchVideoSettings } from "./batchStore.js";
 import { createYouTubeShort, parseShortOptions, shortMakerHealth } from "./shortMaker.js";
@@ -51,12 +61,36 @@ const execFileAsync = promisify(execFile);
 
 const app = express();
 const port = Number(process.env.PORT || 3010);
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_VOICE_UPLOAD_BYTES } });
 const comfy = new ComfyClient();
 const tts = new TtsClient();
 const generator = new GeneratorService(transientRoot, comfy, tts);
 const scriptImageCache = new ScriptImageCache(path.join(dataRoot, "script-images"));
 await scriptImageCache.init();
+const resourceStore = new ResourceStore(path.join(dataRoot, "resources"));
+await resourceStore.init();
+const resourceImages = new ResourceImages(resourceStore, async (description, signal) => {
+  let promptId: string | undefined;
+  try {
+    const image = await generator.generateImage({
+      scenePrompt: description, text: "", textMode: "exact", width: 1472, height: 1104,
+      seed: Math.floor(Math.random() * 1_000_000_000), textPosition: "bottom", fontSize: 32,
+      steps: config.generation.baseSteps, upscaleFactor: 1, refineQuality: false, visualPreset: "none"
+    }, { signal, onComfyPrompt: id => { promptId = id; } });
+    try { return await fs.readFile(image.path); }
+    finally { await fs.rm(image.path, { force: true }); }
+  } catch (error) {
+    if (signal.aborted && promptId) {
+      // This endpoint cancels only the tracked job, including when it is queued.
+      await fetch(`${config.comfyUrl}/api/jobs/${encodeURIComponent(promptId)}/cancel`, {
+        method: "POST", signal: AbortSignal.timeout(5000)
+      }).then(response => {
+        if (!response.ok) console.warn(`[resource image] Annulation ComfyUI refusée : ${response.status}`);
+      }).catch(error => console.warn("[resource image] Annulation ComfyUI indisponible :", error));
+    }
+    throw error;
+  }
+});
 const store = new AvatarStore(projectRoot);
 await store.init();
 const batchStore = new BatchStore(dataRoot);
@@ -378,9 +412,127 @@ app.get("/api/status", async (_req, res) => {
 });
 
 app.get("/api/voice-presets", (_req, res) => res.json(voicePresets));
+app.get("/api/voice/fingerprint/requirements", (_req, res) => res.json({
+  minDurationSeconds: MIN_VOICE_FINGERPRINT_SECONDS,
+  maxFileSizeBytes: MAX_VOICE_UPLOAD_BYTES
+}));
 
 app.get("/api/projects", (_req, res) => {
   res.json({ projects: store.list() });
+});
+
+function resourceResponse(resource: Resource) {
+  const { preview, foreground, backgroundPreview, ...fields } = resource;
+  return { ...fields, previewUrl: preview ? `/api/resources/${resource.id}/preview?v=${resource.updatedAt}` : undefined };
+}
+
+function resourceError(res: express.Response, error: unknown): void {
+  res.status(error instanceof ResourceError || error instanceof LatexError || error instanceof CodeRenderError || error instanceof DiagramError || error instanceof CompositionError ? error.status : 500).json({
+    error: error instanceof Error ? error.message : String(error)
+  });
+}
+
+app.get("/api/resources", (_req, res) => {
+  const resources = resourceStore.list().map(resource => {
+    const { source, ...summary } = resourceResponse(resource);
+    return { ...summary, hasSource: Boolean(source.trim()) };
+  });
+  res.json({ scope: "shared", types: resourceTypes, resources });
+});
+
+app.post("/api/script/preview", async (req, res) => {
+  try {
+    const script = parseNarrationScript(String(req.body?.text || "").trim());
+    const [references] = await Promise.all([resolveScriptReferences(script, resourceStore), resolveScriptFiles(script), validateScriptOverlays(script)]);
+    const sequences = script.sequences.map(sequence => {
+      if (sequence.mode !== "ref") return sequence;
+      const reference = references.get(sequence.content)!;
+      const resource = resourceStore.get(reference.resourceId)!;
+      return { ...sequence, resource: { id: resource.id, name: resource.name, type: resource.type,
+        previewUrl: `/api/resources/${resource.id}/preview?v=${resource.updatedAt}` } };
+    });
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ source: script.source, narration: script.narration, sequences });
+  } catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : String(error) }); }
+});
+
+app.post("/api/resources/latex/preview", async (req, res) => {
+  try {
+    const formula = req.body?.backgroundImageId
+      ? await renderResourceLatex(req.body?.source, req.body?.latexColor)
+      : await renderResourceLatexPreview(req.body?.source, req.body?.latexColor);
+    const image = await resourceStore.composePreview("latex", req.body, formula);
+    const { width, height } = await sharp(image).metadata();
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ image: `data:image/png;base64,${image.toString("base64")}`, width, height });
+  } catch (error) { resourceError(res, error); }
+});
+
+app.post("/api/resources/typescript/preview", async (req, res) => {
+  try {
+    const code = await renderResourceCode(req.body?.source, req.body?.codeTheme);
+    const image = await resourceStore.composePreview("typescript", req.body, code);
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ image: `data:image/png;base64,${image.toString("base64")}`, width: 1472, height: 1104 });
+  } catch (error) { resourceError(res, error); }
+});
+
+app.post("/api/resources/diagram/import", (req, res) => {
+  try {
+    const model = resourceDiagramModel(req.body?.source);
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ source: JSON.stringify(model) });
+  } catch (error) { resourceError(res, error); }
+});
+
+app.post("/api/resources/diagram/preview", async (req, res) => {
+  try {
+    const diagram = await renderResourceDiagram(req.body?.source, req.body?.diagramPreview);
+    const image = await resourceStore.composePreview("diagram", req.body, diagram);
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ image: `data:image/png;base64,${image.toString("base64")}`, width: 1472, height: 1104 });
+  } catch (error) { resourceError(res, error); }
+});
+
+app.get("/api/resources/:id/preview", async (req, res) => {
+  try {
+    const preview = await resourceStore.resolvePreview(String(req.params.id));
+    if (!preview) return res.status(404).json({ error: "Aucun aperçu disponible pour cette ressource." });
+    res.setHeader("Cache-Control", "no-store");
+    res.type("png").sendFile(preview, error => {
+      if (error && !res.headersSent) res.status(404).json({ error: "L’aperçu de cette ressource est indisponible." });
+    });
+  } catch (error) { resourceError(res, error); }
+});
+
+app.get("/api/resources/:id", (req, res) => {
+  const resource = resourceStore.get(String(req.params.id));
+  if (!resource) return res.status(404).json({ error: "Ressource introuvable." });
+  res.json({ resource: resourceResponse(resource) });
+});
+
+app.post("/api/resources", async (req, res) => {
+  try { res.status(201).json({ resource: resourceResponse(await resourceStore.create(req.body)) }); }
+  catch (error) { resourceError(res, error); }
+});
+
+app.patch("/api/resources/:id", async (req, res) => {
+  try { res.json({ resource: resourceResponse(await resourceStore.update(String(req.params.id), req.body)) }); }
+  catch (error) { resourceError(res, error); }
+});
+
+app.post("/api/resources/:id/generate-image", async (req, res) => {
+  try { res.status(202).json({ resource: resourceResponse(await resourceImages.start(String(req.params.id))) }); }
+  catch (error) { resourceError(res, error); }
+});
+
+app.post("/api/resources/:id/generate-image/stop", (req, res) => {
+  try {
+    const id = String(req.params.id);
+    if (!resourceStore.get(id)) throw new ResourceError("Ressource introuvable.", 404);
+    resourceImages.stop(id);
+    res.json({ resource: resourceResponse(resourceStore.get(id)!) });
+  } catch (error) { resourceError(res, error); }
 });
 
 app.post("/api/project", async (req, res) => {
@@ -631,6 +783,7 @@ app.post("/api/voice/fingerprint", async (req, res) => {
           name: filename,
           path: target,
           url: pub(project.id, "voice", filename),
+          source: "generated",
           duration: audio.duration,
           refText,
           presetId,
@@ -655,6 +808,110 @@ app.post("/api/voice/fingerprint", async (req, res) => {
   }
 });
 
+app.post("/api/voice/fingerprint/upload", (req, res, next) => {
+  upload.single("audio")(req, res, error => {
+    if (error) {
+      const message = error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE"
+        ? `Le fichier audio dépasse la limite de ${MAX_VOICE_UPLOAD_BYTES / 1024 / 1024} Mo.`
+        : "Import invalide. Sélectionnez un seul fichier audio.";
+      res.status(400).json({ error: message });
+      return;
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const project = projectOrThrow(req.body?.projectId);
+    if (!project.avatar) throw new Error("Générez ou chargez d’abord un avatar.");
+    const file = req.file;
+    if (!file?.buffer.length) throw new Error("Fichier audio manquant ou vide.");
+    const job = await createProjectJob(project, "voice-fingerprint", "Import de l’empreinte vocale en attente…");
+    const controller = controllerFor(job);
+
+    runDetached(async () => {
+      let temporary: string | undefined;
+      try {
+        await updateProjectJob(project, { status: "running", startedAt: Date.now(), progress: 10, message: "Vérification et conversion du fichier audio…" });
+        temporary = await fs.mkdtemp(path.join(transientRoot, "voice-import-"));
+        const input = path.join(temporary, "input");
+        const converted = path.join(temporary, "reference.wav");
+        await fs.writeFile(input, file.buffer);
+        const duration = await prepareVoiceFingerprintAudio(input, converted, controller.signal);
+        controller.signal.throwIfAborted();
+        await updateProjectJob(project, { progress: 90, message: "Enregistrement de l’empreinte vocale…" });
+        const base = await store.ensure(project);
+        const filename = `voice-fingerprint-${job.id}.wav`;
+        const target = path.join(base, "voice", filename);
+        await fs.copyFile(converted, target);
+        controller.signal.throwIfAborted();
+        project.voiceFingerprint = {
+          name: filename, path: target, url: pub(project.id, "voice", filename), duration,
+          source: "uploaded", originalName: file.originalname,
+          refText: "", presetId: "custom", voicePrompt: "", createdAt: Date.now()
+        };
+        await finishProjectJob(project, { message: `Empreinte vocale importée (${duration.toFixed(1)} s).`, progress: 100 });
+      } catch (error) {
+        await finishProjectJob(project, {
+          status: abortMessage(error) ? "interrupted" : "error",
+          progress: project.currentJob?.progress || 0,
+          message: abortMessage(error) ? "Import de l’empreinte arrêté." : "Échec de l’import de l’empreinte vocale.",
+          error: error instanceof Error ? error.message : String(error)
+        });
+      } finally {
+        if (temporary) await fs.rm(temporary, { recursive: true, force: true });
+      }
+    });
+    res.status(202).json({ project, job });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+app.post("/api/voice/fingerprint/youtube", async (req, res) => {
+  try {
+    const project = projectOrThrow(req.body?.projectId);
+    if (!project.avatar) throw new Error("Générez ou chargez d’abord un avatar.");
+    const url = parseYouTubeUrl(req.body?.url);
+    const startSeconds = parseAudioTimestamp(req.body?.start);
+    const job = await createProjectJob(project, "voice-fingerprint", "Extraction de l’empreinte YouTube en attente…");
+    const controller = controllerFor(job);
+    runDetached(async () => {
+      let temporary: string | undefined;
+      try {
+        await updateProjectJob(project, { status: "running", startedAt: Date.now(), progress: 10,
+          message: `Récupération de ${MIN_VOICE_FINGERPRINT_SECONDS} secondes de son YouTube…` });
+        temporary = await fs.mkdtemp(path.join(transientRoot, "voice-youtube-"));
+        const converted = path.join(temporary, "reference.wav");
+        const { duration, title } = await extractYouTubeVoice(url, startSeconds, converted, controller.signal);
+        controller.signal.throwIfAborted();
+        await updateProjectJob(project, { progress: 90, message: "Enregistrement de l’empreinte YouTube…" });
+        const base = await store.ensure(project);
+        const filename = `voice-fingerprint-${job.id}.wav`;
+        const target = path.join(base, "voice", filename);
+        await fs.copyFile(converted, target);
+        controller.signal.throwIfAborted();
+        project.voiceFingerprint = {
+          name: filename, path: target, url: pub(project.id, "voice", filename), duration,
+          source: "youtube", originalName: title, sourceUrl: url, startSeconds,
+          refText: "", presetId: "custom", voicePrompt: "", createdAt: Date.now()
+        };
+        await finishProjectJob(project, { progress: 100, message: `Empreinte YouTube créée (${duration.toFixed(1)} s).` });
+      } catch (error) {
+        await finishProjectJob(project, {
+          status: abortMessage(error) ? "interrupted" : "error", progress: project.currentJob?.progress || 0,
+          message: abortMessage(error) ? "Extraction YouTube arrêtée." : "Échec de l’extraction YouTube.",
+          error: error instanceof Error ? error.message : String(error)
+        });
+      } finally {
+        if (temporary) await fs.rm(temporary, { recursive: true, force: true });
+      }
+    });
+    res.status(202).json({ project, job });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
 app.post("/api/voice/generate", async (req, res) => {
   try {
     const project = projectOrThrow(req.body.projectId);
@@ -666,7 +923,7 @@ app.post("/api/voice/generate", async (req, res) => {
     if (wantsGeneration && !project.voiceFingerprint) {
       throw new Error("Cree d'abord l'empreinte vocale de cet avatar.");
     }
-    await Promise.all([resolveScriptFiles(script), validateScriptOverlays(script)]);
+    const [references] = await Promise.all([resolveScriptReferences(script, resourceStore), resolveScriptFiles(script), validateScriptOverlays(script)]);
     if (activeJob(project)) throw new Error(`Une generation est deja en cours : ${project.currentJob?.message}`);
     let generation: AvatarGeneration | undefined;
     if (req.body.generationId) {
@@ -711,7 +968,7 @@ app.post("/api/voice/generate", async (req, res) => {
           voiceSpeed: n(req.body.speed, 1),
           voiceSeed: Math.floor(voiceSeedRaw),
           voiceReference: generation ? {
-            id: `avatar-${project.id}`,
+            id: `avatar-${project.id}-${project.voiceFingerprint!.name}-${project.voiceFingerprint!.createdAt}`,
             audioPath: project.voiceFingerprint!.path,
             refText: project.voiceFingerprint!.refText,
             presetId: project.voiceFingerprint!.presetId
@@ -730,6 +987,7 @@ app.post("/api/voice/generate", async (req, res) => {
           text: script.narration,
           script,
           scriptTimings: audio.scriptTimings,
+          resourceReferences: bindScriptReferences(references),
           presetId,
           voicePrompt,
           seed: Math.floor(voiceSeedRaw)
@@ -876,6 +1134,7 @@ app.post("/api/video/preview", async (req, res) => {
     if (!project.avatar) throw new Error("Génère ou charge d'abord un avatar.");
     if (!voice) throw new RangeError("Génère d'abord la voix de cette génération.");
     await validateVoiceScript(voice, generation?.text);
+    const references = await resolveScriptReferences(voice.script, resourceStore, voice.resourceReferences);
     const filePlan = await planScriptFiles(voice);
     const overlays = filePlan?.overlays ?? getScriptOverlays(voice);
     const imageSpans = planScriptImages(voice);
@@ -899,6 +1158,7 @@ app.post("/api/video/preview", async (req, res) => {
             plan: filePlan, audioPath: voice.path, outputPath: rawPreview || target,
             width: config.video.width, height: config.video.height, fps: config.video.fps,
             resolveImage: content => scriptImageForJob(project, content, controller.signal),
+            resolveReference: async name => references.get(name)!.path,
             renderAvatar: async (wav, output) => { await createSegmentVideo(project.avatar!.path, wav, output, controller.signal); },
             signal: controller.signal
           });
@@ -907,6 +1167,7 @@ app.post("/api/video/preview", async (req, res) => {
             spans: imageSpans, audioPath: voice.path, outputPath: rawPreview || target,
             width: config.video.width, height: config.video.height, fps: config.video.fps,
             resolveImage: content => scriptImageForJob(project, content, controller.signal),
+            resolveReference: async name => references.get(name)!.path,
             renderAvatar: async (wav, output) => { await createSegmentVideo(project.avatar!.path, wav, output, controller.signal); },
             signal: controller.signal
           });
@@ -951,6 +1212,7 @@ app.post("/api/video/generate", async (req, res) => {
     if (!project.avatar) throw new Error("Génère ou charge d'abord un avatar.");
     if (!voice) throw new RangeError("Génère d'abord la voix de cette génération.");
     await validateVoiceScript(voice, generation?.text);
+    const references = await resolveScriptReferences(voice.script, resourceStore, voice.resourceReferences);
     const filePlan = await planScriptFiles(voice);
     if (activeJob(project)) throw new Error(`Une generation est deja en cours : ${project.currentJob?.message}`);
     const overlays = filePlan?.overlays ?? getScriptOverlays(voice);
@@ -1272,6 +1534,7 @@ app.post("/api/video/generate", async (req, res) => {
             plan: filePlan, audioPath: voice.path, outputPath: assembled,
             width: requestedWidth, height: requestedHeight, fps: WAN_S2V_FPS,
             resolveImage: content => scriptImageForJob(project, content, controller.signal),
+            resolveReference: async name => references.get(name)!.path,
             renderAvatar: async (wav, output, duration) => { chunks += await renderAvatar(wav, output, duration); },
             signal: controller.signal
           });
@@ -1280,6 +1543,7 @@ app.post("/api/video/generate", async (req, res) => {
             spans: imageSpans, audioPath: voice.path, outputPath: assembled,
             width: requestedWidth, height: requestedHeight, fps: WAN_S2V_FPS,
             resolveImage: content => scriptImageForJob(project, content, controller.signal),
+            resolveReference: async name => references.get(name)!.path,
             renderAvatar: async (wav, output, duration) => { chunks += await renderAvatar(wav, output, duration); },
             signal: controller.signal
           });
@@ -1674,7 +1938,7 @@ app.post("/api/batches", async (req, res) => {
       if (!text) throw new Error(`Ligne ${index + 1} : texte manquant.`);
       try {
         const script = parseNarrationScript(text);
-        await Promise.all([resolveScriptFiles(script), validateScriptOverlays(script)]);
+        await Promise.all([resolveScriptReferences(script, resourceStore), resolveScriptFiles(script), validateScriptOverlays(script)]);
       } catch (error) {
         throw new Error(`Ligne ${index + 1} : ${error instanceof Error ? error.message : String(error)}`);
       }

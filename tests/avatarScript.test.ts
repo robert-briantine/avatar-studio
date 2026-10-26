@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { AvatarScriptSyntaxError, parseAvatarScript } from "../src/avatarScript.js";
+import { AvatarScriptSyntaxError, hasScriptImages, hasScriptReferences, hasScriptVisuals, parseAvatarScript } from "../src/avatarScript.js";
 
 test("plain narration keeps its text and starts in standard mode", () => {
   const source = "  Bonjour Robert.\nVoici la suite.  ";
@@ -79,7 +79,7 @@ test("empty narration sections create no sequences and repeated resets are harml
 });
 
 test("visual commands without associated words are rejected at the command position", () => {
-  for (const name of ["Texte", "Latex", "Image", "File"]) {
+  for (const name of ["Texte", "Latex", "Image", "File", "Ref"]) {
     for (const ending of ["", " \n ", " {} Suite.", " {Texte: suivant} Suite."]) {
       assert.throws(() => parseAvatarScript(`Avant. {${name}: contenu}${ending}`), (error: unknown) => {
         assert.ok(error instanceof AvatarScriptSyntaxError);
@@ -89,6 +89,24 @@ test("visual commands without associated words are rejected at the command posit
       });
     }
   }
+});
+
+test("named references preserve the exact narration, replace one another and reset like other visuals", () => {
+  const source = "Avant. { Ref : Formule : Énergie } La formule. {Ref:Code} Première ligne.\nSuite. {} Retour. {Ref:Schéma} Fin.";
+  const script = parseAvatarScript(source);
+  assert.equal(script.source, source);
+  assert.equal(script.narration, "Avant. La formule. Première ligne.\nSuite. Retour. Fin.");
+  assert.deepEqual(script.sequences, [
+    { mode: "standard", text: "Avant." }, { mode: "ref", content: "Formule : Énergie", text: "La formule." },
+    { mode: "ref", content: "Code", text: "Première ligne.\nSuite." },
+    { mode: "standard", text: "Retour." }, { mode: "ref", content: "Schéma", text: "Fin." }
+  ]);
+  assert.equal(hasScriptReferences(script), true); assert.equal(hasScriptVisuals(script), true); assert.equal(hasScriptImages(script), false);
+  assert.throws(() => parseAvatarScript("{Ref: } Bonjour."), /Contenu vide/);
+  assert.throws(() => parseAvatarScript("{ref:Nom} Bonjour."), /Commande inconnue/);
+  const literal = parseAvatarScript(String.raw`Voici \{Ref:Nom\}.`);
+  assert.equal(literal.narration, "Voici {Ref:Nom}."); assert.equal(hasScriptReferences(literal), false);
+  assert.equal((parseAvatarScript(String.raw`{Ref:Chemin\\} Bonjour.`).sequences[0] as { content: string }).content, "Chemin\\");
 });
 
 test("escaped literal braces and backslashes are spoken without becoming commands", () => {

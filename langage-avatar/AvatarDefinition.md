@@ -1,7 +1,8 @@
 # Définition du langage de génération d’avatar
 
 Ce langage permet d’insérer des indications visuelles dans le texte destiné à
-l’avatar : texte, formules LaTeX, images générées et fichiers locaux.
+l’avatar : texte, formules LaTeX, images générées, fichiers locaux et ressources
+nommées de la bibliothèque.
 
 La définition est organisée en cinq étapes à lire dans l’ordre :
 
@@ -21,6 +22,7 @@ La définition est organisée en cinq étapes à lire dans l’ordre :
 | `{Latex: contenu}` | Afficher le rendu de la formule LaTeX en bas de la vidéo de l’avatar. |
 | `{Image: contenu}` | Afficher une image générée à partir du contenu, à la place de la vidéo de l’avatar. |
 | `{File: chemin}` | Afficher une image ou lire une vidéo depuis un fichier local. |
+| `{Ref: nom}` | Afficher le visuel enregistré d’une ressource de la bibliothèque, avec son fond éventuel. |
 | `{}` | Revenir à la génération standard : vidéo de l’avatar avec sa voix. |
 
 Les commandes ne sont pas prononcées. Le texte qui les accompagne constitue la
@@ -39,3 +41,8 @@ publication du fichier de sortie.
 La commande de formule est orthographiée
 `Latex` partout : la variante `Latext` de l’exemple initial était une coquille.
 Les règles complémentaires et la matrice de validation figurent à l’étape 5.
+
+L’extension [langage avatar v2](../langage-avatar-v2/spec.md) ajoute la
+bibliothèque de ressources communes aux avatars. La commande `{Ref:Nom}` est
+implémentée à son [étape 7](../langage-avatar-v2/07-reference-et-montage.md) :
+elle remplace l’avatar pendant les paroles associées et `{}` le rétablit.

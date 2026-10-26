@@ -1,14 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { mathjax } from "@mathjax/src/js/mathjax.js";
-import { TeX } from "@mathjax/src/js/input/tex.js";
-import { SVG } from "@mathjax/src/js/output/svg.js";
-import { liteAdaptor } from "@mathjax/src/js/adaptors/liteAdaptor.js";
-import { RegisterHTMLHandler } from "@mathjax/src/js/handlers/html.js";
-import "@mathjax/src/js/input/tex/ams/AmsConfiguration.js";
-import "@mathjax/src/js/input/tex/newcommand/NewcommandConfiguration.js";
-import "@mathjax/src/js/util/asyncLoad/esm.js";
+import { renderLatexFormula } from "./latex.js";
 import type { VoiceAsset } from "./avatarStore.js";
 import { hasScriptVisuals, parseAvatarScript, type AvatarScript, type AvatarScriptTiming } from "./avatarScript.js";
 import { overlayVideoImages, probeDuration, probeVideoSize, validateScriptVideo } from "./media.js";
@@ -19,9 +12,6 @@ export type TimedScriptOverlay = {
   start: number;
   end: number;
 };
-
-const adaptor = liteAdaptor();
-RegisterHTMLHandler(adaptor);
 
 /** Validate the plan belonging to the actual WAV, including historical renders. */
 export function getScriptTimings(voice: VoiceAsset): AvatarScriptTiming[] {
@@ -57,28 +47,6 @@ function escapeMarkup(text: string): string {
   return text.replace(/[&<>"']/g, character => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;"
   })[character]!);
-}
-
-async function renderFormula(content: string, width: number, height: number, fontSize: number): Promise<Buffer> {
-  // A fresh input jax isolates definitions between formulas. Only local TeX
-  // packages are loaded: formulas cannot request files, HTML or remote URLs.
-  const tex = new TeX({
-    packages: ["base", "ams", "newcommand"],
-    formatError: (_jax: unknown, error: Error) => { throw new Error(`Formule LaTeX invalide : ${error.message}`); }
-  });
-  const document = mathjax.document("", { InputJax: tex, OutputJax: new SVG({ fontCache: "none" }) });
-  const node = await mathjax.handleRetriesFor(() => document.convert(content, {
-    display: true, em: fontSize, ex: fontSize / 2, containerWidth: width
-  }));
-  const svg = adaptor.tags(node, "svg")[0];
-  if (!svg) throw new Error("Le rendu LaTeX n’a produit aucune formule.");
-  const bounds = adaptor.getAttribute(svg, "viewBox").split(/\s+/).map(Number);
-  const scale = Math.min(fontSize / 1000, width / bounds[2], height / bounds[3]);
-  if (!Number.isFinite(scale) || scale <= 0) throw new Error("La formule LaTeX est vide ou illisible.");
-  adaptor.setAttribute(svg, "width", String(Math.max(1, Math.ceil(bounds[2] * scale))));
-  adaptor.setAttribute(svg, "height", String(Math.max(1, Math.ceil(bounds[3] * scale))));
-  const serialized = adaptor.outerHTML(svg).replace(/currentColor/g, "white");
-  return sharp(Buffer.from(serialized)).png().toBuffer();
 }
 
 /** Render-check captions locally before any TTS, image or Wan inference. */
@@ -133,7 +101,7 @@ export async function renderScriptOverlay(
   const maxHeight = Math.max(1, Math.floor(height * 0.28));
   const fontSize = Math.max(12, Math.round(Math.min(height * 0.055, width * 0.045)));
   const rendered = mode === "latex"
-    ? await renderFormula(content, maxWidth, maxHeight, fontSize)
+    ? await renderLatexFormula(content, maxWidth, maxHeight, fontSize)
     : await sharp({ text: {
       text: `<span foreground="white">${escapeMarkup(content)}</span>`,
       font: `DejaVu Sans Bold ${fontSize}`, width: maxWidth, align: "centre", wrap: "word-char", rgba: true

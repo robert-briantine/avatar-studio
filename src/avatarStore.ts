@@ -3,6 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { WanTransitionStyle } from "./wanTransitions.js";
 import type { AvatarScript, AvatarScriptTiming } from "./avatarScript.js";
+import type { ScriptResourceBinding } from "./scriptReferences.js";
 
 export type Asset = { name: string; path: string; url: string; duration?: number };
 
@@ -30,6 +31,8 @@ export type VoiceAsset = Asset & {
   /** Original scenario and visual sequence plan; text contains only spoken words. */
   script?: AvatarScript;
   scriptTimings?: AvatarScriptTiming[];
+  /** Stable named-resource associations, independent of subsequent renames. */
+  resourceReferences?: ScriptResourceBinding[];
   presetId: string;
   voicePrompt: string;
   seed?: number;
@@ -54,6 +57,10 @@ export type VideoAsset = Asset & {
 };
 
 export type VoiceFingerprint = Asset & {
+  source?: "generated" | "uploaded" | "youtube";
+  originalName?: string;
+  sourceUrl?: string;
+  startSeconds?: number;
   refText: string;
   presetId: string;
   voicePrompt: string;

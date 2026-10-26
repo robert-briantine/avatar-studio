@@ -2,6 +2,147 @@
 
 Application locale DGX Spark : image Qwen, voix Qwen3-TTS et vidéo Wan2.2-S2V.
 
+## Bibliothèque de ressources — langage avatar v2, étapes 1 à 8
+
+L’onglet **Ressources** permet de créer et de modifier des ressources communes
+à tous les avatars : images générées, expressions LaTeX, code TypeScript et
+diagrammes. Le formulaire enregistre un nom unique, le type, le contenu source
+et l’éventuelle association à une image de fond. La liste propose une recherche
+par nom et un filtre par type ; les aperçus enregistrés sont affichés lorsqu’ils
+sont disponibles.
+
+Pour une ressource **Image générée**, renseignez son nom et sa description,
+puis cliquez sur **Générer l’image**. Le formulaire est enregistré automatiquement,
+Qwen-Image prépare le visuel et l’aperçu s’affiche à la fin du traitement.
+Une image déjà enregistrée est réutilisée sans relancer le modèle. Le bouton
+**Arrêter la génération** permet d’interrompre le traitement de cette ressource.
+
+Pour une ressource **Expression LaTeX**, utilisez la barre d’outils pour
+insérer fractions, puissances, indices, racines et symboles, ou saisissez
+directement la formule. **Couleur de la formule** choisit la couleur de l’aperçu
+et du rendu enregistré, y compris sur une image de fond. Ce choix est conservé
+avec la ressource. L’aperçu se met à jour pendant la saisie. Les erreurs
+courantes sont expliquées en français. La sauvegarde conserve la source
+éditable et un PNG transparent ; une formule invalide ne remplace pas la
+version déjà enregistrée. Le rendu LaTeX est local et utilise MathJax.
+
+Pour une ressource **Code TypeScript**, saisissez ou collez votre code dans
+Monaco Editor, puis choisissez le thème **VS Code sombre (Dark+)** ou
+**clair (Light+)**. L’aperçu se met à jour pendant la saisie. L’enregistrement
+conserve la source éditable, le thème et le PNG de 1472 × 1104 pixels.
+L’éditeur et le visuel partagent la même coloration ; les espaces, tabulations
+et retours à la ligne sont conservés. Un extrait trop dense est refusé avec
+un message pour garder le code lisible, sans remplacer la version enregistrée.
+Monaco, ses workers et la coloration sont servis localement. Les fichiers de
+l’éditeur sont construits par `npm run build:editor`, automatiquement exécuté
+par `npm start`, `npm run dev` et `npm run build`.
+
+Pour une ressource **Diagramme**, utilisez l’éditeur graphique **Apollon** :
+choisissez un organigramme, un diagramme UML ou l’un des autres types proposés,
+ajoutez des formes depuis la palette, déplacez-les et reliez leurs poignées.
+Double-cliquez sur une forme ou un lien pour en modifier les propriétés.
+**Ajouter l’exemple** crée le parcours scénario → voix → vidéo ;
+**Tout afficher** recadre le diagramme et **Agrandir** ouvre l’éditeur en plein écran.
+**Importer JSON** charge un modèle Apollon 4.x (1 Mo maximum) après validation ;
+**Exporter JSON** télécharge le diagramme éditable actuel, même avant sa sauvegarde.
+L’aperçu se met à jour pendant l’édition. La sauvegarde conserve les données
+Apollon modifiables et un PNG transparent de 1472 × 1104 pixels, avec les formes,
+les liens et les libellés. Les anciennes descriptions restent disponibles ;
+**Convertir le texte** transforme leurs étapes en un organigramme éditable.
+Apollon, ses polices et son export PNG sont servis localement, sans service externe.
+
+Pour composer une **formule**, du **code** ou un **diagramme** sur un fond,
+choisissez une image déjà générée dans **Image de fond associée**. L’aperçu
+montre la composition complète. Réglez la position du contenu, sa taille,
+la marge extérieure et le cadrage du fond. Par défaut, le contenu est centré,
+sa taille est de 80 %, la marge de 64 pixels et l’image reste entière.
+Un panneau préserve la lisibilité et les couleurs du contenu tout en laissant
+voir le fond autour. **Enregistrer la ressource** conserve ces réglages et le
+PNG composé de 1472 × 1104 pixels. Une même image peut servir à plusieurs
+ressources sans nouvelle génération. **Aucune image de fond** restitue le
+visuel seul. Un fond manquant ou illisible est signalé avant de publier un
+nouveau rendu ; la version enregistrée reste conservée.
+
+Les ressources persistent dans `DGX_AVATAR_DATA_DIR/resources/index.json` et
+les PNG dans `DGX_AVATAR_DATA_DIR/resources/previews`, en dehors du code de l’application.
+
+Dans le scénario, appelez une ressource par son nom :
+
+```text
+Bonjour, voici le cours.
+{Ref:FormuleEnergie} Cette formule relie la masse et l’énergie.
+{Ref:ExempleTypeScript} Voici un exemple de code.
+{} Revenons à l’avatar.
+```
+
+Le visuel enregistré, avec son fond éventuel, remplace l’avatar pendant les
+paroles associées. La commande `{}` rétablit l’avatar. Seules les paroles sont
+envoyées au moteur vocal ; leurs durées mesurées déterminent les changements
+de visuel dans l’aperçu vidéo et la vidéo finale. Les proportions sont
+conservées et les visuels transparents sont présentés sur un fond blanc.
+
+Tapez **`{Ref:`** dans le scénario du Studio ou d’une ligne de batch : une
+modale propose d’abord les quatre types, puis les noms des ressources ayant
+un visuel enregistré. Sélectionner un nom complète la commande avec `}`,
+ferme la modale et replace le curseur après l’accolade. Le texte autour est
+conservé et une accolade déjà présente est réutilisée. **Annuler** ou **Échap**
+ferme la fenêtre sans modifier la saisie ; **Types de ressources** permet
+de revenir au choix du type. Une accolade échappée, comme `\{Ref:`, reste
+du texte littéral et n’ouvre pas la modale.
+
+**Vérifier et prévisualiser le scénario** montre la narration et les séquences,
+avec une vignette pour chaque référence, avant de générer la voix. Un nom
+inconnu, un brouillon sans rendu ou un visuel indisponible bloque la génération
+avec une explication. Les noms sont recherchés sans distinction de casse.
+Une voix enregistrée conserve ses associations aux ressources après leur
+renommage ; un nouveau scénario utilise leurs noms actuels. Chaque nouveau
+montage reprend les derniers visuels enregistrés.
+
+L’[étape 7](langage-avatar-v2/07-reference-et-montage.md) décrit cette intégration.
+L’[étape 8](langage-avatar-v2/08-saisie-assistee-des-references.md) décrit la
+saisie assistée des références. Les huit étapes de la
+[spécification v2](langage-avatar-v2/spec.md) sont implémentées.
+
+## Empreinte vocale depuis un fichier son
+
+Dans l’étape **Empreinte vocale**, choisissez un fichier dans **Ou créer
+l’empreinte depuis un fichier son**, écoutez l’aperçu, puis cliquez sur
+**Créer l’empreinte depuis ce fichier**. La durée minimale affichée est de
+**3 secondes** ; la taille maximale est de **30 Mo**. Les fichiers WAV, MP3,
+FLAC, M4A, OGG et AAC sont acceptés, puis convertis en WAV mono pour le clonage.
+Utilisez une seule voix clairement audible, sans musique ni bruit de fond.
+Aucune transcription n’est nécessaire avec le mode de clonage actuel.
+
+Le serveur vérifie la durée du son décodé et refuse les fichiers trop courts
+ou illisibles. L’empreinte existante reste active si l’import échoue. Après
+un import réussi, les nouvelles narrations utilisent cette voix ; les rendus
+déjà enregistrés restent dans l’historique.
+
+### Extrait vocal depuis YouTube
+
+Dans la même étape, la section **Ou récupérer la voix d’une vidéo YouTube**
+permet de coller le lien d’une vidéo et de choisir un repère en secondes,
+`mm:ss` ou `hh:mm:ss`. Par exemple, `01:30` extrait le son de **01:30 à 01:33**.
+Cliquez sur **Extraire 3 secondes et créer l’empreinte** ; l’extrait WAV devient
+la référence de l’avatar et peut être écouté dans **Empreinte enregistrée**.
+Les liens vidéo classiques, courts `youtu.be` et Shorts sont acceptés.
+La vidéo doit être disponible publiquement et contenir au moins trois secondes
+de son après le repère choisi. Les directs en cours ne sont pas pris en charge.
+
+L’import utilise FFmpeg et [yt-dlp](https://github.com/yt-dlp/yt-dlp). Installer
+ou mettre à jour yt-dlp dans le projet (Python 3 et Node.js 22+ requis) :
+
+```bash
+bash scripts/install-youtube-audio.sh
+```
+
+Le script vérifie la somme SHA-256 du téléchargement officiel et installe
+l’outil dans `.tools/yt-dlp`. Un exécutable existant peut aussi être indiqué
+par `YT_DLP_PATH` ; à défaut, l’application cherche `yt-dlp` dans le `PATH`.
+Les échecs réseau, vidéos indisponibles et repères trop proches de la fin
+laissent l’empreinte précédente intacte. Les changements de YouTube peuvent
+nécessiter une mise à jour de yt-dlp.
+
 ## Stabilisation du visage validée — 8 octobre 2026
 
 Les nouvelles générations en **Image stricte** renforcent la conservation des
@@ -37,8 +178,11 @@ restent visibles dans l’historique, mais ces moteurs ne sont plus proposés po
 les nouvelles générations. Pour revenir au checkpoint FP8 moins gourmand en
 mémoire, définissez `WAN_S2V_DIFFUSION_MODEL=wan2.2_s2v_14B_fp8_scaled.safetensors`.
 
-La génération utilise toujours **un seul WAV complet**, y compris pour les anciennes
-voix qui possèdent des métadonnées de découpage. Un bloc initial est prolongé par
+Sans commande de remplacement visuel, la génération utilise **un seul WAV complet**,
+y compris pour les anciennes voix qui possèdent des métadonnées de découpage.
+Avec `{Image:…}`, `{Ref:…}` ou `{File:…}`, seuls les passages où l’avatar est
+visible sont calculés par Wan, puis assemblés avec les visuels et la bande
+sonore du scénario. Pour chaque passage Wan, un bloc initial est prolongé par
 `WanSoundImageToVideoExtend` avec le latent cumulé, la même image de référence et
 le même encodage audio. Aucun redémarrage par ligne, interpolation de raccord,
 reconstruction de bouche ou correctif de couleur n’est appliqué.
